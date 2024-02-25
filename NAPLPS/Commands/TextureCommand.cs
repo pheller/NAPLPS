@@ -1,26 +1,16 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Collections.Generic;
-using System.Diagnostics;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class TextureCommand : NaplpsCommand
+public class TextureCommand(List<byte> operands) : NaplpsCommand(TEXTURE, operands)
 {
-    public TexturePatterns TexturePattern { get; }
+    public TexturePatterns TexturePattern { get; } = (TexturePatterns)ConvertBitsToByte([operands[0].GetBit(6), operands[0].GetBit(5), operands[0].GetBit(4)]);
 
-    public LineTextures LineTexture { get; }
+    public LineTextures LineTexture { get; } = (LineTextures)ConvertBitsToByte([operands[0].GetBit(2), operands[0].GetBit(1)]);
 
-    public bool ShouldHighlight { get; }
-
-    public TextureCommand(byte opcode, List<byte> operands) : base(opcode, operands)
-    {
-        TexturePattern = (TexturePatterns)ConvertBitsToByte(operands[0].GetBit(6), operands[0].GetBit(5), operands[0].GetBit(4));
-
-        ShouldHighlight = operands[0].GetBit(3);
-
-        LineTexture = (LineTextures)ConvertBitsToByte(operands[0].GetBit(2), operands[0].GetBit(1));
-    }
+    public bool ShouldHighlight { get; } = operands[0].GetBit(3);
 
     public enum LineTextures : byte
     {

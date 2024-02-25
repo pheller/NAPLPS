@@ -1,7 +1,6 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Collections.Generic;
-using System.Diagnostics;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
@@ -10,9 +9,9 @@ public class WaitCommand : NaplpsCommand
     /// <summary>The time to wait in 1/10 second increments</summary>
     public byte WaitTime { get; }
 
-    public List<byte> WaitTimes { get; } = new();
+    public List<byte> WaitTimes { get; } = [];
 
-    public WaitCommand(byte opcode, List<byte> operands) : base(opcode, operands)
+    public WaitCommand(List<byte> operands) : base(WAIT, operands)
     {
         if (operands.Count < 2)
         {

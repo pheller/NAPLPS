@@ -4,11 +4,9 @@ using System.Collections.Generic;
 
 namespace NAPLPS.Commands;
 
-public abstract class FillableGeometricDrawingCommandBase : GeometricDrawingCommandBase
+public abstract class FillableGeometricDrawingCommandBase(NaplpsCommands opcode, List<byte> operands) : GeometricDrawingCommandBase(opcode, operands)
 {
     public bool ShouldFill { get; internal set; }
 
     public bool ShouldOutline { get; internal set; }
-
-    public FillableGeometricDrawingCommandBase(byte opcode, List<byte> operands) : base(opcode, operands) { }
 }

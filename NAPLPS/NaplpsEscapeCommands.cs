@@ -1,10 +1,8 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System;
+namespace NAPLPS;
 
-namespace NAPLPS.Commands;
-
-public enum EscapeCommands : byte
+public enum NaplpsEscapeCommands : byte
 {
     DEF_MACRO = 0x40,
     DEFP_MACRO = 0x41,
@@ -23,20 +21,20 @@ public enum EscapeCommands : byte
     BLINK_START = 0x4E,
     DOUBLE_SIZE = 0x4F,
 
-    PROTECT = 0x80,
-    EDC1 = 0x81,
-    EDC2 = 0x82,
-    EDC3 = 0x83,
-    EDC4 = 0x84,
-    WORD_WRAP_ON = 0x85,
-    WORD_WRAP_OFF = 0x86,
-    SCROLL_ON = 0x87,
-    SCROLL_OFF = 0x88,
-    UNDERLINE_START = 0x89,
-    UNDERLINE_STOP = 0x8A,
-    FLASH_CURSOR = 0x8B,
-    SETADY_CURSOR = 0x8C,
-    CURSOR_OFF = 0x8D,
-    BLINK_STOP = 0x8E,
-    UNPROTECT = 0x8F,
+    PROTECT = 0x50,
+    EDC1 = 0x51,
+    EDC2 = 0x52,
+    EDC3 = 0x53,
+    EDC4 = 0x54,
+    WORD_WRAP_ON = 0x55,
+    WORD_WRAP_OFF = 0x56,
+    SCROLL_ON = 0x57,
+    SCROLL_OFF = 0x5,
+    UNDERLINE_START = 0x59,
+    UNDERLINE_STOP = 0x5A,
+    FLASH_CURSOR = 0x5B,
+    SETADY_CURSOR = 0x5C,
+    CURSOR_OFF = 0x5D,
+    BLINK_STOP = 0x5E,
+    UNPROTECT = 0x5F,
 }

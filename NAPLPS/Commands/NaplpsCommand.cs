@@ -1,84 +1,80 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using System.Diagnostics;
-using static NAPLPS.Commands.EscapeCommands;
-using static NAPLPS.Commands.NaplpsCommands;
+using static NAPLPS.NaplpsEscapeCommands;
+using static NAPLPS.NaplpsCommands;
+using System.Drawing;
 
 namespace NAPLPS.Commands;
 
-public class NaplpsCommand
+public class NaplpsCommand(NaplpsCommands opcode, List<byte> operands)
 {
-    public byte OpCode { get; }
+    public NaplpsCommands OpCode { get; } = opcode;
 
-    public List<byte> Operands { get; }
+    public List<byte> Operands { get; } = operands;
 
-    public NaplpsCommands Command => (NaplpsCommands)OpCode;
 
-    public ushort MultiByteValue => 4; // TODO: Default, use statemachine to determine
 
-    public ushort SingleByteValue => 1; // TODO: Default, use statemachine to determine
+    public ushort MultiByteValue { get; internal set; } = 3; // TODO: Default, use statemachine to determine
 
-    public ushort Dimensionality => 2;
+    public ushort SingleByteValue { get; internal set; } = 1; // TODO: Default, use statemachine to determine
 
-    public NaplpsCommand(byte opcode, List<byte> operands)
-    {
-        OpCode = opcode;
-        Operands = operands;
-    }
-
+    public ushort Dimensionality { get; internal set; } = 2;
     
+    public Point LogicalPel { get; internal set; } = new (1, 1);
 
-    public static NaplpsCommand Factory(byte opcode, List<byte> operands)
+
+    public static NaplpsCommand Factory(NaplpsCommands opcode, List<byte> operands)
     {
-        return (NaplpsCommands)opcode switch
+        return opcode switch
         {
             CANCEL => new NaplpsCommand(opcode, operands),
             NSR => new NaplpsCommand(opcode, operands),
             ESC => ProcessEscapeSequence(opcode, operands),
             SHIFT_OUT => new NaplpsCommand(opcode, operands),
             SHIFT_IN => new NaplpsCommand(opcode, operands),
-            RESET => new ResetCommand(opcode, operands),
-            DOMAIN => new DomainCommand(opcode, operands),
-            WAIT => new WaitCommand(opcode, operands),
-            SELECT_COLOR => new SelectColorCommand(opcode, operands),
-            SET_COLOR => new SetColorCommand(opcode, operands),
-            TEXTURE => new TextureCommand(opcode, operands),
-            POLYGON_OUTLINED => new PolygonOutlinedCommand(opcode, operands),
-            POLYGON_FILLED => new PolygonFilledCommand(opcode, operands),
-            POLYGON_SET_OUTLINED => new PolygonSetOutlinedCommand(opcode, operands),
-            POLYGON_SET_FILLED => new PolygonSetFilledCommand(opcode, operands),
-            RECTANGLE_OUTLINED => new RectangleOutlinedCommand(opcode, operands),
-            RECTANGLE_FILLED => new RectangleFilledCommand(opcode, operands),
-            RECTANGLE_SET_OUTLINED => new RectangleSetOutlinedCommand(opcode, operands),
-            RECTANGLE_SET_FILLED => new RectangleSetFilledCommand(opcode, operands),
-            POINT_ABS => new PointAbsoluteCommand(opcode, operands),
-            POINT_REL => new PointRelativeCommand(opcode, operands),
-            POINT_SET_ABS => new PointSetAbsoluteCommand(opcode, operands),
-            POINT_SET_REL => new PointSetRelativeCommand(opcode, operands),
-            LINE_ABS => new LineAbsoluteCommand(opcode, operands),
-            LINE_REL => new LineRelativeCommand(opcode, operands),
-            LINE_SET_ABS => new LineSetAbsoluteCommand(opcode, operands),
-            LINE_SET_REL => new LineSetRelativeCommand(opcode, operands),
+            RESET => new ResetCommand(operands),
+            DOMAIN => new DomainCommand(operands),
+            WAIT => new WaitCommand(operands),
+            SELECT_COLOR => new SelectColorCommand(operands),
+            SET_COLOR => new SetColorCommand(operands),
+            TEXTURE => new TextureCommand(operands),
+            POLYGON_OUTLINED => new PolygonOutlinedCommand(operands),
+            POLYGON_FILLED => new PolygonFilledCommand(operands),
+            POLYGON_SET_OUTLINED => new PolygonSetOutlinedCommand(operands),
+            POLYGON_SET_FILLED => new PolygonSetFilledCommand(operands),
+            RECTANGLE_OUTLINED => new RectangleOutlinedCommand(operands),
+            RECTANGLE_FILLED => new RectangleFilledCommand(operands),
+            RECTANGLE_SET_OUTLINED => new RectangleSetOutlinedCommand(operands),
+            RECTANGLE_SET_FILLED => new RectangleSetFilledCommand(operands),
+            POINT_ABS => new PointAbsoluteCommand(operands),
+            POINT_REL => new PointRelativeCommand(operands),
+            POINT_SET_ABS => new PointSetAbsoluteCommand(operands),
+            POINT_SET_REL => new PointSetRelativeCommand(operands),
+            LINE_ABS => new LineAbsoluteCommand(operands),
+            LINE_REL => new LineRelativeCommand(operands),
+            LINE_SET_ABS => new LineSetAbsoluteCommand(operands),
+            LINE_SET_REL => new LineSetRelativeCommand(operands),
             _ => BreakAndReturn(opcode, operands),
         };
     }
 
-    private static NaplpsCommand ProcessEscapeSequence(byte opcode, List<byte> operands)
+    private static NaplpsCommand ProcessEscapeSequence(NaplpsCommands opcode, List<byte> operands)
     {
         if (operands.Count == 0)
         {
-            return new EscCommand(opcode, operands);
+            return new EscCommand(operands);
         }
 
-        return (EscapeCommands)operands[0] switch
+        return (NaplpsEscapeCommands)operands[0] switch
         {
-            DEF_TEXTURE => new DefTextureCommand(opcode, operands),
-            END => new EndCommand(opcode, operands),
+            DEF_TEXTURE => new DefTextureCommand(operands),
+            END => new EndCommand(operands),
             _ => BreakAndReturn(opcode, operands),
         };
     }
 
-    private static NaplpsCommand BreakAndReturn(byte opcode, List<byte> operands)
+    private static NaplpsCommand BreakAndReturn(NaplpsCommands opcode, List<byte> operands)
     {
         var newUnknownCommand = new NaplpsCommand(opcode, operands);
 
@@ -87,12 +83,12 @@ public class NaplpsCommand
         return newUnknownCommand;
     }
 
-    public static byte ConvertBitsToByte(params bool[] booleans)
+    public static byte ConvertBitsToByte(List<bool> booleans)
     {
         byte result = 0;
         int maxBits = 8;
 
-        for (int i = 0; i < Math.Min(booleans.Length, maxBits); i++)
+        for (int i = 0; i < Math.Min(booleans.Count, maxBits); i++)
         {
             if (booleans[i])
             {

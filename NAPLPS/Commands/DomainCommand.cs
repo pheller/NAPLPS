@@ -1,6 +1,7 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Collections.Generic;
+using System.Drawing;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
@@ -12,22 +13,28 @@ namespace NAPLPS.Commands;
 /// Once set, these parameters do not change until acted upon by either the
 /// RESET command, another DOMAIN command, or the NSR control code
 /// </summary>
-public class DomainCommand : NaplpsCommand
+public class DomainCommand : GeometricDrawingCommandBase
 {
-    public ushort SingleValueLength { get; }
-
-    public ushort MultiValueLength { get; }
-
-    public bool IsTwoDimensional { get; }
-
-    public DomainCommand(byte opcode, List<byte> operands) : base(opcode, operands)
+    public DomainCommand(List<byte> operands) : base(DOMAIN, operands)
     {
-        SingleValueLength = ConvertBitsToByte(Operands[0].GetBit(1), Operands[0].GetBit(2));
-        SingleValueLength++;
+        if (operands.Count == 0)
+        {
+            return;
+        }
 
-        MultiValueLength = ConvertBitsToByte(Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5));
-        MultiValueLength++;
+        SingleByteValue = ConvertBitsToByte([Operands[0].GetBit(1), Operands[0].GetBit(2)]);
+        SingleByteValue++;
 
-        IsTwoDimensional = Operands[0].GetBit(6);
+        MultiByteValue = ConvertBitsToByte([Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5)]);
+        MultiByteValue++;
+
+        Dimensionality = (ushort)(Operands[0].GetBit(6) ? 3 : 2);
+
+        if (operands.Count > 1)
+        {
+            Vertices = ProcessVerticies(operands.Skip(1).ToList(), true);
+
+            LogicalPel = Vertices != null ? new Point((int)Vertices[0].X, (int)Vertices[0].Y) : Point.Empty;
+        }
     }
 }

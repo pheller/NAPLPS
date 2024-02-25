@@ -1,7 +1,6 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System;
-using System.Collections.Generic;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
@@ -23,7 +22,7 @@ public class SelectColorCommand : NaplpsCommand
     /// Additional numeric data bytes are reserved for future standardization and
     /// shall be ignored.
     /// </summary>
-    public SelectColorCommand(byte opcode, List<byte> operands) : base(opcode, operands)
+    public SelectColorCommand(List<byte> operands) : base(SELECT_COLOR, operands)
     {
         /// If the SELECT COLOR opcode is followed by no operands,
         /// color mode 0 is indicated. The terminal will remain in color mode 0 until
@@ -51,7 +50,7 @@ public class SelectColorCommand : NaplpsCommand
         /// drawing color is applied.
         if (Operands.Count == 1)
         {
-            SelectedDrawingColor = ConvertBitsToByte(Operands[0].GetBit(1), Operands[0].GetBit(2), Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6));
+            SelectedDrawingColor = ConvertBitsToByte([Operands[0].GetBit(1), Operands[0].GetBit(2), Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
         }
         /// If the SELECT COLOR opcode is followed by two operands, color
         /// mode 2 is indicated. Again, the terminal will remain in color mode 2 until
@@ -70,8 +69,8 @@ public class SelectColorCommand : NaplpsCommand
         /// color in the line and area texture patterns
         else if (Operands.Count == 2)
         {
-            SelectedDrawingColor = ConvertBitsToByte(Operands[0].GetBit(1), Operands[0].GetBit(2), Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6));
-            SelectedBackgroundColor = ConvertBitsToByte(Operands[1].GetBit(1), Operands[1].GetBit(2), Operands[1].GetBit(3), Operands[1].GetBit(4), Operands[1].GetBit(5), Operands[1].GetBit(6));
+            SelectedDrawingColor = ConvertBitsToByte([Operands[0].GetBit(1), Operands[0].GetBit(2), Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
+            SelectedBackgroundColor = ConvertBitsToByte([Operands[1].GetBit(1), Operands[1].GetBit(2), Operands[1].GetBit(3), Operands[1].GetBit(4), Operands[1].GetBit(5), Operands[1].GetBit(6)]);
         }
     }
 }

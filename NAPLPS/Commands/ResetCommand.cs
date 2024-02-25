@@ -1,6 +1,6 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Collections.Generic;
+using static NAPLPS.NaplpsCommands;
 using System.Diagnostics;
 
 namespace NAPLPS.Commands;
@@ -35,7 +35,7 @@ public class ResetCommand : NaplpsCommand
 
     public ScreenBorderReset ColorScreenBorder { get; }
 
-    public ResetCommand(byte opcode, List<byte> operands) : base(opcode, operands)
+    public ResetCommand(List<byte> operands) : base(RESET, operands)
     {
         /*	If the RESET command is received with no operands, it is interpreted as if it
 		/*	had been sent with bits b6 to b1 in both bytes set equal to 0. If only one byte
@@ -60,10 +60,10 @@ public class ResetCommand : NaplpsCommand
         IsDomainReset = Operands[0].GetBit(1);
 
         // Bits b3 and b2 of byte 1 modify the color mode and/or current drawing color
-        ColorMode = (ColorModeReset)ConvertBitsToByte(Operands[0].GetBit(2), Operands[0].GetBit(3));
+        ColorMode = (ColorModeReset)ConvertBitsToByte([Operands[0].GetBit(2), Operands[0].GetBit(3)]);
 
         // Bits b6, b5, and b4 of byte 1 clear the display area and/or border area to the colors
-        ColorScreenBorder = (ScreenBorderReset)ConvertBitsToByte(Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6));
+        ColorScreenBorder = (ScreenBorderReset)ConvertBitsToByte([Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
 
         // If bit b1 of byte 2 equals 1, the cursor is sent to its home position
         // (top left character position in the display area) and all text parameters

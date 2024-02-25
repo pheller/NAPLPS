@@ -3,12 +3,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
 public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
 {
-    public PolygonCommand(byte opcode, List<byte> operands) : base(opcode, operands)
+    public PolygonCommand(NaplpsCommands opcode, List<byte> operands) : base(opcode, operands)
     {
         Vertices = ProcessVerticies(operands);
     }

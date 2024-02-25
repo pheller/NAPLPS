@@ -1,21 +1,6 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System;
-
-namespace NAPLPS.Commands;
-
-public static class NaplpsExtensions
-{
-    public static bool GetBit(this byte b, int bitNumber)
-    {
-        if (bitNumber < 1 || bitNumber > 8)
-        {
-            throw new ArgumentOutOfRangeException(nameof(bitNumber), "Bit number must be between 1 and 8.");
-        }
-
-        return (b & 1 << bitNumber - 1) != 0;
-    }
-}
+namespace NAPLPS;
 
 public enum NaplpsCommands : byte
 {

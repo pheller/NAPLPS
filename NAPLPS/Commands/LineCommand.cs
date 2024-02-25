@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
@@ -10,7 +11,7 @@ public abstract class LineCommand : GeometricDrawingCommandBase
 {
     public Vector3 Point { get; internal set; }
 
-    public LineCommand(byte opcode, List<byte> operands) : base(opcode, operands)
+    public LineCommand(NaplpsCommands opcode, List<byte> operands) : base(opcode, operands)
     {
         Point = ProcessVerticies(operands).FirstOrDefault();
     }

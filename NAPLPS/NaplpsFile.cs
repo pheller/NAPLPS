@@ -3,22 +3,35 @@
 using NAPLPS.Commands;
 using System.Diagnostics;
 using static NAPLPS.Commands.NaplpsCommand;
-using static NAPLPS.Commands.NaplpsCommands;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS;
 
 public class NaplpsFile
 {
-    public List<NaplpsCommand> Commands { get; }
+    public bool IsErrored => Errors.Count > 0;
+
+    public bool Is8Bit => !Is7Bit;
+
+    public bool Is7Bit { get; private set; } = true;
+
+    public bool IsValid {  get; private set; }
+
+    public IReadOnlyList<NaplpsError> Errors { get; } = [];
+
+    public IReadOnlyList<NaplpsCommand> Commands { get; }
 
     public NaplpsState State { get; } = new();
 
     private NaplpsFile(BinaryReader reader)
     {
         Commands = ReadStream(reader);
+
+        // Analysis
+        Is7Bit = !Commands.Any(cmd => (byte)cmd.OpCode > 0x80);
     }
 
-    public NaplpsFile FromFile(string fullpath)
+    public static NaplpsFile FromFile(string fullpath)
     {
         var file = File.OpenRead(fullpath);
 
@@ -36,17 +49,7 @@ public class NaplpsFile
                 var opcode = reader.ReadByte();
                 var operands = new List<byte>();
 
-                if (opcode > 0x80)
-                {
-                    Debugger.Break();
-                }
-
                 var shiftIn = opcode == (byte)SHIFT_IN;
-
-                if (shiftIn)
-                {
-                    // Debugger.Break();
-                }
 
                 while (!reader.IsEOF() && (!IsOpcode((byte)reader.PeekChar()) || shiftIn))
                 {
@@ -65,7 +68,7 @@ public class NaplpsFile
                     }
                 }
 
-                var command = Factory(opcode, operands);
+                var command = Factory((NaplpsCommands)opcode, operands);
 
                 commands.Add(command);
             }

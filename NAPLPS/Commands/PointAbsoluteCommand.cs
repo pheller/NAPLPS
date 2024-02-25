@@ -1,10 +1,10 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using System.Collections.Generic;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class PointAbsoluteCommand : PointCommand
+public class PointAbsoluteCommand(List<byte> operands) : PointCommand(POINT_ABS, operands)
 {
-    public PointAbsoluteCommand(byte opcode, List<byte> operands) : base(opcode, operands) { }
 }

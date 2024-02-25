@@ -1,7 +1,6 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System;
-using System.Collections.Generic;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
@@ -19,7 +18,7 @@ public class SetColorCommand : NaplpsCommand
 
     public ushort Blue { get; private set; }
 
-    public SetColorCommand(byte opcode, List<byte> operands) : base(opcode, operands)
+    public SetColorCommand(List<byte> operands) : base(SET_COLOR, operands)
     {
         if (ColorMode == 0 && operands.Count == 0)
         {

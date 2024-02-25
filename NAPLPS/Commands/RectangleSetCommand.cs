@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
@@ -12,7 +13,7 @@ public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
 
     public Vector3 Dimensions { get; }
 
-    public RectangleSetCommand(byte opcode, List<byte> operands) : base(opcode, operands)
+    public RectangleSetCommand(NaplpsCommands opcode, List<byte> operands) : base(opcode, operands)
     {
         var verts = ProcessVerticies(operands);
 

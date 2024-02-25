@@ -1,10 +1,10 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using System.Collections.Generic;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class EndCommand : NaplpsCommand
+public class EndCommand(List<byte> operands) : NaplpsCommand(ESC, operands)
 {
-    public EndCommand(byte opcode, List<byte> operands) : base(opcode, operands) { }
-}
+} 

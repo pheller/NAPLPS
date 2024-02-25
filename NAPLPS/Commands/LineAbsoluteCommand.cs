@@ -1,10 +1,10 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using System.Collections.Generic;
+using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class LineAbsoluteCommand : LineCommand
+public class LineAbsoluteCommand(List<byte> operands) : LineCommand(LINE_ABS, operands)
 {
-    public LineAbsoluteCommand(byte opcode, List<byte> operands) : base(opcode, operands) { }
 }
