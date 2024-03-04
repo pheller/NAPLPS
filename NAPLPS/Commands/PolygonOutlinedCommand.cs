@@ -7,7 +7,7 @@ namespace NAPLPS.Commands;
 
 public class PolygonOutlinedCommand : PolygonCommand
 {
-    public PolygonOutlinedCommand(List<byte> operands) : base(POLYGON_OUTLINED, operands)
+    public PolygonOutlinedCommand(NaplpsState state, List<byte> operands) : base(state, POLYGON_OUTLINED, operands)
     {
         ShouldOutline = true;
     }

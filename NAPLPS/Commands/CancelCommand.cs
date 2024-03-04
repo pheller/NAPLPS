@@ -4,6 +4,6 @@ using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class PointSetRelativeCommand(NaplpsState state, List<byte> operands) : PointCommand(state, POINT_SET_REL, operands)
+public class CancelCommand(NaplpsState state, List<byte> operands) : NaplpsCommand(state, CANCEL, operands)
 {
 }

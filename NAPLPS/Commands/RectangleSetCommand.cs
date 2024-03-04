@@ -13,7 +13,7 @@ public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
 
     public Vector3 Dimensions { get; }
 
-    public RectangleSetCommand(NaplpsCommands opcode, List<byte> operands) : base(opcode, operands)
+    public RectangleSetCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : base(state, opcode, operands)
     {
         var verts = ProcessVerticies(operands);
 

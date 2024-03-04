@@ -5,6 +5,6 @@ using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class LineAbsoluteCommand(List<byte> operands) : LineCommand(LINE_ABS, operands)
+public class LineAbsoluteCommand(NaplpsState state, List<byte> operands) : LineCommand(state, LINE_ABS, operands)
 {
 }

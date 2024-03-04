@@ -4,7 +4,7 @@ using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class TextureCommand(List<byte> operands) : NaplpsCommand(TEXTURE, operands)
+public class TextureCommand(NaplpsState state, List<byte> operands) : NaplpsCommand(state, TEXTURE, operands)
 {
     public TexturePatterns TexturePattern { get; } = (TexturePatterns)ConvertBitsToByte([operands[0].GetBit(6), operands[0].GetBit(5), operands[0].GetBit(4)]);
 

@@ -15,26 +15,26 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class DomainCommand : GeometricDrawingCommandBase
 {
-    public DomainCommand(List<byte> operands) : base(DOMAIN, operands)
+    public DomainCommand(NaplpsState state, List<byte> operands) : base(state, DOMAIN, operands)
     {
         if (operands.Count == 0)
         {
             return;
         }
 
-        SingleByteValue = ConvertBitsToByte([Operands[0].GetBit(1), Operands[0].GetBit(2)]);
-        SingleByteValue++;
+        State.SingleByteValue = ConvertBitsToByte([Operands[0].GetBit(1), Operands[0].GetBit(2)]);
+        State.SingleByteValue++;
 
-        MultiByteValue = ConvertBitsToByte([Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5)]);
-        MultiByteValue++;
+        State.MultiByteValue = ConvertBitsToByte([Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5)]);
+        State.MultiByteValue++;
 
-        Dimensionality = (ushort)(Operands[0].GetBit(6) ? 3 : 2);
+        State.Dimensionality = (byte)(Operands[0].GetBit(6) ? 3 : 2);
 
         if (operands.Count > 1)
         {
             Vertices = ProcessVerticies(operands.Skip(1).ToList(), true);
 
-            LogicalPel = Vertices != null ? new Point((int)Vertices[0].X, (int)Vertices[0].Y) : Point.Empty;
+            State.LogicalPel = Vertices != null ? new Point((int)Vertices[0].X, (int)Vertices[0].Y) : Point.Empty;
         }
     }
 }

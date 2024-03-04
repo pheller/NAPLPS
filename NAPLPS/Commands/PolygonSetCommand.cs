@@ -11,10 +11,10 @@ public abstract class PolygonSetCommand : FillableGeometricDrawingCommandBase
 {
     public Vector3 StartPoint { get; }
 
-    public PolygonSetCommand(NaplpsCommands opcode, List<byte> operands) : base(opcode, operands)
+    public PolygonSetCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : base(state, opcode, operands)
     {
-        StartPoint = ProcessVerticies(operands.Take(MultiByteValue).ToList()).FirstOrDefault();
+        StartPoint = ProcessVerticies(operands.Take(State.MultiByteValue).ToList()).FirstOrDefault();
 
-        Vertices = ProcessVerticies(operands.Skip(MultiByteValue).ToList());
+        Vertices = ProcessVerticies(operands.Skip(State.MultiByteValue).ToList());
     }
 }

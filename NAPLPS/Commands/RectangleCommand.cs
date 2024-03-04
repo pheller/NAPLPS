@@ -11,7 +11,7 @@ public abstract class RectangleCommand : FillableGeometricDrawingCommandBase
 {
     public Vector3 Dimensions { get; }
 
-    public RectangleCommand(NaplpsCommands opcode, List<byte> operands) : base(opcode, operands)
+    public RectangleCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : base(state, opcode, operands)
     {
         Dimensions = ProcessVerticies(operands).FirstOrDefault();
     }

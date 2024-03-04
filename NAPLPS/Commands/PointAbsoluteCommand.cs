@@ -5,6 +5,6 @@ using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class PointAbsoluteCommand(List<byte> operands) : PointCommand(POINT_ABS, operands)
+public class PointAbsoluteCommand(NaplpsState state, List<byte> operands) : PointCommand(state, POINT_ABS, operands)
 {
 }

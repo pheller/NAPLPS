@@ -8,7 +8,7 @@ namespace NAPLPS.Commands;
 
 public class PolygonSetFilledCommand : PolygonSetCommand
 {
-    public PolygonSetFilledCommand(List<byte> operands) : base(POLYGON_SET_FILLED, operands)
+    public PolygonSetFilledCommand(NaplpsState state, List<byte> operands) : base(state, POLYGON_SET_FILLED, operands)
     {
         ShouldFill = true;
     }

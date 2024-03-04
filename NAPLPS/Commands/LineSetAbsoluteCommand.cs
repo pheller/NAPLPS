@@ -5,6 +5,6 @@ using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class LineSetAbsoluteCommand(List<byte> operands) : LineCommand(LINE_SET_ABS, operands)
+public class LineSetAbsoluteCommand(NaplpsState state, List<byte> operands) : LineCommand(state, LINE_SET_ABS, operands)
 {
 }

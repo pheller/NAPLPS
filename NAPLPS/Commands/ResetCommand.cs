@@ -35,7 +35,7 @@ public class ResetCommand : NaplpsCommand
 
     public ScreenBorderReset ColorScreenBorder { get; }
 
-    public ResetCommand(List<byte> operands) : base(RESET, operands)
+    public ResetCommand(NaplpsState state, List<byte> operands) : base(state, RESET, operands)
     {
         /*	If the RESET command is received with no operands, it is interpreted as if it
 		/*	had been sent with bits b6 to b1 in both bytes set equal to 0. If only one byte
@@ -46,7 +46,7 @@ public class ResetCommand : NaplpsCommand
         if (operands.Count == 0)
         {
             Debugger.Break();
-            Operands.AddRange(new byte[2] { 0, 0 });
+            Operands.AddRange([0, 0]);
         }
         else if (operands.Count == 1)
         {

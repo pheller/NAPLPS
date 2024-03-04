@@ -1,5 +1,6 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
+using System.Drawing;
 using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
@@ -8,23 +9,15 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class SetColorCommand : NaplpsCommand
 {
-    public ushort ColorMode { get; }
+    public Color ForegroundColor;
 
-    public bool IsTransparent { get; }
-
-    public ushort Green { get; private set; }
-
-    public ushort Red { get; private set; }
-
-    public ushort Blue { get; private set; }
-
-    public SetColorCommand(List<byte> operands) : base(SET_COLOR, operands)
+    public SetColorCommand(NaplpsState state, List<byte> operands) : base(state, SET_COLOR, operands)
     {
-        if (ColorMode == 0 && operands.Count == 0)
+        if (State.ColorMode == 0 && Operands.Count == 0)
         {
-            IsTransparent = true;
+            State.IsTransparent = true;
         }
-        else if (ColorMode == 0)
+        else if (State.ColorMode == 0)
         {
             ParseColorComponents(operands);
         }
@@ -36,21 +29,23 @@ public class SetColorCommand : NaplpsCommand
 
     private void ParseColorComponents(List<byte> operands)
     {
-        Green = 0;
-        Red = 0;
-        Blue = 0;
+        State.DrawForgroundGreen = 0;
+        State.DrawForgroundRed = 0;
+        State.DrawForgroundBlue = 0;
 
         foreach (var b in operands)
         {
             // Extract bits for each color component from the first triplet
-            Green = (ushort)(Green << 1 | b >> 5 & 0x1);
-            Red = (ushort)(Red << 1 | b >> 4 & 0x1);
-            Blue = (ushort)(Blue << 1 | b >> 3 & 0x1);
+            State.DrawForgroundGreen = (byte)(State.DrawForgroundGreen << 1 | b >> 5 & 0x1);
+            State.DrawForgroundRed = (byte)(State.DrawForgroundRed << 1 | b >> 4 & 0x1);
+            State.DrawForgroundBlue = (byte)(State.DrawForgroundBlue << 1 | b >> 3 & 0x1);
 
             // Extract bits for each color component from the second triplet
-            Green = (ushort)(Green << 1 | b >> 2 & 0x1);
-            Red = (ushort)(Red << 1 | b >> 1 & 0x1);
-            Blue = (ushort)(Blue << 1 | b & 0x1);
+            State.DrawForgroundGreen = (byte)(State.DrawForgroundGreen << 1 | b >> 2 & 0x1);
+            State.DrawForgroundRed = (byte)(State.DrawForgroundRed << 1 | b >> 1 & 0x1);
+            State.DrawForgroundBlue = (byte)(State.DrawForgroundBlue << 1 | b & 0x1);
         }
+
+        ForegroundColor = Color.Empty.From6BitRGB(State.DrawForgroundRed, State.DrawForgroundGreen, State.DrawForgroundBlue);
     }
 }

@@ -11,7 +11,7 @@ public abstract class LineCommand : GeometricDrawingCommandBase
 {
     public Vector3 Point { get; internal set; }
 
-    public LineCommand(NaplpsCommands opcode, List<byte> operands) : base(opcode, operands)
+    public LineCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : base(state, opcode, operands)
     {
         Point = ProcessVerticies(operands).FirstOrDefault();
     }

@@ -11,18 +11,12 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class SelectColorCommand : NaplpsCommand
 {
-    public ushort ColorMode { get; }
-
-    public ushort SelectedDrawingColor { get; }
-
-    public ushort SelectedBackgroundColor { get; }
-
     /// <summary>
     /// The SELECT COLOR opcode can take zero, one, or two single-value operands.
     /// Additional numeric data bytes are reserved for future standardization and
     /// shall be ignored.
     /// </summary>
-    public SelectColorCommand(List<byte> operands) : base(SELECT_COLOR, operands)
+    public SelectColorCommand(NaplpsState state, List<byte> operands) : base(state, SELECT_COLOR, operands)
     {
         /// If the SELECT COLOR opcode is followed by no operands,
         /// color mode 0 is indicated. The terminal will remain in color mode 0 until
@@ -33,7 +27,7 @@ public class SelectColorCommand : NaplpsCommand
         /// color is not specified in color mode 0, rather, alphanumerics
         /// and pictorial drawings merely overwrite the existing contents of the
         /// physical display screen only where the drawing color is applied.
-        ColorMode = (ushort)Math.Min(Operands.Count, 2);
+        State.ColorMode = (byte)Math.Min(Operands.Count, 2);
 
         /// If the SELECT COLOR opcode is followed by a single operand,
         /// color mode 1 is indicated. (This has no effect on the color map.) The terminal
@@ -50,7 +44,7 @@ public class SelectColorCommand : NaplpsCommand
         /// drawing color is applied.
         if (Operands.Count == 1)
         {
-            SelectedDrawingColor = ConvertBitsToByte([Operands[0].GetBit(1), Operands[0].GetBit(2), Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
+            State.ForegroundSelectedColor = ConvertBitsToByte([Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
         }
         /// If the SELECT COLOR opcode is followed by two operands, color
         /// mode 2 is indicated. Again, the terminal will remain in color mode 2 until
@@ -69,8 +63,8 @@ public class SelectColorCommand : NaplpsCommand
         /// color in the line and area texture patterns
         else if (Operands.Count == 2)
         {
-            SelectedDrawingColor = ConvertBitsToByte([Operands[0].GetBit(1), Operands[0].GetBit(2), Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
-            SelectedBackgroundColor = ConvertBitsToByte([Operands[1].GetBit(1), Operands[1].GetBit(2), Operands[1].GetBit(3), Operands[1].GetBit(4), Operands[1].GetBit(5), Operands[1].GetBit(6)]);
+            State.ForegroundSelectedColor = ConvertBitsToByte([Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
+            State.BackgroundSelectedColor = ConvertBitsToByte([Operands[1].GetBit(3), Operands[1].GetBit(4), Operands[1].GetBit(5), Operands[1].GetBit(6)]);
         }
     }
 }

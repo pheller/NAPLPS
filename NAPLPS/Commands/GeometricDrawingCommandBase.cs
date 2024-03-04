@@ -5,10 +5,11 @@ using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public abstract class GeometricDrawingCommandBase(NaplpsCommands opcode, List<byte> operands) : NaplpsCommand(opcode, operands)
+public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : NaplpsCommand(state, opcode, operands)
 {
     private static readonly bool[] _twoDimensionalZero = [false, false, false];
     private static readonly bool[] _threeDimensionalZero = [false, false];
+
 
     public List<Vector3> Vertices { get; internal set; } = [];
 
@@ -24,27 +25,27 @@ public abstract class GeometricDrawingCommandBase(NaplpsCommands opcode, List<by
         {
             var operand = operands[idx];
 
-            if (Dimensionality == 2)
+            if (State.Dimensionality == 2)
             {
-                x.AddRange(new[] { operand.GetBit(6), operand.GetBit(5), operand.GetBit(4) });
-                y.AddRange(new[] { operand.GetBit(3), operand.GetBit(2), operand.GetBit(1) });
+                x.AddRange([operand.GetBit(6), operand.GetBit(5), operand.GetBit(4)]);
+                y.AddRange([operand.GetBit(3), operand.GetBit(2), operand.GetBit(1)]);
             }
-            else if (Dimensionality == 3)
+            else if (State.Dimensionality == 3)
             {
-                x.AddRange(new[] { operand.GetBit(6), operand.GetBit(5) });
-                y.AddRange(new[] { operand.GetBit(4), operand.GetBit(3) });
-                z.AddRange(new[] { operand.GetBit(2), operand.GetBit(1) });
+                x.AddRange([operand.GetBit(6), operand.GetBit(5)]);
+                y.AddRange([operand.GetBit(4), operand.GetBit(3)]);
+                z.AddRange([operand.GetBit(2), operand.GetBit(1)]);
             }
 
             // We're short bytes, fill with zeros and walk away
-            if (idx == operands.Count && (idx + 1) % MultiByteValue != 0)
+            if (idx == operands.Count && (idx + 1) % State.MultiByteValue != 0)
             {
-                if (Dimensionality == 2)
+                if (State.Dimensionality == 2)
                 {
                     x.AddRange(_twoDimensionalZero);
                     y.AddRange(_twoDimensionalZero);
                 }
-                else if (Dimensionality == 3)
+                else if (State.Dimensionality == 3)
                 {
                     x.AddRange(_threeDimensionalZero);
                     y.AddRange(_threeDimensionalZero);
@@ -60,7 +61,7 @@ public abstract class GeometricDrawingCommandBase(NaplpsCommands opcode, List<by
 
                 var dx = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(x);
                 var dy = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(y);
-                var dz = Dimensionality == 3 ? isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(z) : 0;
+                var dz = State.Dimensionality == 3 ? isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(z) : 0;
 
                 x.Clear();
                 y.Clear();
@@ -68,7 +69,7 @@ public abstract class GeometricDrawingCommandBase(NaplpsCommands opcode, List<by
 
                 verts.Add(new Vector3(dx, dy, dz));
             }
-            else if ((idx + 1) % MultiByteValue == 0)
+            else if ((idx + 1) % State.MultiByteValue == 0)
             {
                 if (isInt)
                 {
@@ -79,7 +80,7 @@ public abstract class GeometricDrawingCommandBase(NaplpsCommands opcode, List<by
 
                 var dx = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(x);
                 var dy = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(y);
-                var dz = Dimensionality == 3 ? isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(z) : 0;
+                var dz = State.Dimensionality == 3 ? isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(z) : 0;
 
                 x.Clear();
                 y.Clear();

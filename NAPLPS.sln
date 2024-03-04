@@ -12,9 +12,19 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6EB2BC93-CACA-4DCE-A5BC-6239BA0073FC}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		Examples\autumn.nap = Examples\autumn.nap
+		Examples\canada1.nap = Examples\canada1.nap
 		LICENSE = LICENSE
+		Examples\maple.nap = Examples\maple.nap
 		NAPLPS.sln.licenseheader = NAPLPS.sln.licenseheader
 		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{9C51A1F5-C754-4A06-B654-6BA9E68F43C1}"
+	ProjectSection(SolutionItems) = preProject
+		Examples\autumn.nap = Examples\autumn.nap
+		Examples\canada1.nap = Examples\canada1.nap
+		Examples\maple.nap = Examples\maple.nap
 	EndProjectSection
 EndProject
 Global
@@ -38,6 +48,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9C51A1F5-C754-4A06-B654-6BA9E68F43C1} = {6EB2BC93-CACA-4DCE-A5BC-6239BA0073FC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EC02631B-475D-4806-AA4D-858B32C98A9C}

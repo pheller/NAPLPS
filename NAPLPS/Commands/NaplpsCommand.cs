@@ -7,80 +7,47 @@ using System.Drawing;
 
 namespace NAPLPS.Commands;
 
-public class NaplpsCommand(NaplpsCommands opcode, List<byte> operands)
+public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands)
 {
     public NaplpsCommands OpCode { get; } = opcode;
 
     public List<byte> Operands { get; } = operands;
 
+    public NaplpsState State { get; } = state;
 
-
-    public ushort MultiByteValue { get; internal set; } = 3; // TODO: Default, use statemachine to determine
-
-    public ushort SingleByteValue { get; internal set; } = 1; // TODO: Default, use statemachine to determine
-
-    public ushort Dimensionality { get; internal set; } = 2;
-    
-    public Point LogicalPel { get; internal set; } = new (1, 1);
-
-
-    public static NaplpsCommand Factory(NaplpsCommands opcode, List<byte> operands)
+    public static NaplpsCommand Factory(NaplpsState state, NaplpsCommands opcode, List<byte> operands)
     {
         return opcode switch
         {
-            CANCEL => new NaplpsCommand(opcode, operands),
-            NSR => new NaplpsCommand(opcode, operands),
-            ESC => ProcessEscapeSequence(opcode, operands),
-            SHIFT_OUT => new NaplpsCommand(opcode, operands),
-            SHIFT_IN => new NaplpsCommand(opcode, operands),
-            RESET => new ResetCommand(operands),
-            DOMAIN => new DomainCommand(operands),
-            WAIT => new WaitCommand(operands),
-            SELECT_COLOR => new SelectColorCommand(operands),
-            SET_COLOR => new SetColorCommand(operands),
-            TEXTURE => new TextureCommand(operands),
-            POLYGON_OUTLINED => new PolygonOutlinedCommand(operands),
-            POLYGON_FILLED => new PolygonFilledCommand(operands),
-            POLYGON_SET_OUTLINED => new PolygonSetOutlinedCommand(operands),
-            POLYGON_SET_FILLED => new PolygonSetFilledCommand(operands),
-            RECTANGLE_OUTLINED => new RectangleOutlinedCommand(operands),
-            RECTANGLE_FILLED => new RectangleFilledCommand(operands),
-            RECTANGLE_SET_OUTLINED => new RectangleSetOutlinedCommand(operands),
-            RECTANGLE_SET_FILLED => new RectangleSetFilledCommand(operands),
-            POINT_ABS => new PointAbsoluteCommand(operands),
-            POINT_REL => new PointRelativeCommand(operands),
-            POINT_SET_ABS => new PointSetAbsoluteCommand(operands),
-            POINT_SET_REL => new PointSetRelativeCommand(operands),
-            LINE_ABS => new LineAbsoluteCommand(operands),
-            LINE_REL => new LineRelativeCommand(operands),
-            LINE_SET_ABS => new LineSetAbsoluteCommand(operands),
-            LINE_SET_REL => new LineSetRelativeCommand(operands),
-            _ => BreakAndReturn(opcode, operands),
+            CANCEL => new CancelCommand(state, operands),
+            NSR => new NonSelectiveResetCommand(state, operands),
+            ESC => ProcessEscapeSequence(state, opcode, operands),
+            SHIFT_OUT => new ShiftOutCommand(state, operands),
+            SHIFT_IN => new ShiftInCommand(state, operands),
+            RESET => new ResetCommand(state, operands),
+            DOMAIN => new DomainCommand(state, operands),
+            WAIT => new WaitCommand(state, operands),
+            SELECT_COLOR => new SelectColorCommand(state, operands),
+            SET_COLOR => new SetColorCommand(state, operands),
+            TEXTURE => new TextureCommand(state, operands),
+            POLYGON_OUTLINED => new PolygonOutlinedCommand(state, operands),
+            POLYGON_FILLED => new PolygonFilledCommand(state, operands),
+            POLYGON_SET_OUTLINED => new PolygonSetOutlinedCommand(state, operands),
+            POLYGON_SET_FILLED => new PolygonSetFilledCommand(state, operands),
+            RECTANGLE_OUTLINED => new RectangleOutlinedCommand(state, operands),
+            RECTANGLE_FILLED => new RectangleFilledCommand(state, operands),
+            RECTANGLE_SET_OUTLINED => new RectangleSetOutlinedCommand(state, operands),
+            RECTANGLE_SET_FILLED => new RectangleSetFilledCommand(state, operands),
+            POINT_ABS => new PointAbsoluteCommand(state, operands),
+            POINT_REL => new PointRelativeCommand(state, operands),
+            POINT_SET_ABS => new PointSetAbsoluteCommand(state, operands),
+            POINT_SET_REL => new PointSetRelativeCommand(state, operands),
+            LINE_ABS => new LineAbsoluteCommand(state, operands),
+            LINE_REL => new LineRelativeCommand(state, operands),
+            LINE_SET_ABS => new LineSetAbsoluteCommand(state, operands),
+            LINE_SET_REL => new LineSetRelativeCommand(state, operands),
+            _ => BreakAndReturn(state, opcode, operands),
         };
-    }
-
-    private static NaplpsCommand ProcessEscapeSequence(NaplpsCommands opcode, List<byte> operands)
-    {
-        if (operands.Count == 0)
-        {
-            return new EscCommand(operands);
-        }
-
-        return (NaplpsEscapeCommands)operands[0] switch
-        {
-            DEF_TEXTURE => new DefTextureCommand(operands),
-            END => new EndCommand(operands),
-            _ => BreakAndReturn(opcode, operands),
-        };
-    }
-
-    private static NaplpsCommand BreakAndReturn(NaplpsCommands opcode, List<byte> operands)
-    {
-        var newUnknownCommand = new NaplpsCommand(opcode, operands);
-
-        Debugger.Break();
-
-        return newUnknownCommand;
     }
 
     public static byte ConvertBitsToByte(List<bool> booleans)
@@ -104,7 +71,7 @@ public class NaplpsCommand(NaplpsCommands opcode, List<byte> operands)
         float fraction = 0f;
         float baseValue = 0.5f; // Starting from the MSB just right of the decimal point
 
-        foreach (bool bit in boolList)
+        foreach (bool bit in boolList.Skip(1))
         {
             fraction += bit ? baseValue : 0f;
             baseValue /= 2f;
@@ -112,7 +79,7 @@ public class NaplpsCommand(NaplpsCommands opcode, List<byte> operands)
 
         // Interpret the list as a two's complement fixed-point number
         // Assuming the first bit is the sign bit and the rest are fractional bits
-        if (boolList[0]) // If the number is negative
+        if (boolList.First()) // If the number is negative
         {
             fraction = -1 + fraction; // Adjust for two's complement notation
         }
@@ -120,7 +87,7 @@ public class NaplpsCommand(NaplpsCommands opcode, List<byte> operands)
         return fraction;
     }
 
-    static int ConvertBitsToInt(List<bool> binaryArray)
+    public static int ConvertBitsToInt(List<bool> binaryArray)
     {
         if (binaryArray == null || binaryArray.Count == 0)
         {
@@ -147,8 +114,28 @@ public class NaplpsCommand(NaplpsCommands opcode, List<byte> operands)
         return point;
     }
 
-    public static bool IsOpcode(byte c)
+    private static NaplpsCommand ProcessEscapeSequence(NaplpsState state, NaplpsCommands opcode, List<byte> operands)
     {
-        return (c & 1 << 6) == 0;
+        if (operands.Count == 0)
+        {
+            return new EscCommand(state, operands);
+        }
+
+        return (NaplpsEscapeCommands)operands[0] switch
+        {
+            DEF_TEXTURE => new DefTextureCommand(state, operands),
+            END => new EndCommand(state, operands),
+            _ => BreakAndReturn(state, opcode, operands),
+        };
     }
+
+    private static NaplpsCommand BreakAndReturn(NaplpsState state, NaplpsCommands opcode, List<byte> operands)
+    {
+        var newUnknownCommand = new NaplpsCommand(state, opcode, operands);
+
+        Debugger.Break();
+
+        return newUnknownCommand;
+    }
+
 }

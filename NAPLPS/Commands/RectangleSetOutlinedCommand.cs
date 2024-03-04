@@ -6,7 +6,7 @@ namespace NAPLPS.Commands;
 
 public class RectangleSetOutlinedCommand : RectangleSetCommand
 {
-    public RectangleSetOutlinedCommand(List<byte> operands) : base(RECTANGLE_SET_OUTLINED, operands)
+    public RectangleSetOutlinedCommand(NaplpsState state, List<byte> operands) : base(state, RECTANGLE_SET_OUTLINED, operands)
     {
         ShouldOutline = true;
     }

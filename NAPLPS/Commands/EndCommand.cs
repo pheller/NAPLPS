@@ -5,6 +5,6 @@ using static NAPLPS.NaplpsCommands;
 
 namespace NAPLPS.Commands;
 
-public class EndCommand(List<byte> operands) : NaplpsCommand(ESC, operands)
+public class EndCommand(NaplpsState state, List<byte> operands) : NaplpsCommand(state, ESC, operands)
 {
 } 

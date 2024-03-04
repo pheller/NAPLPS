@@ -7,7 +7,7 @@ namespace NAPLPS.Commands;
 
 public class PolygonFilledCommand : PolygonCommand
 {
-    public PolygonFilledCommand(List<byte> operands) : base(POLYGON_FILLED, operands)
+    public PolygonFilledCommand(NaplpsState state, List<byte> operands) : base(state, POLYGON_FILLED, operands)
     {
         ShouldFill = true;
     }

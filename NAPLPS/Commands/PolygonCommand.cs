@@ -9,7 +9,7 @@ namespace NAPLPS.Commands;
 
 public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
 {
-    public PolygonCommand(NaplpsCommands opcode, List<byte> operands) : base(opcode, operands)
+    public PolygonCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : base(state, opcode, operands)
     {
         Vertices = ProcessVerticies(operands);
     }

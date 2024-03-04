@@ -8,7 +8,7 @@ namespace NAPLPS.Commands;
 
 public class PolygonSetOutlinedCommand : PolygonSetCommand
 {
-    public PolygonSetOutlinedCommand(List<byte> operands) : base(POLYGON_SET_OUTLINED, operands)
+    public PolygonSetOutlinedCommand(NaplpsState state, List<byte> operands) : base(state, POLYGON_SET_OUTLINED, operands)
     {
         ShouldOutline = true;
     }

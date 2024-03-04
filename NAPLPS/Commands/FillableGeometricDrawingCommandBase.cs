@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace NAPLPS.Commands;
 
-public abstract class FillableGeometricDrawingCommandBase(NaplpsCommands opcode, List<byte> operands) : GeometricDrawingCommandBase(opcode, operands)
+public abstract class FillableGeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : GeometricDrawingCommandBase(state, opcode, operands)
 {
     public bool ShouldFill { get; internal set; }
 

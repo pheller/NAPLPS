@@ -7,7 +7,7 @@ namespace NAPLPS.Commands;
 
 public class RectangleFilledCommand : RectangleCommand
 {
-    public RectangleFilledCommand(List<byte> operands) : base(RECTANGLE_FILLED, operands)
+    public RectangleFilledCommand(NaplpsState state, List<byte> operands) : base(state, RECTANGLE_FILLED, operands)
     {
         ShouldFill = true;
     }
