@@ -13,6 +13,8 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, List<byte> 
 
     public List<byte> Operands { get; } = operands;
 
+    public bool IsValid { get; internal set; } = true;
+
     public NaplpsState State { get; } = state;
 
     public static NaplpsCommand Factory(NaplpsState state, NaplpsCommands opcode, List<byte> operands)

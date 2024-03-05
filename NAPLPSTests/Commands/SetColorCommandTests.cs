@@ -124,4 +124,61 @@ public class SetColorCommandTests
         Assert.AreEqual(0, command.State.DrawForgroundRed);
         Assert.AreEqual(0, command.State.DrawForgroundBlue);
     }
+
+    [TestMethod]
+    public void ByteMagazineMarch1983Page154Blue()
+    {
+        var command = new SetColorCommand(new(), [0x49]);
+
+        Assert.IsNotNull(command);
+        Assert.AreEqual(0, command.State.DrawForgroundGreen);
+        Assert.AreEqual(0, command.State.DrawForgroundRed);
+        Assert.AreEqual(63, command.State.DrawForgroundBlue);
+    }
+
+    [TestMethod]
+    public void ByteMagazineMarch1983Page154Green()
+    {
+        var command = new SetColorCommand(new(), [0x64]);
+
+        Assert.IsNotNull(command);
+        Assert.AreEqual(63, command.State.DrawForgroundGreen);
+        Assert.AreEqual(0, command.State.DrawForgroundRed);
+        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+    }
+
+    [TestMethod]
+    public void ByteMagazineMarch1983Page156Red()
+    {
+        var command = new SetColorCommand(new(), [0x52]);
+
+        Assert.IsNotNull(command);
+        Assert.AreEqual(0, command.State.DrawForgroundGreen);
+        Assert.AreEqual(63, command.State.DrawForgroundRed);
+        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+    }
+
+    [TestMethod]
+    public void ByteMagazineMarch1983Page156Cyan()
+    {
+        var command = new SetColorCommand(new(), [0x6D]);
+
+        Assert.IsNotNull(command);
+
+        Assert.AreEqual(63, command.State.DrawForgroundGreen);
+        Assert.AreEqual(0, command.State.DrawForgroundRed);
+        Assert.AreEqual(63, command.State.DrawForgroundBlue);
+    }
+
+    [TestMethod]
+    public void ByteMagazineMarch1983Page161White()
+    {
+        var command = new SetColorCommand(new(), [0x7F]);
+
+        Assert.IsNotNull(command);
+
+        Assert.AreEqual(63, command.State.DrawForgroundGreen);
+        Assert.AreEqual(63, command.State.DrawForgroundRed);
+        Assert.AreEqual(63, command.State.DrawForgroundBlue);
+    }
 }

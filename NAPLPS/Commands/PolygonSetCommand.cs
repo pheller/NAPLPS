@@ -13,8 +13,15 @@ public abstract class PolygonSetCommand : FillableGeometricDrawingCommandBase
 
     public PolygonSetCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : base(state, opcode, operands)
     {
-        StartPoint = ProcessVerticies(operands.Take(State.MultiByteValue).ToList()).FirstOrDefault();
+        if (operands.Count == 0)
+        {
+            IsValid = false;
+        }
+        else
+        {
+            StartPoint = ProcessVerticies(operands.Take(State.MultiByteValue).ToList()).FirstOrDefault();
 
-        Vertices = ProcessVerticies(operands.Skip(State.MultiByteValue).ToList());
+            Vertices = ProcessVerticies(operands.Skip(State.MultiByteValue).ToList());
+        }
     }
 }

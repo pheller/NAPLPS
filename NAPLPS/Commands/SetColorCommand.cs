@@ -33,6 +33,11 @@ public class SetColorCommand : NaplpsCommand
         State.DrawForgroundRed = 0;
         State.DrawForgroundBlue = 0;
 
+        while (operands.Count < 3)
+        {
+            operands.Add(operands[^1]); // Adds the last element in the list
+        }
+
         foreach (var b in operands)
         {
             // Extract bits for each color component from the first triplet
