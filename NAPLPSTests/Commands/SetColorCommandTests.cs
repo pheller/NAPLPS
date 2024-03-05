@@ -1,4 +1,6 @@
-﻿using NAPLPS;
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+using NAPLPS;
 using NAPLPS.Commands;
 using System.Drawing;
 
@@ -125,6 +127,9 @@ public class SetColorCommandTests
         Assert.AreEqual(0, command.State.DrawForgroundBlue);
     }
 
+    /// <summary>
+    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n154/mode/1up?view=theater
+    /// </summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page154Blue()
     {
@@ -136,6 +141,9 @@ public class SetColorCommandTests
         Assert.AreEqual(63, command.State.DrawForgroundBlue);
     }
 
+    /// <summary>
+    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n154/mode/1up?view=theater
+    /// </summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page154Green()
     {
@@ -147,6 +155,9 @@ public class SetColorCommandTests
         Assert.AreEqual(0, command.State.DrawForgroundBlue);
     }
 
+    /// <summary>
+    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n156/mode/1up?view=theater
+    /// </summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page156Red()
     {
@@ -158,6 +169,9 @@ public class SetColorCommandTests
         Assert.AreEqual(0, command.State.DrawForgroundBlue);
     }
 
+    /// <summary>
+    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n156/mode/1up?view=theater
+    /// </summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page156Cyan()
     {
@@ -170,8 +184,11 @@ public class SetColorCommandTests
         Assert.AreEqual(63, command.State.DrawForgroundBlue);
     }
 
+    /// <summary>
+    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n162/mode/1up?view=theater
+    /// </summary>
     [TestMethod]
-    public void ByteMagazineMarch1983Page161White()
+    public void ByteMagazineMarch1983Page162White()
     {
         var command = new SetColorCommand(new(), [0x7F]);
 
@@ -180,5 +197,35 @@ public class SetColorCommandTests
         Assert.AreEqual(63, command.State.DrawForgroundGreen);
         Assert.AreEqual(63, command.State.DrawForgroundRed);
         Assert.AreEqual(63, command.State.DrawForgroundBlue);
+    }
+
+    /// <summary>
+    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n163/mode/1up?view=theater
+    /// </summary>
+    [TestMethod]
+    public void ByteMagazineMarch1983Page163Transparent()
+    {
+        var command = new SetColorCommand(new(), [0x40]);
+
+        Assert.IsNotNull(command);
+
+        Assert.AreEqual(0, command.State.DrawForgroundGreen);
+        Assert.AreEqual(0, command.State.DrawForgroundRed);
+        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+    }
+
+    /// <summary>
+    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n164/mode/1up?view=theater
+    /// </summary>
+    [TestMethod]
+    public void ByteMagazineMarch1983Page164Yellow()
+    {
+        var command = new SetColorCommand(new(), [0x76]);
+
+        Assert.IsNotNull(command);
+
+        Assert.AreEqual(63, command.State.DrawForgroundGreen);
+        Assert.AreEqual(63, command.State.DrawForgroundRed);
+        Assert.AreEqual(0, command.State.DrawForgroundBlue);
     }
 }

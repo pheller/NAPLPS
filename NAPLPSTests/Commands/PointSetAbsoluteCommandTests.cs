@@ -1,4 +1,6 @@
-﻿using NAPLPS.Commands;
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+using NAPLPS.Commands;
 
 namespace NAPLPSTests.Commands;
 
