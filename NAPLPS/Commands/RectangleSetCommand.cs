@@ -1,10 +1,5 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using static NAPLPS.NaplpsCommands;
-
 namespace NAPLPS.Commands;
 
 public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
@@ -13,7 +8,7 @@ public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
 
     public Vector3 Dimensions { get; }
 
-    public RectangleSetCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : base(state, opcode, operands)
+    public RectangleSetCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var verts = ProcessVerticies(operands);
 

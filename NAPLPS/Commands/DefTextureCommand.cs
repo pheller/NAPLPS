@@ -1,18 +1,16 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using static NAPLPS.NaplpsCommands;
-
 namespace NAPLPS.Commands;
 
 internal class DefTextureCommand : NaplpsCommand
 {
     public ushort MaskId { get; }
 
-    public DefTextureCommand(NaplpsState state, List<byte> operands) : base(state, ESC, operands)
+    public DefTextureCommand(NaplpsState state, NaplpsOperands operands) : base(state, ESC, operands)
     {
         if (Operands.Count != 2 && (NaplpsEscapeCommands)Operands[0] != NaplpsEscapeCommands.DEF_TEXTURE)
         {
-            throw new ArgumentOutOfRangeException(nameof(Operands));
+            throw new ArgumentOutOfRangeException(nameof(operands));
         }
 
         if (Operands[1] == 0x41)
@@ -33,7 +31,7 @@ internal class DefTextureCommand : NaplpsCommand
         }
         else
         {
-            throw new ArgumentOutOfRangeException(nameof(Operands));
+            throw new ArgumentOutOfRangeException(nameof(operands));
         }
     }
 }

@@ -6,15 +6,7 @@ namespace NAPLPS;
 
 public static class Extensions
 {
-    public static bool GetBit(this byte b, int bitNumber)
-    {
-        if (bitNumber < 1 || bitNumber > 8)
-        {
-            throw new ArgumentOutOfRangeException(nameof(bitNumber), "Bit number must be between 1 and 8.");
-        }
-
-        return (b & 1 << bitNumber - 1) != 0;
-    }
+    // Naplps Nuance Extensions
 
     public static bool IsOpcode(this byte b)
     {
@@ -30,6 +22,8 @@ public static class Extensions
     {
         return stream.CanSeek && stream.Position >= stream.Length;
     }
+
+    // Color Extensions
 
     public static Color From3BitGRB(this Color _, int red3Bit, int green3Bit, int blue3Bit)
     {

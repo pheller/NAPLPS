@@ -24,7 +24,7 @@ public class SelectColorCommandTests
         Assert.IsNotNull(command);
         
         Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ForegroundSelectedColor, 1);
+        Assert.AreEqual(command.State.ColorMapForegroundSelected, 1);
     }
 
     [TestMethod]
@@ -35,7 +35,7 @@ public class SelectColorCommandTests
         Assert.IsNotNull(command);
 
         Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ForegroundSelectedColor, 2);
+        Assert.AreEqual(command.State.ColorMapForegroundSelected, 2);
     }
 
     [TestMethod]
@@ -46,7 +46,7 @@ public class SelectColorCommandTests
         Assert.IsNotNull(command);
 
         Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ForegroundSelectedColor, 3);
+        Assert.AreEqual(command.State.ColorMapForegroundSelected, 3);
     }
 
     [TestMethod]
@@ -57,7 +57,7 @@ public class SelectColorCommandTests
         Assert.IsNotNull(command);
 
         Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ForegroundSelectedColor, 4);
+        Assert.AreEqual(command.State.ColorMapForegroundSelected, 4);
     }
 
     [TestMethod]
@@ -68,6 +68,6 @@ public class SelectColorCommandTests
         Assert.IsNotNull(command);
 
         Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ForegroundSelectedColor, 5);
+        Assert.AreEqual(command.State.ColorMapForegroundSelected, 5);
     }
 }

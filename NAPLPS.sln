@@ -7,15 +7,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NAPLPS", "NAPLPS\NAPLPS.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NAPLPSApp", "NAPLPSApp\NAPLPSApp.csproj", "{9906A62F-8D27-4AA8-9FFD-252288CC5543}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NAPLPSTests", "NAPLPSTests\NAPLPSTests.csproj", "{783C44D4-5EE8-4B3D-9B8A-82983406DD59}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NAPLPSTests", "NAPLPSTests\NAPLPSTests.csproj", "{783C44D4-5EE8-4B3D-9B8A-82983406DD59}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6EB2BC93-CACA-4DCE-A5BC-6239BA0073FC}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
-		Examples\autumn.nap = Examples\autumn.nap
-		Examples\canada1.nap = Examples\canada1.nap
 		LICENSE = LICENSE
-		Examples\maple.nap = Examples\maple.nap
 		NAPLPS.sln.licenseheader = NAPLPS.sln.licenseheader
 		README.md = README.md
 	EndProjectSection
@@ -25,6 +22,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{9C
 		Examples\autumn.nap = Examples\autumn.nap
 		Examples\canada1.nap = Examples\canada1.nap
 		Examples\maple.nap = Examples\maple.nap
+		Examples\MEMRA2.NAP = Examples\MEMRA2.NAP
+		Examples\NAPLPS.ASC = Examples\NAPLPS.ASC
+		Examples\SAIL.NAP = Examples\SAIL.NAP
 	EndProjectSection
 EndProject
 Global

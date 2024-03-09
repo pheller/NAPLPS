@@ -1,7 +1,5 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using static NAPLPS.NaplpsCommands;
-
 namespace NAPLPS.Commands;
 
 /// <summary>
@@ -16,7 +14,7 @@ public class SelectColorCommand : NaplpsCommand
     /// Additional numeric data bytes are reserved for future standardization and
     /// shall be ignored.
     /// </summary>
-    public SelectColorCommand(NaplpsState state, List<byte> operands) : base(state, SELECT_COLOR, operands)
+    public SelectColorCommand(NaplpsState state, NaplpsOperands operands) : base(state, SELECT_COLOR, operands)
     {
         /// If the SELECT COLOR opcode is followed by no operands,
         /// color mode 0 is indicated. The terminal will remain in color mode 0 until
@@ -44,7 +42,7 @@ public class SelectColorCommand : NaplpsCommand
         /// drawing color is applied.
         if (Operands.Count == 1)
         {
-            State.ForegroundSelectedColor = ConvertBitsToByte([Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
+            State.ColorMapForegroundSelected = ConvertBitsToByte([Operands[0, 3], Operands[0, 4], Operands[0, 5], Operands[0, 6]]);
         }
         /// If the SELECT COLOR opcode is followed by two operands, color
         /// mode 2 is indicated. Again, the terminal will remain in color mode 2 until
@@ -63,8 +61,8 @@ public class SelectColorCommand : NaplpsCommand
         /// color in the line and area texture patterns
         else if (Operands.Count == 2)
         {
-            State.ForegroundSelectedColor = ConvertBitsToByte([Operands[0].GetBit(3), Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
-            State.BackgroundSelectedColor = ConvertBitsToByte([Operands[1].GetBit(3), Operands[1].GetBit(4), Operands[1].GetBit(5), Operands[1].GetBit(6)]);
+            State.ColorMapForegroundSelected = ConvertBitsToByte([Operands[0, 3], Operands[0, 4], Operands[0, 5], Operands[0, 6]]);
+            State.ColorMapBackgroundSelected = ConvertBitsToByte([Operands[1, 3], Operands[1, 4], Operands[1, 5], Operands[1, 6]]);
         }
     }
 }

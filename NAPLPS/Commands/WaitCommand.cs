@@ -1,7 +1,5 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using static NAPLPS.NaplpsCommands;
-
 namespace NAPLPS.Commands;
 
 public class WaitCommand : NaplpsCommand
@@ -11,7 +9,7 @@ public class WaitCommand : NaplpsCommand
 
     public List<byte> WaitTimes { get; } = [];
 
-    public WaitCommand(NaplpsState state, List<byte> operands) : base(state, WAIT, operands)
+    public WaitCommand(NaplpsState state, NaplpsOperands operands) : base(state, WAIT, operands)
     {
         if (operands.Count < 2)
         {

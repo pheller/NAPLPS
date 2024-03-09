@@ -1,13 +1,10 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Collections.Generic;
-using static NAPLPS.NaplpsCommands;
-
 namespace NAPLPS.Commands;
 
 public class RectangleFilledCommand : RectangleCommand
 {
-    public RectangleFilledCommand(NaplpsState state, List<byte> operands) : base(state, RECTANGLE_FILLED, operands)
+    public RectangleFilledCommand(NaplpsState state, NaplpsOperands operands) : base(state, RECTANGLE_FILLED, operands)
     {
         ShouldFill = true;
     }

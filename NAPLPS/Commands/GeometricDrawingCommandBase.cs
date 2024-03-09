@@ -1,11 +1,8 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Numerics;
-using static NAPLPS.NaplpsCommands;
-
 namespace NAPLPS.Commands;
 
-public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, List<byte> operands) : NaplpsCommand(state, opcode, operands)
+public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : NaplpsCommand(state, opcode, operands)
 {
     private static readonly bool[] _twoDimensionalZero = [false, false, false];
     private static readonly bool[] _threeDimensionalZero = [false, false];
@@ -13,7 +10,7 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
 
     public List<Vector3> Vertices { get; internal set; } = [];
 
-    internal List<Vector3> ProcessVerticies(List<byte> operands, bool isInt = false)
+    internal List<Vector3> ProcessVerticies(NaplpsOperands operands, bool isInt = false)
     {
         var verts = new List<Vector3>();
 
@@ -23,18 +20,16 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
 
         for (int idx = 0; idx < operands.Count; idx++)
         {
-            var operand = operands[idx];
-
             if (State.Dimensionality == 2)
             {
-                x.AddRange([operand.GetBit(6), operand.GetBit(5), operand.GetBit(4)]);
-                y.AddRange([operand.GetBit(3), operand.GetBit(2), operand.GetBit(1)]);
+                x.AddRange([operands[idx, 6], operands[idx, 5], operands[idx, 4]]);
+                y.AddRange([operands[idx, 3], operands[idx, 2], operands[idx, 1]]);
             }
             else if (State.Dimensionality == 3)
             {
-                x.AddRange([operand.GetBit(6), operand.GetBit(5)]);
-                y.AddRange([operand.GetBit(4), operand.GetBit(3)]);
-                z.AddRange([operand.GetBit(2), operand.GetBit(1)]);
+                x.AddRange([operands[idx, 6], operands[idx, 5]]);
+                y.AddRange([operands[idx, 4], operands[idx, 3]]);
+                z.AddRange([operands[idx, 2], operands[idx, 1]]);
             }
 
             // We're short bytes, fill with zeros and walk away

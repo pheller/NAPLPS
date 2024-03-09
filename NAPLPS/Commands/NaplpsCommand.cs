@@ -2,22 +2,20 @@
 
 using System.Diagnostics;
 using static NAPLPS.NaplpsEscapeCommands;
-using static NAPLPS.NaplpsCommands;
-using System.Drawing;
 
 namespace NAPLPS.Commands;
 
-public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, List<byte> operands)
+public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands)
 {
     public NaplpsCommands OpCode { get; } = opcode;
 
-    public List<byte> Operands { get; } = operands;
+    public NaplpsOperands Operands { get; } = operands;
 
     public bool IsValid { get; internal set; } = true;
 
     public NaplpsState State { get; } = state;
 
-    public static NaplpsCommand Factory(NaplpsState state, NaplpsCommands opcode, List<byte> operands)
+    public static NaplpsCommand Factory(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands)
     {
         return opcode switch
         {
@@ -116,7 +114,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, List<byte> 
         return point;
     }
 
-    private static NaplpsCommand ProcessEscapeSequence(NaplpsState state, NaplpsCommands opcode, List<byte> operands)
+    private static NaplpsCommand ProcessEscapeSequence(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands)
     {
         if (operands.Count == 0)
         {
@@ -131,7 +129,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, List<byte> 
         };
     }
 
-    private static NaplpsCommand BreakAndReturn(NaplpsState state, NaplpsCommands opcode, List<byte> operands)
+    private static NaplpsCommand BreakAndReturn(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands)
     {
         var newUnknownCommand = new NaplpsCommand(state, opcode, operands);
 
@@ -140,4 +138,8 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, List<byte> 
         return newUnknownCommand;
     }
 
+    public override string ToString()
+    {
+        return GetType().Name;
+    }
 }

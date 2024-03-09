@@ -1,9 +1,7 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using static NAPLPS.NaplpsCommands;
-
 namespace NAPLPS.Commands;
 
-public class PointSetRelativeCommand(NaplpsState state, List<byte> operands) : PointCommand(state, POINT_SET_REL, operands)
+public class PointSetRelativeCommand(NaplpsState state, NaplpsOperands operands) : PointCommand(state, POINT_SET_REL, operands)
 {
 }

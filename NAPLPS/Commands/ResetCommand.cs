@@ -1,6 +1,5 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using static NAPLPS.NaplpsCommands;
 using System.Diagnostics;
 
 namespace NAPLPS.Commands;
@@ -35,7 +34,7 @@ public class ResetCommand : NaplpsCommand
 
     public ScreenBorderReset ColorScreenBorder { get; }
 
-    public ResetCommand(NaplpsState state, List<byte> operands) : base(state, RESET, operands)
+    public ResetCommand(NaplpsState state, NaplpsOperands operands) : base(state, RESET, operands)
     {
         /*	If the RESET command is received with no operands, it is interpreted as if it
 		/*	had been sent with bits b6 to b1 in both bytes set equal to 0. If only one byte
@@ -57,45 +56,45 @@ public class ResetCommand : NaplpsCommand
         // If bit bl of byte 1 equals 1, the
         // DOMAIN parameters are reset to their default values. If b1 is 0, the DOMAIN
         // parameters are not changed.
-        IsDomainReset = Operands[0].GetBit(1);
+        IsDomainReset = Operands[0, 1];
 
         // Bits b3 and b2 of byte 1 modify the color mode and/or current drawing color
-        ColorMode = (ColorModeReset)ConvertBitsToByte([Operands[0].GetBit(2), Operands[0].GetBit(3)]);
+        ColorMode = (ColorModeReset)ConvertBitsToByte([Operands[0, 2], Operands[0, 3]]);
 
         // Bits b6, b5, and b4 of byte 1 clear the display area and/or border area to the colors
-        ColorScreenBorder = (ScreenBorderReset)ConvertBitsToByte([Operands[0].GetBit(4), Operands[0].GetBit(5), Operands[0].GetBit(6)]);
+        ColorScreenBorder = (ScreenBorderReset)ConvertBitsToByte([Operands[0, 4], Operands[0, 5], Operands[0, 6]]);
 
         // If bit b1 of byte 2 equals 1, the cursor is sent to its home position
         // (top left character position in the display area) and all text parameters
         // (from the TEXT opcode, from the C1 set and the active field) are reset
         // to their default values. If b1 is 0, the text parameters and the
         // cursor position are not changed.
-        IsTextReset = Operands[1].GetBit(1);
+        IsTextReset = Operands[1, 1];
 
         // If bit b2 of byte 2 equals 1, all blink processes are terminated. If b2 is 0, then
         // blink processes are not changed.
-        IsBlinkReset = Operands[1].GetBit(2);
+        IsBlinkReset = Operands[1, 2];
 
         // If bit b3 of byte 2 equals 1, all unprotected fields are changed to protected
         // status but the displayed contents are unaffected. However, the field
         // definitions (except that of the active field) are lost, as well as any data
         // structures maintained for user editing and transmission. If b3 is 0, unprotected
         // fields are not changed.
-        IsProtectedFields = Operands[1].GetBit(3);
+        IsProtectedFields = Operands[1, 3];
 
         // If bit b4 of byte 2 equals 1, all texture attributes are set to their default
         // values. The four programmable texture masks are not cleared. If b4 is 0,
         // current texture attributes are not changed.
-        IsTextureAttributesReset = Operands[1].GetBit(4);
+        IsTextureAttributesReset = Operands[1, 4];
 
         // If bit b5 of byte 2 equals 1, all macros are cleared. This includes transmit macros.
         // If b5 is 0, macros are not changed.
-        IsMacrosReset = Operands[1].GetBit(5);
+        IsMacrosReset = Operands[1, 5];
 
         // If bit b6 of byte 2 equals 1, all ORCS characters are cleared, that is, all
         // character positions are set to the space character. If b6 is 0, the ORCS
         // characters are not changed.
-        IsDRCSCharsReset = Operands[1].GetBit(6);
+        IsDRCSCharsReset = Operands[1, 6];
     }
 
     public enum ColorModeReset : byte

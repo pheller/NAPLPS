@@ -50,9 +50,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.DrawForgroundGreen);
-        Assert.AreEqual(0, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(0, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
     [TestMethod]
@@ -62,9 +62,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(0, command.State.DrawForgroundGreen);
-        Assert.AreEqual(63, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(0, command.State.Foreground.Green);
+        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
     [TestMethod]
@@ -74,9 +74,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(0, command.State.DrawForgroundGreen);
-        Assert.AreEqual(0, command.State.DrawForgroundRed);
-        Assert.AreEqual(63, command.State.DrawForgroundBlue);
+        Assert.AreEqual(0, command.State.Foreground.Green);
+        Assert.AreEqual(0, command.State.Foreground.Red);
+        Assert.AreEqual(63, command.State.Foreground.Blue);
     }
 
     [TestMethod]
@@ -86,9 +86,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.DrawForgroundGreen);
-        Assert.AreEqual(63, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
     [TestMethod]
@@ -98,9 +98,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(9, command.State.DrawForgroundGreen);
-        Assert.AreEqual(35, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(9, command.State.Foreground.Green);
+        Assert.AreEqual(35, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
     [TestMethod]
@@ -110,9 +110,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.DrawForgroundGreen);
-        Assert.AreEqual(63, command.State.DrawForgroundRed);
-        Assert.AreEqual(63, command.State.DrawForgroundBlue);
+        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(63, command.State.Foreground.Blue);
     }
 
     [TestMethod]
@@ -122,9 +122,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(0, command.State.DrawForgroundGreen);
-        Assert.AreEqual(0, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(0, command.State.Foreground.Green);
+        Assert.AreEqual(0, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
     /// <summary>
@@ -136,9 +136,9 @@ public class SetColorCommandTests
         var command = new SetColorCommand(new(), [0x49]);
 
         Assert.IsNotNull(command);
-        Assert.AreEqual(0, command.State.DrawForgroundGreen);
-        Assert.AreEqual(0, command.State.DrawForgroundRed);
-        Assert.AreEqual(63, command.State.DrawForgroundBlue);
+        Assert.AreEqual(0, command.State.Foreground.Green);
+        Assert.AreEqual(0, command.State.Foreground.Red);
+        Assert.AreEqual(63, command.State.Foreground.Blue);
     }
 
     /// <summary>
@@ -150,9 +150,9 @@ public class SetColorCommandTests
         var command = new SetColorCommand(new(), [0x64]);
 
         Assert.IsNotNull(command);
-        Assert.AreEqual(63, command.State.DrawForgroundGreen);
-        Assert.AreEqual(0, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(0, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
     /// <summary>
@@ -164,9 +164,9 @@ public class SetColorCommandTests
         var command = new SetColorCommand(new(), [0x52]);
 
         Assert.IsNotNull(command);
-        Assert.AreEqual(0, command.State.DrawForgroundGreen);
-        Assert.AreEqual(63, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(0, command.State.Foreground.Green);
+        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
     /// <summary>
@@ -179,9 +179,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.DrawForgroundGreen);
-        Assert.AreEqual(0, command.State.DrawForgroundRed);
-        Assert.AreEqual(63, command.State.DrawForgroundBlue);
+        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(0, command.State.Foreground.Red);
+        Assert.AreEqual(63, command.State.Foreground.Blue);
     }
 
     /// <summary>
@@ -194,9 +194,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.DrawForgroundGreen);
-        Assert.AreEqual(63, command.State.DrawForgroundRed);
-        Assert.AreEqual(63, command.State.DrawForgroundBlue);
+        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(63, command.State.Foreground.Blue);
     }
 
     /// <summary>
@@ -209,9 +209,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(0, command.State.DrawForgroundGreen);
-        Assert.AreEqual(0, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(0, command.State.Foreground.Green);
+        Assert.AreEqual(0, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
     /// <summary>
@@ -224,8 +224,8 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.DrawForgroundGreen);
-        Assert.AreEqual(63, command.State.DrawForgroundRed);
-        Assert.AreEqual(0, command.State.DrawForgroundBlue);
+        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 }

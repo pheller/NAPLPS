@@ -6,8 +6,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System.Diagnostics;
-using System.Numerics;
-using static NAPLPS.NaplpsCommands;
 using NaplpsSequence = System.Tuple<NAPLPS.NaplpsState, NAPLPS.Commands.NaplpsCommand>;
 
 namespace NAPLPS;
@@ -81,7 +79,7 @@ public class NaplpsFile
 
                 var pen = Pens.Solid(Color.Red, 1f);
 
-                image.Mutate(x => x.FillPolygon(Brushes.Solid(Color.Red), polygonPoints.ToArray()));
+                image.Mutate(x => x.FillPolygon(Brushes.Solid(Color.Red), [..polygonPoints]));
             }
         }
 
@@ -91,7 +89,7 @@ public class NaplpsFile
     }
 
 
-    public static (int, int) ConvertCoordinates(int width, int height, int x, int y)
+    public static (int, int) ConvertCoordinates(int _, int height, int x, int y)
     {
         // Convert x from top-right origin to bottom-left origin by subtracting from width
         int convertedX = x;
@@ -136,7 +134,7 @@ public class NaplpsFile
             while (!reader.IsEOF())
             {
                 var opcode = reader.ReadByte();
-                var operands = new List<byte>();
+                var operands = new NaplpsOperands();
 
                 var shiftIn = opcode == (byte)SHIFT_IN;
 
@@ -159,7 +157,7 @@ public class NaplpsFile
 
                 var command = NaplpsCommand.Factory(state, (NaplpsCommands)opcode, operands);
 
-                commands.Add(new NaplpsSequence(command.State.ShallowCopy(), command));
+                commands.Add(new NaplpsSequence(NaplpsState.FromJson(command.State.ToJson()), command));
             }
         }
         catch (EndOfStreamException)
