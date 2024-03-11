@@ -17,17 +17,21 @@ public class PolygonFilledCommandTests
     [TestMethod]
     public void ByteMagazineMarch1983Page156()
     {
-        var pointSetAbsoluteCommand = new PolygonFilledCommand(new(), [
+        var polygonFilledCommand = new PolygonFilledCommand(new(), [
             0x40, 0x61, 0x47,
             0x47, 0x66, 0x41,
         ]);
 
-        Assert.IsNotNull(pointSetAbsoluteCommand);
+        Assert.IsNotNull(polygonFilledCommand);
 
-        Assert.AreEqual(pointSetAbsoluteCommand.Vertices.Count, 2);
+        Assert.AreEqual(polygonFilledCommand.Vertices.Count, 2);
 
-        //Assert.AreEqual(pointSetAbsoluteCommand.Point.X, -.234375f);
-        //Assert.AreEqual(pointSetAbsoluteCommand.Point.Y, .125f);
-        //Assert.AreEqual(pointSetAbsoluteCommand.Point.Z, 0);
+        Assert.AreEqual(polygonFilledCommand.Vertices[0].X, .125f);
+        Assert.AreEqual(polygonFilledCommand.Vertices[0].Y, .05859375f);
+        Assert.AreEqual(polygonFilledCommand.Vertices[0].Z, 0);
+
+        Assert.AreEqual(polygonFilledCommand.Vertices[1].X, .125f);
+        Assert.AreEqual(polygonFilledCommand.Vertices[1].Y, -.05859375f); // for some reason, the magazine has a bad value? (-.0625f)?
+        Assert.AreEqual(polygonFilledCommand.Vertices[1].Z, 0);
     }
 }
