@@ -1,9 +1,5 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
-using System.Drawing;
-
 namespace NAPLPSTests.Commands;
 
 [TestClass]
@@ -127,9 +123,7 @@ public class SetColorCommandTests
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n154/mode/1up?view=theater
-    /// </summary>
+    /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n154/mode/1up?view=theater</summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page154Blue()
     {
@@ -141,9 +135,7 @@ public class SetColorCommandTests
         Assert.AreEqual(63, command.State.Foreground.Blue);
     }
 
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n154/mode/1up?view=theater
-    /// </summary>
+    /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n154/mode/1up?view=theater</summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page154Green()
     {
@@ -155,9 +147,7 @@ public class SetColorCommandTests
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n156/mode/1up?view=theater
-    /// </summary>
+    /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n156/mode/1up?view=theater</summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page156Red()
     {
@@ -169,9 +159,7 @@ public class SetColorCommandTests
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n156/mode/1up?view=theater
-    /// </summary>
+    /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n156/mode/1up?view=theater</summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page156Cyan()
     {
@@ -184,9 +172,7 @@ public class SetColorCommandTests
         Assert.AreEqual(63, command.State.Foreground.Blue);
     }
 
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n162/mode/1up?view=theater
-    /// </summary>
+    /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n162/mode/1up?view=theater</summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page162White()
     {
@@ -199,9 +185,7 @@ public class SetColorCommandTests
         Assert.AreEqual(63, command.State.Foreground.Blue);
     }
 
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n163/mode/1up?view=theater
-    /// </summary>
+    /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n163/mode/1up?view=theater</summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page163Transparent()
     {
@@ -214,9 +198,7 @@ public class SetColorCommandTests
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n164/mode/1up?view=theater
-    /// </summary>
+    /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n164/mode/1up?view=theater</summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page164Yellow()
     {

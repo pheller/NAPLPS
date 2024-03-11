@@ -7,7 +7,6 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
     private static readonly bool[] _twoDimensionalZero = [false, false, false];
     private static readonly bool[] _threeDimensionalZero = [false, false];
 
-
     public List<Vector3> Vertices { get; internal set; } = [];
 
     internal List<Vector3> ProcessVerticies(NaplpsOperands operands, bool isInt = false)
@@ -55,8 +54,8 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
                 }
 
                 var dx = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(x);
-                var dy = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(y);
-                var dz = State.Dimensionality == 3 ? isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(z) : 0;
+                var dy = isInt ? ConvertBitsToByte(y) : ConvertBitsToFraction(y);
+                var dz = State.Dimensionality == 3 ? (isInt ? ConvertBitsToByte(z) : ConvertBitsToFraction(z)) : 0;
 
                 x.Clear();
                 y.Clear();
@@ -74,8 +73,8 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
                 }
 
                 var dx = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(x);
-                var dy = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(y);
-                var dz = State.Dimensionality == 3 ? isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(z) : 0;
+                var dy = isInt ? ConvertBitsToByte(y) : ConvertBitsToFraction(y);
+                var dz = State.Dimensionality == 3 ? (isInt ? ConvertBitsToByte(z) : ConvertBitsToFraction(z)) : 0;
 
                 x.Clear();
                 y.Clear();

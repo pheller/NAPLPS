@@ -71,15 +71,16 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
         float fraction = 0f;
         float baseValue = 0.5f; // Starting from the MSB just right of the decimal point
 
-        foreach (bool bit in boolList.Skip(1))
+        var numericalData = boolList[1..];
+
+        foreach (bool bit in numericalData)
         {
             fraction += bit ? baseValue : 0f;
             baseValue /= 2f;
         }
 
-        // Interpret the list as a two's complement fixed-point number
-        // Assuming the first bit is the sign bit and the rest are fractional bits
-        if (boolList.First()) // If the number is negative
+        // Is negative
+        if (boolList[0]) // If the number is negative
         {
             fraction = -1 + fraction; // Adjust for two's complement notation
         }
