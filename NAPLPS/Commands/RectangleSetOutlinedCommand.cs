@@ -6,6 +6,6 @@ public class RectangleSetOutlinedCommand : RectangleSetCommand
 {
     public RectangleSetOutlinedCommand(NaplpsState state, NaplpsOperands operands) : base(state, RECTANGLE_SET_OUTLINED, operands)
     {
-        ShouldOutline = true;
+        ShouldFill = false;
     }
 }

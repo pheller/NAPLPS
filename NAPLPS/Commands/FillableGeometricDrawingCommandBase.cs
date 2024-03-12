@@ -5,6 +5,4 @@ namespace NAPLPS.Commands;
 public abstract class FillableGeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : GeometricDrawingCommandBase(state, opcode, operands)
 {
     public bool ShouldFill { get; internal set; }
-
-    public bool ShouldOutline { get; internal set; }
 }

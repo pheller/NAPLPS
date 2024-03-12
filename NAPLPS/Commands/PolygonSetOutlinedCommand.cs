@@ -6,6 +6,6 @@ public class PolygonSetOutlinedCommand : PolygonSetCommand
 {
     public PolygonSetOutlinedCommand(NaplpsState state, NaplpsOperands operands) : base(state, POLYGON_SET_OUTLINED, operands)
     {
-        ShouldOutline = true;
+        ShouldFill = false;
     }
 }
