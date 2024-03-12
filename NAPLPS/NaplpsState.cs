@@ -2,7 +2,6 @@
 
 using System.Drawing;
 using System.Text.Json;
-using static NAPLPS.Commands.TextCommand;
 
 namespace NAPLPS;
 

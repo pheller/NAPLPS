@@ -5,3 +5,4 @@ global using System.Numerics;
 
 // NAPLPS
 global using static NAPLPS.NaplpsCommands;
+global using static NAPLPS.Commands.TextCommand;

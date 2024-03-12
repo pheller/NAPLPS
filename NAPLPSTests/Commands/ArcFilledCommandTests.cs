@@ -1,4 +1,6 @@
-﻿namespace NAPLPSTests.Commands;
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+namespace NAPLPSTests.Commands;
 
 [TestClass]
 public class ArcFilledCommandTests
