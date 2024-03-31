@@ -2,9 +2,9 @@
 
 namespace NAPLPSApp
 {
-    public partial class MainForm : Form
+    public partial class MainNaplpsForm : Form
     {
-        public MainForm()
+        public MainNaplpsForm()
         {
             InitializeComponent();
         }

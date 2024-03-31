@@ -13,6 +13,11 @@ public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
         var verts = ProcessVerticies(operands);
 
         StartPoint = verts[0];
+
+        State.SetPen(StartPoint);
+
         Dimensions = verts[1];
+
+        State.MovePen(Dimensions); // TODO: Verify
     }
 }

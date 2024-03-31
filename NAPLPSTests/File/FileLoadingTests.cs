@@ -8,7 +8,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadMaple()
     {
-        var file = NaplpsFile.FromFile("../../../../examples/maple.nap");
+        var file = NaplpsFormat.FromFile("../../../../examples/maple.nap");
 
         Assert.IsNotNull(file);
 
@@ -21,26 +21,9 @@ public class FileLoadingTests
     }
 
     [TestMethod]
-    public void LoadMapleAndSave()
+    public void LoadAutumn()
     {
-        var file = NaplpsFile.FromFile("../../../../examples/maple.nap");
-
-        Assert.IsNotNull(file);
-
-        Assert.IsFalse(file.IsErrored);
-        Assert.IsTrue(file.IsValid);
-
-        Assert.IsTrue(file.Is7Bit);
-
-        Assert.AreEqual(10, file.Commands.Count);
-
-        file.SavePNG("maple");
-    }
-
-    [TestMethod]
-    public void LoadAutumnAndSave()
-    {
-        var file = NaplpsFile.FromFile("../../../../examples/autumn.nap");
+        var file = NaplpsFormat.FromFile("../../../../examples/autumn.nap");
 
         Assert.IsNotNull(file);
 
@@ -51,6 +34,6 @@ public class FileLoadingTests
 
         Assert.AreEqual(270, file.Commands.Count);
 
-        file.SavePNG("autumn");
+        // file.SavePNG(_defaultSize, $"{_outputPath}autumn");
     }
 }

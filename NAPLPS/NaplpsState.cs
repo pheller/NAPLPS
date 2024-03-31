@@ -1,14 +1,13 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Drawing;
-using System.Text.Json;
-
 namespace NAPLPS;
 
+/// <summary>This was normally stored in some memory block, 4Kb iirc</summary>
 public class NaplpsState
 {
     public static JsonSerializerOptions GlobalJsonSerializerOptions { get; } = new()
     {
+        Converters = { new Vector3Converter() },
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
     };
@@ -33,7 +32,7 @@ public class NaplpsState
 
     public Point LogicalPel { get; set; } = new(1, 1);
 
-    public PointF Pen { get; set; } = new();
+    public Vector3 Pen { get; set; } = new();
 
     /* Text States */
 
@@ -99,7 +98,17 @@ public class NaplpsState
 
     public override string ToString()
     {
-        return $"D:{Dimensionality} M:{MultiByteValue} S:{SingleByteValue}-P:(<{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}))-C:{ColorMode} CMF:{ColorMapForegroundSelected} CMB:{ColorMapBackgroundSelected}, CF:{Foreground} CB:{Background}";
+        return $"M:{MultiByteValue} S:{SingleByteValue}-P:(<{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}))-C:<{ColorMode},<{ColorMapForegroundSelected}, {ColorMapBackgroundSelected}>>=[F:{Foreground} B:{Background}]";
+    }
+
+    internal void SetPen(Vector3 point)
+    {
+        Pen = point;
+    }
+
+    internal void MovePen(Vector3 point)
+    {
+        Pen += point;
     }
 
     /* Defaults */

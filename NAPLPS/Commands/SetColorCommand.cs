@@ -1,6 +1,6 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Drawing;
+using System.Diagnostics;
 
 namespace NAPLPS.Commands;
 
@@ -8,7 +8,7 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class SetColorCommand : NaplpsCommand
 {
-    public Color ForegroundColor;
+    public NaplpsColor Color;
 
     public SetColorCommand(NaplpsState state, NaplpsOperands operands) : base(state, SET_COLOR, operands)
     {
@@ -18,7 +18,13 @@ public class SetColorCommand : NaplpsCommand
         }
         else if (State.ColorMode == 0)
         {
-            ParseColorComponents(operands);
+            State.Foreground = Color = ParseColorComponents(operands);
+        }
+        else if (State.ColorMode == 2)
+        {
+            Color = ParseColorComponents(operands);
+
+            State.ColorMap[State.ColorMapForegroundSelected] = Color;
         }
         else
         {
@@ -26,11 +32,9 @@ public class SetColorCommand : NaplpsCommand
         }
     }
 
-    private void ParseColorComponents(NaplpsOperands operands)
+    private NaplpsColor ParseColorComponents(NaplpsOperands operands)
     {
-        State.Foreground.Green = 0;
-        State.Foreground.Red = 0;
-        State.Foreground.Blue = 0;
+        var color = new NaplpsColor();
 
         while (operands.Count < 3)
         {
@@ -40,16 +44,16 @@ public class SetColorCommand : NaplpsCommand
         foreach (var b in operands)
         {
             // Extract bits for each color component from the first triplet
-            State.Foreground.Green = (byte)(State.Foreground.Green << 1 | b >> 5 & 0x1);
-            State.Foreground.Red = (byte)(State.Foreground.Red << 1 | b >> 4 & 0x1);
-            State.Foreground.Blue = (byte)(State.Foreground.Blue << 1 | b >> 3 & 0x1);
+            color.Green = (byte)(color.Green << 1 | b >> 5 & 0x1);
+            color.Red = (byte)(color.Red << 1 | b >> 4 & 0x1);
+            color.Blue = (byte)(color.Blue << 1 | b >> 3 & 0x1);
 
             // Extract bits for each color component from the second triplet
-            State.Foreground.Green = (byte)(State.Foreground.Green << 1 | b >> 2 & 0x1);
-            State.Foreground.Red = (byte)(State.Foreground.Red << 1 | b >> 1 & 0x1);
-            State.Foreground.Blue = (byte)(State.Foreground.Blue << 1 | b & 0x1);
+            color.Green = (byte)(color.Green << 1 | b >> 2 & 0x1);
+            color.Red = (byte)(color.Red << 1 | b >> 1 & 0x1);
+            color.Blue = (byte)(color.Blue << 1 | b & 0x1);
         }
 
-        ForegroundColor = Color.Empty.From6BitRGB(State.Foreground.Red, State.Foreground.Green, State.Foreground.Blue);
+        return color;
     }
 }

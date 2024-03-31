@@ -16,7 +16,16 @@ public abstract class PolygonSetCommand : FillableGeometricDrawingCommandBase
         {
             StartPoint = ProcessVerticies(operands[..State.MultiByteValue]).FirstOrDefault();
 
+            Points.Add(StartPoint);
+            State.SetPen(StartPoint);
+
             Vertices = ProcessVerticies(operands[State.MultiByteValue..]);
+
+            foreach (var vert in Vertices)
+            {
+                Points.Add(Points.LastOrDefault() + vert);
+                State.MovePen(vert);
+            }
         }
     }
 }

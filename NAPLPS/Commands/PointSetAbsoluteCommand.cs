@@ -2,6 +2,9 @@
 
 namespace NAPLPS.Commands;
 
-public class PointSetAbsoluteCommand(NaplpsState state, NaplpsOperands operands) : PointCommand(state, POINT_SET_ABS, operands)
+public class PointSetAbsoluteCommand : PointCommand
 {
+    public PointSetAbsoluteCommand(NaplpsState state, NaplpsOperands operands) : base(state, POINT_SET_ABS, operands)
+    {
+    }
 }

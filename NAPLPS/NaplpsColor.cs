@@ -2,31 +2,15 @@
 
 namespace NAPLPS;
 
-public class NaplpsColor
+public struct NaplpsColor
 {
-    private byte green;
-    private byte red;
-    private byte blue;
-
     public static NaplpsColor Empty { get; } = new(0, 0, 0);
 
-    public byte Green
-    {
-        get => green;
-        set => green = ValidateColorValue(value, nameof(Green));
-    }
+    public byte Green { get; set; }
 
-    public byte Red
-    {
-        get => red;
-        set => red = ValidateColorValue(value, nameof(Red));
-    }
+    public byte Red { get; set; }
 
-    public byte Blue
-    {
-        get => blue;
-        set => blue = ValidateColorValue(value, nameof(Blue));
-    }
+    public byte Blue { get; set; }
 
     public NaplpsColor()
     {
@@ -39,6 +23,8 @@ public class NaplpsColor
         Blue = blue;
     }
 
+    public readonly Color ToColor() => Color.FromArgb(Red, Green, Blue);
+
     public static NaplpsColor From3BitGRB(int red3Bit, int green3Bit, int blue3Bit)
     {
         // Ensure the input values are within the 3-bit range
@@ -46,22 +32,12 @@ public class NaplpsColor
         red3Bit = Math.Clamp(red3Bit, 0, 7);
         blue3Bit = Math.Clamp(blue3Bit, 0, 7);
 
-        // Convert 3-bit values to 6-bit
-        int green = green3Bit * 63 / 7;
-        int red = red3Bit * 63 / 7;
-        int blue = blue3Bit * 63 / 7;
+        // Convert 3-bit values to 8-bit
+        int green = green3Bit * 255 / 7;
+        int red = red3Bit * 255 / 7;
+        int blue = blue3Bit * 255 / 7;
 
         return new NaplpsColor((byte)green, (byte)red, (byte)blue);
-    }
-
-    private static byte ValidateColorValue(byte value, string colorName)
-    {
-        if (value > 63)
-        {
-            throw new ArgumentException($"{colorName} value must be between 0 and 63. Given value: <{value}>");
-        }
-
-        return value;
     }
 
     public override string ToString()

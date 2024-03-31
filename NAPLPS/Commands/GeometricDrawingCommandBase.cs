@@ -9,6 +9,8 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
 
     public List<Vector3> Vertices { get; internal set; } = [];
 
+    public List<Vector3> Points { get; internal set; } = [];
+
     internal List<Vector3> ProcessVerticies(NaplpsOperands operands, bool isInt = false)
     {
         var verts = new List<Vector3>();

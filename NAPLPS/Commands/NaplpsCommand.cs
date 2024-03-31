@@ -26,6 +26,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
             SHIFT_IN => new ShiftInCommand(state, operands),
             RESET => new ResetCommand(state, operands),
             DOMAIN => new DomainCommand(state, operands),
+            TEXT => new TextCommand(state, operands),
             WAIT => new WaitCommand(state, operands),
             SELECT_COLOR => new SelectColorCommand(state, operands),
             SET_COLOR => new SetColorCommand(state, operands),
@@ -52,71 +53,6 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
             LINE_SET_REL => new LineSetRelativeCommand(state, operands),
             _ => BreakAndReturn(state, opcode, operands),
         };
-    }
-
-    public static byte ConvertBitsToByte(List<bool> booleans)
-    {
-        byte result = 0;
-        int maxBits = 8;
-
-        for (int i = 0; i < Math.Min(booleans.Count, maxBits); i++)
-        {
-            if (booleans[i])
-            {
-                result |= (byte)(1 << i);
-            }
-        }
-
-        return result;
-    }
-
-    public static float ConvertBitsToFraction(List<bool> boolList)
-    {
-        float fraction = 0f;
-        float baseValue = 0.5f; // Starting from the MSB just right of the decimal point
-
-        var numericalData = boolList[1..];
-
-        foreach (bool bit in numericalData)
-        {
-            fraction += bit ? baseValue : 0f;
-            baseValue /= 2f;
-        }
-
-        // Is negative
-        if (boolList[0]) // If the number is negative
-        {
-            fraction = -1 + fraction; // Adjust for two's complement notation
-        }
-
-        return fraction;
-    }
-
-    public static int ConvertBitsToInt(List<bool> binaryArray)
-    {
-        if (binaryArray == null || binaryArray.Count == 0)
-        {
-            throw new ArgumentException("Array must not be empty or null.");
-        }
-
-        int point = 0;
-
-        for (int i = 0; i < binaryArray.Count; i++)
-        {
-            if (binaryArray[i])
-            {
-                point |= 1 << binaryArray.Count - 1 - i;
-            }
-        }
-
-        // Handling two's complement for negative numbers
-        if (binaryArray[0]) // Check if the number is negative (MSB is true/1)
-        {
-            // Invert and add 1 to handle two's complement
-            point = -(int)((~(uint)point & (1U << binaryArray.Count) - 1) + 1);
-        }
-
-        return point;
     }
 
     private static NaplpsCommand ProcessEscapeSequence(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands)

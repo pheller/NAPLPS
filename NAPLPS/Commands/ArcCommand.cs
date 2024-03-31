@@ -4,7 +4,7 @@ namespace NAPLPS.Commands;
 
 /// <summary>
 /// The ARC geometric drawing operation provides the capability of
-/// dra wing circles, segments of circles, and curvilinear splines.For circles and
+/// dra wing circles, segments of circles, and curvilinear splines. For circles and
 /// segments of circles, an arc is drawn from a start point to an end point through
 /// an intermediate point on the arc.Drawing of a circle results when the start
 /// and end points are coincident; the intermediate point defines the diameter of
@@ -70,6 +70,7 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
 
         if ((OpCode == ARC_OUTLINED || OpCode == ARC_FILLED) && operands.Count == State.MultiByteValue * 2)
         {
+            StartPoint = new (State.Pen.X, State.Pen.Y, 0);
             IntermediatePointDisplacement = Vertices[0];
             EndPointDisplacement = Vertices[1];
         }
@@ -82,7 +83,11 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
         else
         {
             IsValid = false;
+
+            return;
         }
+
+        State.SetPen(EndPointDisplacement);
     }
 
 }

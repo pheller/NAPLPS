@@ -1,7 +1,5 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Runtime.Intrinsics.X86;
-
 namespace NAPLPS.Commands;
 
 /// <summary>

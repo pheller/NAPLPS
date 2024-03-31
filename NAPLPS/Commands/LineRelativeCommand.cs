@@ -2,6 +2,10 @@
 
 namespace NAPLPS.Commands;
 
-public class LineRelativeCommand(NaplpsState state, NaplpsOperands operands) : LineCommand(state, LINE_REL, operands)
+public class LineRelativeCommand : LineCommand
 {
+    public LineRelativeCommand(NaplpsState state, NaplpsOperands operands) : base(state, LINE_REL, operands)
+    {
+        
+    }
 }

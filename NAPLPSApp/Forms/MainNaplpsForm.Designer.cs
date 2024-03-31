@@ -2,7 +2,7 @@
 
 namespace NAPLPSApp
 {
-    partial class MainForm
+    partial class MainNaplpsForm
     {
         /// <summary>
         ///  Required designer variable.
