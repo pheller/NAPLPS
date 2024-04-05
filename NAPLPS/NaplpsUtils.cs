@@ -1,4 +1,6 @@
-﻿namespace NAPLPS;
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+namespace NAPLPS;
 
 public static class NaplpsUtils
 {

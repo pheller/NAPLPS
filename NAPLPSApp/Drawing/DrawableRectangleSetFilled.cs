@@ -1,4 +1,6 @@
-﻿using NAPLPS;
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+using NAPLPS;
 using NAPLPS.Commands;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp;

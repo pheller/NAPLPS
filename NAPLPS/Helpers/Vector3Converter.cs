@@ -1,4 +1,6 @@
-﻿namespace NAPLPS.Helpers;
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+namespace NAPLPS.Helpers;
 
 public class Vector3Converter : JsonConverter<Vector3>
 {
