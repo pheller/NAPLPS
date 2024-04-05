@@ -1,24 +1,53 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
+using System.Diagnostics;
+
 namespace NAPLPS.Commands;
 
 public abstract class LineCommand : GeometricDrawingCommandBase
 {
-    public Vector3 Point { get; internal set; }
-
     public LineCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        Point = ProcessVerticies(operands).FirstOrDefault();
+        var verticies = ProcessVertices(operands);
 
-        Points.Add(Point);
+        if (verticies.Count == 0 || operands.Count == 0)
+        {
+            Debugger.Break();
+
+            return;
+        }
 
         if (opcode == LINE_SET_ABS || opcode == LINE_SET_REL)
         {
-            State.SetPen(Point);
+            SetPen(verticies.First());
+
+            foreach (var vert in verticies.Skip(1))
+            {
+                if (opcode == LINE_SET_ABS)
+                {
+                    SetPen(vert);
+                }
+                else 
+                {
+                    MovePen(vert);
+                }
+            }
         }
         else
         {
-            State.MovePen(Point);
+            SetPen(State.Pen);
+
+            foreach (var vert in verticies)
+            {
+                if (opcode == LINE_ABS)
+                {
+                    SetPen(vert);
+                }
+                else
+                {
+                    MovePen(vert);
+                }
+            }
         }
     }
 }

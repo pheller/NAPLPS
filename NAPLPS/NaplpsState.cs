@@ -52,7 +52,7 @@ public class NaplpsState
 
     /// <summary>
     /// This determines the direction of the character path, that is, the direction in 
-    /// which the cursor is advanced after a character is deposited.The character path is 
+    /// which the cursor is advanced after a character is deposited. The character path is 
     /// defined relative to horizontal within the unit screen and is independent of the character rotation.
     /// The default character path is right.
     /// </summary>
@@ -92,23 +92,13 @@ public class NaplpsState
 
     public bool IsTransparent { get; set; }
 
-    public NaplpsColor Foreground { get; set; } = new();
+    public NaplpsColor Foreground { get; set; } = new(1, 1, 1);
 
     public NaplpsColor Background { get; set; } = new();
 
     public override string ToString()
     {
         return $"M:{MultiByteValue} S:{SingleByteValue}-P:(<{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}))-C:<{ColorMode},<{ColorMapForegroundSelected}, {ColorMapBackgroundSelected}>>=[F:{Foreground} B:{Background}]";
-    }
-
-    internal void SetPen(Vector3 point)
-    {
-        Pen = point;
-    }
-
-    internal void MovePen(Vector3 point)
-    {
-        Pen += point;
     }
 
     /* Defaults */

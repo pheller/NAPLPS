@@ -14,9 +14,9 @@ public partial class NaplpsFormat
 
     public bool IsValid {  get; private set; }
 
-    public IReadOnlyList<NaplpsError> Errors { get; } = [];
+    public List<NaplpsError> Errors { get; } = [];
 
-    public IReadOnlyList<NaplpsSequence> Commands { get; }
+    public List<NaplpsSequence> Commands { get; } = [];
 
     public NaplpsState State { get; }
 
@@ -34,11 +34,21 @@ public partial class NaplpsFormat
         IsValid = true;
     }
 
+    private NaplpsFormat(NaplpsState state)
+    {
+        State = state;
+    }
+
     public static NaplpsFormat FromFile(string fullpath)
     {
         var file = File.OpenRead(fullpath);
 
         return new NaplpsFormat(new BinaryReader(file));
+    }
+
+    public static NaplpsFormat New()
+    {
+        return new NaplpsFormat(new NaplpsState());
     }
 
     public List<NaplpsSequence> ReadStream(BinaryReader reader)
@@ -54,19 +64,19 @@ public partial class NaplpsFormat
 
                 var shiftIn = opcode == (byte)SHIFT_IN;
 
-                while (!reader.IsEOF() && (!((byte)reader.PeekChar()).IsOpcode() || shiftIn))
+                while (!reader.IsEOF() && (!reader.PeekByte().IsOpcode() || shiftIn))
                 {
                     var operand = reader.ReadByte();
 
                     if (operand > 0x80)
                     {
                         // Fabled 8-bit NAPLPS
-                        Debugger.Break();
+                        // Debugger.Break();
                     }
 
                     operands.Add(operand);
 
-                    if (shiftIn && (byte)reader.PeekChar() == (byte)SHIFT_OUT)
+                    if (shiftIn && reader.PeekByte() == (byte)SHIFT_OUT)
                     {
                         break;
                     }
@@ -83,7 +93,7 @@ public partial class NaplpsFormat
         }
         catch (EndOfStreamException)
         {
-            Debugger.Break();
+           Debugger.Break();
         }
 
         return commands;

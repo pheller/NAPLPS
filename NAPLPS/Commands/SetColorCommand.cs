@@ -20,7 +20,7 @@ public class SetColorCommand : NaplpsCommand
         {
             State.Foreground = Color = ParseColorComponents(operands);
         }
-        else if (State.ColorMode == 2)
+        else if (State.ColorMode == 1 || State.ColorMode == 2)
         {
             Color = ParseColorComponents(operands);
 

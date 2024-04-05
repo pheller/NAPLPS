@@ -34,7 +34,7 @@ public class TextCommand : GeometricDrawingCommandBase
         // current character field dimensions remain unchanged.
         if (Operands.Count == 5)
         {
-            Vertices = ProcessVerticies(Operands[2..]);
+            Vertices = ProcessVertices(Operands[2..]);
 
             State.TextFieldSize = new Vector2(Vertices[0].X, Vertices[0].Y);
         }

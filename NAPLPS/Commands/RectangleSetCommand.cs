@@ -10,14 +10,21 @@ public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
 
     public RectangleSetCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        var verts = ProcessVerticies(operands);
+        var verts = ProcessVertices(operands);
 
         StartPoint = verts[0];
 
-        State.SetPen(StartPoint);
+        SetPen(StartPoint);
 
-        Dimensions = verts[1];
+        if (verts.Count >= 2)
+        {
+            Dimensions = verts[1];
 
-        State.MovePen(Dimensions); // TODO: Verify
+            MovePen(new Vector3(Dimensions.X, 0, 0));
+        }
+        else
+        {
+            IsValid = false;
+        }
     }
 }

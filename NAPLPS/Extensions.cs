@@ -21,6 +21,26 @@ public static class Extensions
         return stream.CanSeek && stream.Position >= stream.Length;
     }
 
+    // Stream Extensions
+    public static byte PeekByte(this BinaryReader reader)
+    {
+        // Remember the original position
+        long originalPosition = reader.BaseStream.Position;
+
+        if (reader.BaseStream.Position == reader.BaseStream.Length)
+        {
+            return byte.MinValue;
+        }
+
+        // Read the next byte
+        byte result = reader.ReadByte();
+
+        // Restore the original position
+        reader.BaseStream.Position = originalPosition;
+
+        return result;
+    }
+
     // Color Extensions
 
     public static Color From3BitGRB(this Color _, int red3Bit, int green3Bit, int blue3Bit)

@@ -1,6 +1,7 @@
 ﻿using NAPLPS;
 using NAPLPS.Commands;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace NAPLPSApp.Drawing;
@@ -13,19 +14,19 @@ public class DrawContext : IDisposable
 
     public System.Drawing.Size Size { get; }
 
-    public Image<Rgba32> Image { get;  }
+    public Image<Rgba32> Image { get; }
 
     public DrawContext(NaplpsFormat naplps, System.Drawing.Size size)
     {
         NAPLPS = naplps ?? throw new ArgumentNullException(nameof(naplps));
         Size = size;
         Image = new(Size.Width, Size.Height);
+
+        Render();
     }
 
-    public void SaveAsPng(string filepath)
+    public void Render()
     {
-        // TODO: Reset the image??
-
         NAPLPS.Commands.ToList().ForEach(sequence =>
         {
             var (command, state) = sequence;
@@ -34,6 +35,22 @@ public class DrawContext : IDisposable
 
             drawable?.Draw(Image, state, Size);
         });
+    }
+
+    public System.Drawing.Image ToImage()
+    {
+        using var ms = new MemoryStream();
+
+        Image.Save(ms, PngFormat.Instance);
+
+        using var msi = new MemoryStream(ms.ToArray());
+
+        return System.Drawing.Image.FromStream(ms);
+    }
+
+    public void SaveAsPng(string filepath)
+    {
+        // TODO: Reset the image??
 
         Image.SaveAsPng($"{filepath}.png");
     }
@@ -47,9 +64,59 @@ public class DrawContext : IDisposable
                 return new DrawablePolygonSetFilled(polygonCommand);
             }
 
+            case PolygonSetOutlinedCommand polygonCommand:
+            {
+                return new DrawablePolygonSetOutlined(polygonCommand);
+            }
+
+            case PolygonFilledCommand polygonCommand:
+            {
+                return new DrawablePolygonFilled(polygonCommand);
+            }
+
+            case PolygonOutlinedCommand polygonCommand:
+            {
+                return new DrawablePolygonOutlined(polygonCommand);
+            }
+
+            case RectangleSetFilledCommand rectangleCommand:
+            {
+                return new DrawableRectangleSetFilled(rectangleCommand);
+            }
+
+            case RectangleSetOutlinedCommand rectangleCommand:
+            {
+                return new DrawableRectangleSetOutlined(rectangleCommand);
+            }
+
+            case RectangleFilledCommand rectangleCommand:
+            {
+                return new DrawableRectangleFilled(rectangleCommand);
+            }
+
+            case RectangleOutlinedCommand rectangleCommand:
+            {
+                return new DrawableRectangleOutlined(rectangleCommand);
+            }
+
+            case LineSetRelativeCommand lineCommand:
+            {
+                return new DrawableLineSetRelative(lineCommand);
+            }
+
+            case LineSetAbsoluteCommand lineCommand:
+            {
+                return new DrawableLineSetAbsolute(lineCommand);
+            }
+
             case LineRelativeCommand lineCommand:
             {
                 return new DrawableLineRelative(lineCommand);
+            }
+
+            case LineAbsoluteCommand lineCommand:
+            {
+                return new DrawableLineAbsolute(lineCommand);
             }
 
             case PointSetAbsoluteCommand:

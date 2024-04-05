@@ -1,0 +1,9 @@
+madmaze - ad000001.ldr
+business news - ad000002.ldr (target madmaze)
+air france - ad000003.ldr (target madmaze)
+car buyer - ad000004.ldr (target madmaze)
+film review - ad000005.ldr (target madmaze)
+florsheim - ad000006.ldr (target madmaze)
+mariani food critic - ad000007.ldr (target madmaze)
+neiman marcus - ad000008.ldr (target madmaze)
+norwegian cruise lines - ad000009.ldr (target madmaze)

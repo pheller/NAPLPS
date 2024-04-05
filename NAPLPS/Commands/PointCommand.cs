@@ -8,15 +8,15 @@ public abstract class PointCommand : GeometricDrawingCommandBase
 
     public PointCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        Point = ProcessVerticies(operands).FirstOrDefault();
+        Point = ProcessVertices(operands).FirstOrDefault();
 
         if (opcode == POINT_SET_ABS || opcode == POINT_SET_REL)
         {
-            State.SetPen(Point);
+            SetPen(Point);
         }
         else
         {
-            State.MovePen(Point);
+            MovePen(Point);
         }
     }
 }

@@ -66,11 +66,13 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
 
     public ArcCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        Vertices = ProcessVerticies(operands);
+        Vertices = ProcessVertices(operands);
 
         if ((OpCode == ARC_OUTLINED || OpCode == ARC_FILLED) && operands.Count == State.MultiByteValue * 2)
         {
-            StartPoint = new (State.Pen.X, State.Pen.Y, 0);
+            SetPen(State.Pen);
+
+            StartPoint = State.Pen;
             IntermediatePointDisplacement = Vertices[0];
             EndPointDisplacement = Vertices[1];
         }
@@ -87,7 +89,7 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
             return;
         }
 
-        State.SetPen(EndPointDisplacement);
+        SetPen(EndPointDisplacement);
     }
 
 }

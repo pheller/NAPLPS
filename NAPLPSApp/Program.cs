@@ -1,6 +1,5 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-
 using NAPLPS;
 
 namespace NAPLPSApp;
@@ -11,9 +10,11 @@ internal static class Program
     [STAThread]
     static void Main(FileInfo input)
     {
-        var naplpsFile = NaplpsFormat.FromFile("../../../../examples/beer.nap");
+        //var file = "shark";
 
-        FileFunctions.Convert(naplpsFile, "autumn");
+        //var naplpsFile = NaplpsFormat.FromFile($"../../../../examples/{file}.nap");
+
+        //FileFunctions.Convert(naplpsFile, $"a_ex_{file}");
 
         if (input != null)
         {
@@ -25,7 +26,12 @@ internal static class Program
         Console.WriteLine("Starting GUI...");
 
         ApplicationConfiguration.Initialize();
-        Application.Run(new MainNaplpsForm());
+
+        var thread = new Thread(() => Application.Run(new MainNaplpsForm()));
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
     }
 
     private static void ProccessInput(FileInfo input)

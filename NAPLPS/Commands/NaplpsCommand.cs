@@ -24,6 +24,8 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
             ESC => ProcessEscapeSequence(state, opcode, operands),
             SHIFT_OUT => new ShiftOutCommand(state, operands),
             SHIFT_IN => new ShiftInCommand(state, operands),
+            AP_UP => new ActivePositionUpCommand(state, operands),
+            AP_DOWN => new ActivePositionDownCommand(state, operands),
             RESET => new ResetCommand(state, operands),
             DOMAIN => new DomainCommand(state, operands),
             TEXT => new TextCommand(state, operands),
@@ -51,6 +53,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
             LINE_REL => new LineRelativeCommand(state, operands),
             LINE_SET_ABS => new LineSetAbsoluteCommand(state, operands),
             LINE_SET_REL => new LineSetRelativeCommand(state, operands),
+            INCREMENTAL_FIELD => new IncrementalFieldCommand(state, operands),
             _ => BreakAndReturn(state, opcode, operands),
         };
     }
@@ -74,7 +77,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
     {
         var newUnknownCommand = new NaplpsCommand(state, opcode, operands);
 
-        Debugger.Break();
+        // Debugger.Break();
 
         return newUnknownCommand;
     }

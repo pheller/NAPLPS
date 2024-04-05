@@ -9,15 +9,29 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
 
     public List<Vector3> Vertices { get; internal set; } = [];
 
-    public List<Vector3> Points { get; internal set; } = [];
+    public List<Vector3> Points { get; private set; } = [];
 
-    internal List<Vector3> ProcessVerticies(NaplpsOperands operands, bool isInt = false)
+    internal void SetPen(Vector3 point)
+    {
+        State.Pen = point;
+        Points.Add(point);
+    }
+
+    internal void MovePen(Vector3 point)
+    {
+        State.Pen += point;
+        Points.Add(Points.LastOrDefault() + point);
+    }
+
+    internal List<Vector3> ProcessVertices(NaplpsOperands operands, bool isInt = false)
     {
         var verts = new List<Vector3>();
 
         var x = new List<bool>();
         var y = new List<bool>();
         var z = new List<bool>();
+
+        var zeroFill = false;
 
         for (int idx = 0; idx < operands.Count; idx++)
         {
@@ -33,39 +47,31 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
                 z.AddRange([operands[idx, 2], operands[idx, 1]]);
             }
 
-            // We're short bytes, fill with zeros and walk away
-            if (idx == operands.Count && (idx + 1) % State.MultiByteValue != 0)
+            var delta = (idx + 1) % State.MultiByteValue;
+
+            if ((idx + 1) == operands.Count && delta != 0)
             {
-                if (State.Dimensionality == 2)
+                var remaining = State.MultiByteValue - delta;
+                
+                for (int i = 0; i < remaining; i++)
                 {
-                    x.AddRange(_twoDimensionalZero);
-                    y.AddRange(_twoDimensionalZero);
+                    if (State.Dimensionality == 2)
+                    {
+                        x.AddRange(_twoDimensionalZero);
+                        y.AddRange(_twoDimensionalZero);
+                    }
+                    else if (State.Dimensionality == 3)
+                    {
+                        x.AddRange(_threeDimensionalZero);
+                        y.AddRange(_threeDimensionalZero);
+                        z.AddRange(_threeDimensionalZero);
+                    }
                 }
-                else if (State.Dimensionality == 3)
-                {
-                    x.AddRange(_threeDimensionalZero);
-                    y.AddRange(_threeDimensionalZero);
-                    z.AddRange(_threeDimensionalZero);
-                }
-
-                if (isInt)
-                {
-                    x.Reverse();
-                    y.Reverse();
-                    z.Reverse();
-                }
-
-                var dx = isInt ? ConvertBitsToByte(x) : ConvertBitsToFraction(x);
-                var dy = isInt ? ConvertBitsToByte(y) : ConvertBitsToFraction(y);
-                var dz = State.Dimensionality == 3 ? (isInt ? ConvertBitsToByte(z) : ConvertBitsToFraction(z)) : 0;
-
-                x.Clear();
-                y.Clear();
-                z.Clear();
-
-                verts.Add(new Vector3(dx, dy, dz));
+                
+                zeroFill = true;
             }
-            else if ((idx + 1) % State.MultiByteValue == 0)
+
+            if (zeroFill || delta == 0)
             {
                 if (isInt)
                 {

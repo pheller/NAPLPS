@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using System.CommandLine;
+using SixLabors.ImageSharp.Drawing;
 
 namespace NAPLPSApp.Drawing;
 
@@ -24,20 +25,22 @@ public class DrawablePolygonSetFilled : IDrawable
     public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
     {
         var polygonPoints = new List<PointF>();
-        var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
 
-        polygonPoints.Add(new PointF(startPoint.X, startPoint.Y));
-
-        foreach (var drawPoint in _command.Points.Skip(1))
+        foreach (var drawPoint in _command.Points)
         {
             var polyPoint = NaplpsUtils.ConvertNormalizedToPoint(size, drawPoint.X, drawPoint.Y);
 
             polygonPoints.Add(new PointF(polyPoint.X, polyPoint.Y));
         }
 
-        var color = state.Foreground.ToColor();
-        var brush = Brushes.Solid(Color.FromRgba(color.R, color.G, color.B, color.A));
+        var polygon = new Polygon(polygonPoints.ToArray());
 
-        image.Mutate(x => x.FillPolygon(brush, [.. polygonPoints]));
+        var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForegroundSelected].ToColor();
+        var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackgroundSelected].ToColor();
+
+        var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
+        var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));
+
+        image.Mutate(x => x.Fill(brush, polygon).Draw(pen, polygon));
     }
 }

@@ -2,6 +2,9 @@
 
 namespace NAPLPS.Commands;
 
-public class LineAbsoluteCommand(NaplpsState state, NaplpsOperands operands) : LineCommand(state, LINE_ABS, operands)
+public class LineAbsoluteCommand : LineCommand
 {
+    public LineAbsoluteCommand(NaplpsState state, NaplpsOperands operands) : base(state, LINE_ABS, operands)
+    {
+    }
 }

@@ -44,7 +44,7 @@ public class ResetCommand : NaplpsCommand
 		/*	ignored. */
         if (operands.Count == 0)
         {
-            Debugger.Break();
+            // Debugger.Break();
             Operands.AddRange([0, 0]);
         }
         else if (operands.Count == 1)

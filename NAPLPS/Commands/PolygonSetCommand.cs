@@ -14,17 +14,15 @@ public abstract class PolygonSetCommand : FillableGeometricDrawingCommandBase
         }
         else
         {
-            StartPoint = ProcessVerticies(operands[..State.MultiByteValue]).FirstOrDefault();
+            StartPoint = ProcessVertices(operands[..State.MultiByteValue]).FirstOrDefault();
 
-            Points.Add(StartPoint);
-            State.SetPen(StartPoint);
+            SetPen(StartPoint);
 
-            Vertices = ProcessVerticies(operands[State.MultiByteValue..]);
+            Vertices = ProcessVertices(operands[State.MultiByteValue..]);
 
             foreach (var vert in Vertices)
             {
-                Points.Add(Points.LastOrDefault() + vert);
-                State.MovePen(vert);
+                MovePen(vert);
             }
         }
     }

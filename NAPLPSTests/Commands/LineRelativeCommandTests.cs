@@ -25,8 +25,8 @@ public class LineRelativeCommandTests
 
         Assert.AreEqual(lineRelativeCommand.Vertices.Count, 0);
 
-        Assert.AreEqual(lineRelativeCommand.Point.X, -.0390625f);
-        Assert.AreEqual(lineRelativeCommand.Point.Y, -.078125f);
-        Assert.AreEqual(lineRelativeCommand.Point.Z, 0);
+        Assert.AreEqual(lineRelativeCommand.Points[1].X, -.0390625f);
+        Assert.AreEqual(lineRelativeCommand.Points[1].Y, -.078125f);
+        Assert.AreEqual(lineRelativeCommand.Points[1].Z, 0);
     }
 }
