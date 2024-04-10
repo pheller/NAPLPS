@@ -8,7 +8,9 @@ public abstract class RectangleCommand : FillableGeometricDrawingCommandBase
 
     public RectangleCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        Dimensions = ProcessVertices(operands).FirstOrDefault();
+        var verts = ProcessVertices(Operands);
+
+        Dimensions = verts.FirstOrDefault();
 
         SetPen(State.Pen);
 

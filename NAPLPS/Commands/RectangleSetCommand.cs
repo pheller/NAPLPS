@@ -10,7 +10,7 @@ public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
 
     public RectangleSetCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        var verts = ProcessVertices(operands);
+        var verts = ProcessVertices(Operands);
 
         StartPoint = verts[0];
 

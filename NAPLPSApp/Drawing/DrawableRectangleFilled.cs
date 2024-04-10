@@ -36,6 +36,7 @@ public class DrawableRectangleFilled : IDrawable
 
         var dimensions = NaplpsUtils.ConvertNormalizedToPoint(size, _command.Dimensions.X, _command.Dimensions.Y);
 
+        // var rect = Rectangle.FromLTRB(startPoint.X, startPoint.Y + dimensions.Y,  )
         var rect = new Rectangle(startPoint.X, startPoint.Y, dimensions.X, dimensions.Y);
 
         var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
