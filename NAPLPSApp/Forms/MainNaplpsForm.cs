@@ -5,6 +5,7 @@ using NAPLPSApp.Drawing;
 
 namespace NAPLPSApp
 {
+#if NET8_0_WINDOWS
     public partial class MainNaplpsForm : Form
     {
         public NaplpsFormat? LoadedFile { get; private set; }
@@ -34,6 +35,11 @@ namespace NAPLPSApp
             var openDialog = new OpenFileDialog();
 
             openDialog.ShowDialog();
+
+            if (string.IsNullOrWhiteSpace(openDialog.FileName))
+            {
+                return;
+            }
 
             LoadedFilePath = openDialog.FileName;
 
@@ -99,4 +105,5 @@ namespace NAPLPSApp
             }
         }
     }
+#endif
 }

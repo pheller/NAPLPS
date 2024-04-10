@@ -1,16 +1,6 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using NAPLPS;
-using NAPLPS.Commands;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
-using Color = SixLabors.ImageSharp.Color;
-using PointF = SixLabors.ImageSharp.PointF;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Drawing.Processing;
-using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
-using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
-using System.Diagnostics;
 using NAPLPSApp.Drawing;
 
 namespace NAPLPSApp;

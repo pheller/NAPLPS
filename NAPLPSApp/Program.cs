@@ -23,6 +23,7 @@ internal static class Program
             return;
         }
 
+#if NET8_0_WINDOWS
         Console.WriteLine("Starting GUI...");
 
         ApplicationConfiguration.Initialize();
@@ -32,6 +33,7 @@ internal static class Program
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         thread.Join();
+#endif
     }
 
     private static void ProccessInput(FileInfo input)

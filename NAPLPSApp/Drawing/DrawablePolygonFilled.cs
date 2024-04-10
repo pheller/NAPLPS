@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
-using System.CommandLine;
 using SixLabors.ImageSharp.Drawing;
 
 namespace NAPLPSApp.Drawing;

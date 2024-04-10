@@ -10,9 +10,7 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
-using SixLabors.ImageSharp.Drawing;
 using Rectangle = SixLabors.ImageSharp.Rectangle;
-using System.Linq;
 
 namespace NAPLPSApp.Drawing;
 
@@ -38,7 +36,7 @@ public class DrawableRectangleFilled : IDrawable
 
         var dimensions = NaplpsUtils.ConvertNormalizedToPoint(size, _command.Dimensions.X, _command.Dimensions.Y);
 
-        var rect = new Rectangle(startPoint.X, startPoint.Y - dimensions.Y, dimensions.X, dimensions.Y);
+        var rect = new Rectangle(startPoint.X, startPoint.Y, dimensions.X, dimensions.Y);
 
         var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
         var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));

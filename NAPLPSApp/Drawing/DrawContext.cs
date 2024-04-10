@@ -39,6 +39,7 @@ public class DrawContext : IDisposable
         });
     }
 
+#if NET8_0_WINDOWS
     public System.Drawing.Image ToImage()
     {
         using var ms = new MemoryStream();
@@ -49,6 +50,7 @@ public class DrawContext : IDisposable
 
         return System.Drawing.Image.FromStream(ms);
     }
+#endif
 
     public void SaveAsPng(string filepath)
     {

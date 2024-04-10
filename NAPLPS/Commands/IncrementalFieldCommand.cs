@@ -1,11 +1,5 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace NAPLPS.Commands;
 
 public class IncrementalFieldCommand : GeometricDrawingCommandBase
