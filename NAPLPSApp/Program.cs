@@ -10,12 +10,6 @@ internal static class Program
     [STAThread]
     static void Main(FileInfo input)
     {
-        //var file = "shark";
-
-        //var naplpsFile = NaplpsFormat.FromFile($"../../../../examples/{file}.nap");
-
-        //FileFunctions.Convert(naplpsFile, $"a_ex_{file}");
-
         if (input != null)
         {
             ProccessInput(input);

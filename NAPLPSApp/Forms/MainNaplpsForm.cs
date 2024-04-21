@@ -5,14 +5,13 @@ using NAPLPSApp.Drawing;
 
 namespace NAPLPSApp
 {
-#if NET8_0_WINDOWS
     public partial class MainNaplpsForm : Form
     {
         public NaplpsFormat? LoadedFile { get; private set; }
 
-        public string LoadedFilePath { get; private set; }
+        public string LoadedFilePath { get; private set; } = string.Empty;
 
-        private DrawContext _context;
+        private DrawContext? _context = null;
 
         public MainNaplpsForm()
         {
@@ -32,22 +31,18 @@ namespace NAPLPSApp
 
         private void Open(object sender, EventArgs e)
         {
-            var openDialog = new OpenFileDialog();
+            var openDialog = new OpenFileDialog { InitialDirectory = AppDomain.CurrentDomain.BaseDirectory };
 
-            openDialog.ShowDialog();
-
-            if (string.IsNullOrWhiteSpace(openDialog.FileName))
+            if (openDialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(openDialog.FileName))
             {
-                return;
+                LoadedFilePath = openDialog.FileName;
+
+                LoadedFile = NaplpsFormat.FromFile(LoadedFilePath);
+
+                _context = new DrawContext(LoadedFile, new Size(1024, 768));
+
+                pictureBox.Image = _context.ToImage();
             }
-
-            LoadedFilePath = openDialog.FileName;
-
-            LoadedFile = NaplpsFormat.FromFile(LoadedFilePath);
-
-            _context = new DrawContext(LoadedFile, new Size(1024, 768));
-
-            pictureBox.Image = _context.ToImage();
 
             UpdateUI();
         }
@@ -105,5 +100,4 @@ namespace NAPLPSApp
             }
         }
     }
-#endif
 }

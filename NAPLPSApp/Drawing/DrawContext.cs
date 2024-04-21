@@ -40,6 +40,8 @@ public class DrawContext : IDisposable
     }
 
 #if NET8_0_WINDOWS
+    /// <summary>Converts the NAPLPS final image to a System.Drawing.Image</summary>
+    /// <returns>A hopefully well drawn NAPLPS image in a System.Drawing.Image format</returns>
     public System.Drawing.Image ToImage()
     {
         using var ms = new MemoryStream();
@@ -59,7 +61,7 @@ public class DrawContext : IDisposable
         Image.SaveAsPng($"{filepath}.png");
     }
 
-    private static IDrawable ConvertToDrawable(NaplpsCommand command)
+    private static IDrawable? ConvertToDrawable(NaplpsCommand command)
     {
         switch (command)
         {

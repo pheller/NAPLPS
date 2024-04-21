@@ -2,7 +2,6 @@
 
 namespace NAPLPSApp
 {
-#if NET8_0_WINDOWS
     partial class MainNaplpsForm
     {
         /// <summary>
@@ -246,5 +245,4 @@ namespace NAPLPSApp
         private PictureBox pictureBox;
         private ToolStripStatusLabel toolStripStatusLabelBitness;
     }
-#endif
 }
