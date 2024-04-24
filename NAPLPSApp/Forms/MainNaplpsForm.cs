@@ -3,7 +3,7 @@
 using NAPLPS;
 using NAPLPSApp.Drawing;
 
-namespace NAPLPSApp
+namespace NAPLPSApp.Forms
 {
     public partial class MainNaplpsForm : Form
     {
@@ -13,9 +13,26 @@ namespace NAPLPSApp
 
         private DrawContext? _context = null;
 
+        private NaplpsSequenceForm? _sequenceForm = null;
+
         public MainNaplpsForm()
         {
             InitializeComponent();
+
+            iconDropDownButtonCommands.Click += (s, e) =>
+            {
+                if (_sequenceForm != null)
+                {
+                    if (!_sequenceForm.Visible)
+                    {
+                        _sequenceForm.Show();
+                    }
+                    else
+                    {
+                        _sequenceForm.Hide();
+                    }
+                }
+            };
 
             UpdateUI();
         }
@@ -42,6 +59,8 @@ namespace NAPLPSApp
                 _context = new DrawContext(LoadedFile, new Size(1024, 768));
 
                 pictureBox.Image = _context.ToImage();
+
+                _sequenceForm = new NaplpsSequenceForm(LoadedFile.Commands);
             }
 
             UpdateUI();
@@ -52,6 +71,9 @@ namespace NAPLPSApp
             LoadedFile = null;
 
             LoadedFilePath = string.Empty;
+
+            _sequenceForm?.Dispose();
+            _sequenceForm = null;
 
             UpdateUI();
         }

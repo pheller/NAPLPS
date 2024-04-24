@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-namespace NAPLPSApp
+namespace NAPLPSApp.Forms
 {
     partial class MainNaplpsForm
     {

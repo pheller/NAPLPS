@@ -42,7 +42,7 @@ public class SelectColorCommand : NaplpsCommand
         /// drawing color is applied.
         if (Operands.Count == 1)
         {
-            State.ColorMapForegroundSelected = ConvertBitsToByte([Operands[0, 3], Operands[0, 4], Operands[0, 5], Operands[0, 6]]);
+            State.ColorMapForeground = ConvertBitsToByte([Operands[0, 3], Operands[0, 4], Operands[0, 5], Operands[0, 6]]);
         }
         /// If the SELECT COLOR opcode is followed by two operands, color
         /// mode 2 is indicated. Again, the terminal will remain in color mode 2 until
@@ -61,8 +61,8 @@ public class SelectColorCommand : NaplpsCommand
         /// color in the line and area texture patterns
         else if (Operands.Count == 2)
         {
-            State.ColorMapForegroundSelected = ConvertBitsToByte([Operands[0, 3], Operands[0, 4], Operands[0, 5], Operands[0, 6]]);
-            State.ColorMapBackgroundSelected = ConvertBitsToByte([Operands[1, 3], Operands[1, 4], Operands[1, 5], Operands[1, 6]]);
+            State.ColorMapForeground = ConvertBitsToByte([Operands[0, 3], Operands[0, 4], Operands[0, 5], Operands[0, 6]]);
+            State.ColorMapBackground = ConvertBitsToByte([Operands[1, 3], Operands[1, 4], Operands[1, 5], Operands[1, 6]]);
         }
     }
 }

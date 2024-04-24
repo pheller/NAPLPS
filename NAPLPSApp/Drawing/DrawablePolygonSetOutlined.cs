@@ -33,9 +33,14 @@ public class DrawablePolygonSetOutlined : IDrawable
             polygonPoints.Add(new PointF(polyPoint.X, polyPoint.Y));
         }
 
+        if (polygonPoints.Count <= 1)
+        {
+            return;
+        }
+
         var polygon = new Polygon(polygonPoints.ToArray());
 
-        var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForegroundSelected].ToColor();
+        var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
 
         var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
 

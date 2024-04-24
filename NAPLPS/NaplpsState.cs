@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
+using System.ComponentModel;
+
 namespace NAPLPS;
 
 /// <summary>This was normally stored in some memory block, 4Kb iirc</summary>
@@ -22,16 +24,26 @@ public class NaplpsState
 
     /// <summary>Future Spec [2 = x,y,0 3 = x,y,z]</summary>
     /// <figure>11</figure>
+    [Category("Parsing")]
+    [ReadOnly(true)]
     public byte Dimensionality { get; set; } = 2;
 
+    [Category("Parsing")]
+    [ReadOnly(true)]
     public byte MultiByteValue { get; set; } = 3;
 
+    [Category("Parsing")]
+    [ReadOnly(true)]
     public byte SingleByteValue { get; set; } = 1;
 
     /* Drawing States */
 
+    [Category("Drawing")]
+    [ReadOnly(true)]
     public Point LogicalPel { get; set; } = new(1, 1);
 
+    [Category("Drawing")]
+    [ReadOnly(true)]
     public Vector3 Pen { get; set; } = new();
 
     /* Text States */
@@ -48,6 +60,8 @@ public class NaplpsState
     /// effect, are affected by rotation so that the relative position of the images
     /// within the character field is unchanged.
     /// </summary>
+    [Category("Text")]
+    [ReadOnly(true)]
     public TextRotation TextRotation { get; set; }
 
     /// <summary>
@@ -56,6 +70,8 @@ public class NaplpsState
     /// defined relative to horizontal within the unit screen and is independent of the character rotation.
     /// The default character path is right.
     /// </summary>
+    [Category("Text")]
+    [ReadOnly(true)]
     public TextPath TextPath { get; set; }
 
     /// <summary>
@@ -66,39 +82,63 @@ public class NaplpsState
     /// depending on the character path and character rotation. This is known as the
     /// intercharacter spacing.
     /// </summary>
+    [Category("Text")]
+    [ReadOnly(true)]
     public TextSpacing TextSpacing { get; set; }
 
+    [Category("Text")]
+    [ReadOnly(true)]
     public TextInterrowSpacing TextInterrowSpacing { get; set; }
 
+    [Category("Text")]
+    [ReadOnly(true)]
     public TextMoveAttributes TextMoveAttributes { get; set; }
 
+    [Category("Text")]
+    [ReadOnly(true)]
     public TextCursorStyle TextCursorStyle { get; set; }
 
     /// <summary>
     /// The default dimensions of the character field are dx = 1/40 and dy = 5/128,
     /// consistent with the physical resolution.
     /// </summary>
+    [Category("Text")]
+    [ReadOnly(true)]
     public Vector2 TextFieldSize { get; set; } = new Vector2(1.0f / 40.0f, 5.0f / 128.0f);
 
     /* Color States */
 
+    [Category("Color")]
+    [ReadOnly(true)]
     public byte ColorMode { get; set; }
 
+    [Category("Color")]
+    [ReadOnly(true)]
     public Dictionary<byte, NaplpsColor> ColorMap { get; set; } = new(ColorMapDefaults);
 
-    public byte ColorMapForegroundSelected { get; set; }
+    [Category("Color")]
+    [ReadOnly(true)]
+    public byte ColorMapForeground { get; set; }
 
-    public byte ColorMapBackgroundSelected { get; set; }
+    [Category("Color")]
+    [ReadOnly(true)]
+    public byte ColorMapBackground { get; set; }
 
+    [Category("Color")]
+    [ReadOnly(true)]
     public bool IsTransparent { get; set; }
 
+    [Category("Color")]
+    [ReadOnly(true)]
     public NaplpsColor Foreground { get; set; } = new(1, 1, 1);
 
+    [Category("Color")]
+    [ReadOnly(true)]
     public NaplpsColor Background { get; set; } = new();
 
     public override string ToString()
     {
-        return $"M:{MultiByteValue} S:{SingleByteValue}-P:(<{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}))-C:<{ColorMode},<{ColorMapForegroundSelected}, {ColorMapBackgroundSelected}>>=[F:{Foreground} B:{Background}]";
+        return $"M:{MultiByteValue} S:{SingleByteValue}-P:(<{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}))-C:<{ColorMode},<{ColorMapForeground}, {ColorMapBackground}>>=[F:{Foreground} B:{Background}]";
     }
 
     /* Defaults */

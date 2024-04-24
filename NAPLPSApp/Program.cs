@@ -2,6 +2,10 @@
 
 using NAPLPS;
 
+#if NET8_0_WINDOWS
+using NAPLPSApp.Forms;
+#endif
+
 namespace NAPLPSApp;
 
 internal static class Program

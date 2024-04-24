@@ -22,7 +22,7 @@ public class SetColorCommand : NaplpsCommand
         {
             Color = ParseColorComponents(operands);
 
-            State.ColorMap[State.ColorMapForegroundSelected] = Color;
+            State.ColorMap[State.ColorMapForeground] = Color;
         }
         else
         {

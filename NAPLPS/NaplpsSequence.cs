@@ -13,4 +13,9 @@ public class NaplpsSequence(NaplpsState state, NaplpsCommand command)
         command = Command;
         state = State;
     }
+
+    public override string ToString()
+    {
+        return $"{Command}:|:{State}";
+    }
 }
