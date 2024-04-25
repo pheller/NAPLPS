@@ -1,7 +1,10 @@
 ﻿using NAPLPS;
 using NAPLPS.Commands;
-using System.CommandLine;
-using System.Windows.Forms;
+using ScottPlot;
+using ScottPlot.WinForms;
+using System.Diagnostics;
+using Color = System.Drawing.Color;
+using FontStyle = System.Drawing.FontStyle;
 
 namespace NAPLPSApp.Forms
 {
@@ -9,17 +12,40 @@ namespace NAPLPSApp.Forms
     {
         private List<NaplpsSequence> _sequence;
 
+        private NaplpsSequence _selectedSequence;
+
+        private FormsPlot _plot;
+
         public NaplpsSequenceForm(List<NaplpsSequence> sequence)
         {
             _sequence = sequence;
 
-            this.FormClosing += (s, e) =>
+            FormClosing += (s, e) =>
             {
                 e.Cancel = true;
-                this.Hide();
+                Hide();
             };
 
             InitializeComponent();
+
+            _plot = new() { 
+                Dock = DockStyle.Fill,
+                Visible = false,
+            };
+            _plot.Plot.Axes.SetLimits(0, 1, 0, 1);
+
+            tableLayoutPanelCommand.Controls.Add(_plot, 0, 4);
+
+            tableLayoutPanelCommand.SetColumnSpan(_plot, 2);
+            tableLayoutPanelCommand.SetRowSpan(_plot, 6);
+
+            labelCommandName.Click += (s, e) =>
+            {
+                if (_selectedSequence != null)
+                {
+                    Process.Start(new ProcessStartInfo($"https://github.com/FoxCouncil/NAPLPS/blob/main/NAPLPS/Commands/{_selectedSequence.Command}.cs") { UseShellExecute = true });
+                }
+            };
 
             panelOperandsDisplay.HorizontalScroll.Enabled = false;
             panelOperandsDisplay.HorizontalScroll.Visible = false;
@@ -39,11 +65,12 @@ namespace NAPLPSApp.Forms
 
             toolStripLabelCurrentIndex.Text = selectedIndex.ToString().PadLeft(4, '0');
 
-            var (command, state) = _sequence[selectedIndex];
+            var (command, state) = _selectedSequence = _sequence[selectedIndex];
 
             labelCommandName.ForeColor = Color.Black;
             tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 4);
             panelTextDisplay.Visible = false;
+            _plot.Visible = false;
 
             if (!command.IsValid)
             {
@@ -57,10 +84,53 @@ namespace NAPLPSApp.Forms
                 labelTextDisplay.Text = textCommand.Text;
                 panelTextDisplay.Visible = true;
             }
-            else if (command is GeometricDrawingCommandBase)
+            else if (command is DomainCommand domainCommand)
+            {
+                labelCommandName.ForeColor = Color.DarkOrange;
+
+                tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
+
+                labelTextDisplay.Text  = $" Multibyte: {domainCommand.State.MultiByteValue}\n";
+                labelTextDisplay.Text += $"Singlebyte: {domainCommand.State.SingleByteValue}\n";
+
+                panelTextDisplay.Visible = true;
+            }
+            else if (command is GeometricDrawingCommandBase baseDrawCommand)
             {
                 labelCommandName.ForeColor = Color.Green;
+
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
+
+                labelTextDisplay.Text = "Draw Point(s):\n";
+
+                var coords = new List<Coordinates>();
+
+                foreach (var point in baseDrawCommand.Points)
+                {
+                    labelTextDisplay.Text += $"{point}\n";
+
+                    coords.Add(new Coordinates(point.X, point.Y));
+
+                }
+
+                labelTextDisplay.Text += "Vertice(s):\n";
+
+                foreach (var vert in baseDrawCommand.Vertices)
+                {
+                    labelTextDisplay.Text += $"{vert}\n";
+                }
+
+                _plot.Plot.Clear();
+
+                _plot.Plot.Add.Polygon([..coords]);
+
+                var markers = _plot.Plot.Add.Markers(coords);
+                
+                markers.MarkerShape = MarkerShape.FilledCircle;
+                markers.MarkerSize = 5;
+
+                panelTextDisplay.Visible = true;
+                _plot.Visible = true;
             }
 
             labelCommandName.Text = command.ToString();
@@ -104,9 +174,13 @@ namespace NAPLPSApp.Forms
                 {
                     sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.Red;
                 }
-                else if (sequence.Command is ShiftInCommand textCommand)
+                else if (sequence.Command is ShiftInCommand)
                 {
                     sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.DarkGoldenrod;
+                }
+                else if (sequence.Command is DomainCommand)
+                {
+                    sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.DarkOrange;
                 }
                 else if (sequence.Command is GeometricDrawingCommandBase)
                 {

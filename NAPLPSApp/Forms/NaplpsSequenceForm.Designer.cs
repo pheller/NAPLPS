@@ -43,7 +43,7 @@
             tableLayoutPanelCommand = new TableLayoutPanel();
             panelTextDisplay = new Panel();
             labelTextDisplay = new Label();
-            labelCommandName = new Label();
+            labelCommandName = new LinkLabel();
             labelOperandCount = new Label();
             labelOpcode = new Label();
             panelOperandsDisplay = new Panel();
@@ -174,7 +174,7 @@
             // 
             splitContainerHorizontal.Panel2.Controls.Add(propertyGridState);
             splitContainerHorizontal.Size = new Size(280, 736);
-            splitContainerHorizontal.SplitterDistance = 240;
+            splitContainerHorizontal.SplitterDistance = 300;
             splitContainerHorizontal.TabIndex = 1;
             // 
             // tableLayoutPanelCommand
@@ -204,7 +204,7 @@
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanelCommand.Size = new Size(276, 236);
+            tableLayoutPanelCommand.Size = new Size(276, 296);
             tableLayoutPanelCommand.TabIndex = 3;
             // 
             // panelTextDisplay
@@ -216,10 +216,10 @@
             panelTextDisplay.Controls.Add(labelTextDisplay);
             panelTextDisplay.Dock = DockStyle.Fill;
             panelTextDisplay.ForeColor = Color.White;
-            panelTextDisplay.Location = new Point(3, 115);
+            panelTextDisplay.Location = new Point(3, 75);
             panelTextDisplay.Name = "panelTextDisplay";
             tableLayoutPanelCommand.SetRowSpan(panelTextDisplay, 4);
-            panelTextDisplay.Size = new Size(270, 118);
+            panelTextDisplay.Size = new Size(270, 74);
             panelTextDisplay.TabIndex = 5;
             // 
             // labelTextDisplay
@@ -244,6 +244,7 @@
             labelCommandName.Name = "labelCommandName";
             labelCommandName.Size = new Size(213, 17);
             labelCommandName.TabIndex = 1;
+            labelCommandName.TabStop = true;
             labelCommandName.Text = "GoesHereCommand";
             labelCommandName.TextAlign = ContentAlignment.MiddleLeft;
             // 
@@ -282,8 +283,8 @@
             panelOperandsDisplay.ForeColor = Color.White;
             panelOperandsDisplay.Location = new Point(3, 35);
             panelOperandsDisplay.Name = "panelOperandsDisplay";
-            tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 4);
-            panelOperandsDisplay.Size = new Size(270, 74);
+            tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
+            panelOperandsDisplay.Size = new Size(270, 34);
             panelOperandsDisplay.TabIndex = 4;
             // 
             // labelOperandsDisplay
@@ -304,7 +305,7 @@
             propertyGridState.Dock = DockStyle.Fill;
             propertyGridState.Location = new Point(0, 0);
             propertyGridState.Name = "propertyGridState";
-            propertyGridState.Size = new Size(276, 488);
+            propertyGridState.Size = new Size(276, 428);
             propertyGridState.TabIndex = 1;
             // 
             // NaplpsSequenceForm
@@ -356,7 +357,7 @@
         private SplitContainer splitContainerHorizontal;
         private PropertyGrid propertyGridState;
         private TableLayoutPanel tableLayoutPanelCommand;
-        private Label labelCommandName;
+        private LinkLabel labelCommandName;
         private Label labelOperandCount;
         private Label labelOpcode;
         private Panel panelOperandsDisplay;
