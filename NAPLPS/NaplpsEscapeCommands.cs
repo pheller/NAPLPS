@@ -4,6 +4,9 @@ namespace NAPLPS;
 
 public enum NaplpsEscapeCommands : byte
 {
+    C0 = 0x21,
+    C1 = 0x22,
+
     DEF_MACRO = 0x40,
     DEFP_MACRO = 0x41,
     DEFT_MACRO = 0x42,

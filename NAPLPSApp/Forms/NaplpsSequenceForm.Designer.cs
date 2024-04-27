@@ -343,9 +343,6 @@
         #endregion
 
         private ToolStrip toolStrip;
-        public DataGridView SequenceDataGridView;
-        private ListBox listBox1;
-        private DataGridView sequenceDataGridView;
         private ToolStripLabel toolStripLabelCount;
         private ToolStripSeparator toolStripSeparator2;
         private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonNext;
@@ -364,5 +361,6 @@
         private Label labelOperandsDisplay;
         private Panel panelTextDisplay;
         private Label labelTextDisplay;
+        private DataGridView sequenceDataGridView;
     }
 }

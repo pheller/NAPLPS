@@ -66,6 +66,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
 
         return (NaplpsEscapeCommands)operands[0] switch
         {
+            C1 => new C1Command(state, operands),
             DEF_TEXTURE => new DefTextureCommand(state, operands),
             END => new EndCommand(state, operands),
             _ => BreakAndReturn(state, opcode, operands),

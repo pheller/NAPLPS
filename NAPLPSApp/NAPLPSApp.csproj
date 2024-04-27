@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>naplps.ico</ApplicationIcon>
-    <NoWarn>1701;1702;CS1591</NoWarn>
+    <NoWarn>1701;1702;CS1591;NU1701</NoWarn>
   </PropertyGroup>
 
   <!-- Conditionally set UseWindowsForms for Windows targets -->

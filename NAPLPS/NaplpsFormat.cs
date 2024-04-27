@@ -63,8 +63,9 @@ public partial class NaplpsFormat
                 var operands = new NaplpsOperands();
 
                 var shiftIn = opcode == (byte)SHIFT_IN;
+                var escCmd = opcode == (byte)ESC;
 
-                while (!reader.IsEOF() && (!reader.PeekByte().IsOpcode() || shiftIn))
+                while (!reader.IsEOF() && (!reader.PeekByte().IsOpcode() || shiftIn || escCmd))
                 {
                     var operand = reader.ReadByte();
 
@@ -77,6 +78,16 @@ public partial class NaplpsFormat
                     operands.Add(operand);
 
                     if (shiftIn && reader.PeekByte() == (byte)SHIFT_OUT)
+                    {
+                        break;
+                    }
+                    else if (escCmd && operand == 0x22)  // Switching to C1 default set
+                    {
+                        operands.Add(reader.ReadByte());
+
+                        break;
+                    }
+                    else if (reader.PeekByte().IsOpcode() && escCmd)
                     {
                         break;
                     }

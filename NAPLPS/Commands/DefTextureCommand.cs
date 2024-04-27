@@ -25,11 +25,11 @@ namespace NAPLPS.Commands;
 /// before execution (see 5.3.3.6.3), causing the actual area defined to be smaller
 /// than requested.
 /// </summary>
-public class DefTextureCommand : NaplpsCommand
+public class DefTextureCommand : EscCommand
 {
     public ushort MaskId { get; }
 
-    public DefTextureCommand(NaplpsState state, NaplpsOperands operands) : base(state, ESC, operands)
+    public DefTextureCommand(NaplpsState state, NaplpsOperands operands) : base(state, operands)
     {
         if (Operands.Count != 2 && (NaplpsEscapeCommands)Operands[0] != NaplpsEscapeCommands.DEF_TEXTURE)
         {

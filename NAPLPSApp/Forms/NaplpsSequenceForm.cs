@@ -10,11 +10,11 @@ namespace NAPLPSApp.Forms
 {
     public partial class NaplpsSequenceForm : Form
     {
-        private List<NaplpsSequence> _sequence;
+        private readonly List<NaplpsSequence> _sequence;
 
-        private NaplpsSequence _selectedSequence;
+        private readonly FormsPlot _plot;
 
-        private FormsPlot _plot;
+        private NaplpsSequence? _selectedSequence;
 
         public NaplpsSequenceForm(List<NaplpsSequence> sequence)
         {
@@ -67,27 +67,35 @@ namespace NAPLPSApp.Forms
 
             var (command, state) = _selectedSequence = _sequence[selectedIndex];
 
-            labelCommandName.ForeColor = Color.Black;
             tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 4);
             panelTextDisplay.Visible = false;
             _plot.Visible = false;
 
-            if (!command.IsValid)
+            if (command is ShiftInCommand textCommand)
             {
-                labelCommandName.ForeColor = Color.Red;
-            }
-            else if (command is ShiftInCommand textCommand)
-            {
-                labelCommandName.ForeColor = Color.DarkGoldenrod;
-
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
                 labelTextDisplay.Text = textCommand.Text;
                 panelTextDisplay.Visible = true;
             }
+            else if (command is EscCommand escCommand)
+            {
+                tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
+
+                var escapeCode = escCommand.Operands.First().ToString("X");
+
+                labelTextDisplay.Text = $"Escape Char: 0x{escapeCode}, {escapeCode[0]}/{escapeCode[1]}\n";
+
+                foreach (var extraChars in escCommand.Operands.Skip(1))
+                {
+                    var extraCharsStr = extraChars.ToString("X");
+
+                    labelTextDisplay.Text += $"Extra Chars: 0x{extraCharsStr}, {extraCharsStr[0]}/{extraCharsStr[1]}\n";
+                }
+
+                panelTextDisplay.Visible = true;
+            }
             else if (command is DomainCommand domainCommand)
             {
-                labelCommandName.ForeColor = Color.DarkOrange;
-
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
 
                 labelTextDisplay.Text  = $" Multibyte: {domainCommand.State.MultiByteValue}\n";
@@ -97,8 +105,6 @@ namespace NAPLPSApp.Forms
             }
             else if (command is GeometricDrawingCommandBase baseDrawCommand)
             {
-                labelCommandName.ForeColor = Color.Green;
-
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
 
                 labelTextDisplay.Text = "Draw Point(s):\n";
@@ -122,7 +128,14 @@ namespace NAPLPSApp.Forms
 
                 _plot.Plot.Clear();
 
-                _plot.Plot.Add.Polygon([..coords]);
+                if (baseDrawCommand is PolygonCommand)
+                {
+                    _plot.Plot.Add.Polygon([..coords]);
+                }
+                //else (baseDrawCommand is LineCommand) 
+                //{
+                //    _plot.Plot.Add.Line()
+                //}
 
                 var markers = _plot.Plot.Add.Markers(coords);
                 
@@ -173,6 +186,10 @@ namespace NAPLPSApp.Forms
                 if (!sequence.Command.IsValid)
                 {
                     sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.Red;
+                }
+                else if (sequence.Command is EscCommand)
+                {
+                    sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.DarkViolet;
                 }
                 else if (sequence.Command is ShiftInCommand)
                 {
