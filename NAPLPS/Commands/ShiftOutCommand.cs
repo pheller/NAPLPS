@@ -2,6 +2,11 @@
 
 namespace NAPLPS.Commands;
 
-public class ShiftOutCommand(NaplpsState state, NaplpsOperands operands) : NaplpsCommand(state, SHIFT_OUT, operands)
+public class ShiftOutCommand : NaplpsCommand
 {
+    public ShiftOutCommand(NaplpsState state, NaplpsOperands operands) : base(state, SHIFT_OUT, operands)
+    {
+        State.GL = NaplpsGSet.G1PDISet;
+        State.InLockingManner = true;
+    }
 }

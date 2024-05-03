@@ -32,7 +32,7 @@ public class DrawableLineSetRelative : IDrawable
             points.Add(new PointF(thePoint.X, thePoint.Y));
         }
         
-        if (points.Count == 0)
+        if (points.Count < 2)
         {
             return;
         }

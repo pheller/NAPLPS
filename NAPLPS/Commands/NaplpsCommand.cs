@@ -67,8 +67,10 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
         return (NaplpsEscapeCommands)operands[0] switch
         {
             C1 => new C1Command(state, operands),
+            DOLLAR_SIGN => new GraphicCharacterCommand(state, operands, '$'),
             DEF_TEXTURE => new DefTextureCommand(state, operands),
             END => new EndCommand(state, operands),
+            LOCKINGSHIFT_THREE => new LockingShiftThreeCommand(state, operands),
             _ => BreakAndReturn(state, opcode, operands),
         };
     }
@@ -77,7 +79,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
     {
         var newUnknownCommand = new NaplpsCommand(state, opcode, operands);
 
-        // Debugger.Break();
+        System.Diagnostics.Debugger.Break();
 
         return newUnknownCommand;
     }

@@ -2,6 +2,9 @@
 
 using System.ComponentModel;
 
+using static NAPLPS.NaplpsCSet;
+using static NAPLPS.NaplpsGSet;
+
 namespace NAPLPS;
 
 /// <summary>This was normally stored in some memory block, 4Kb iirc</summary>
@@ -19,6 +22,28 @@ public class NaplpsState
     public string ToJson() => JsonSerializer.Serialize(this, GlobalJsonSerializerOptions);
 
     public static NaplpsState FromJson(string json) => JsonSerializer.Deserialize<NaplpsState>(json, GlobalJsonSerializerOptions) ?? new();
+
+    /* In-Use Tables */
+
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    public NaplpsCSet C0 { get; set; } = C0Set;
+
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    public NaplpsCSet C1 { get; set; } = C1Set;
+
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    public NaplpsGSet GL { get; set; } = G0PrimarySet;
+
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    public NaplpsGSet GR { get; set; } = G1PDISet;
+
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    public bool InLockingManner { get; set; } = false;
 
     /* Parsing States */
 
@@ -138,7 +163,7 @@ public class NaplpsState
 
     public override string ToString()
     {
-        return $"M:{MultiByteValue} S:{SingleByteValue}-P:(<{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}))-C:<{ColorMode},<{ColorMapForeground}, {ColorMapBackground}>>=[F:{Foreground} B:{Background}]";
+        return $"O:{MultiByteValue}/{SingleByteValue} (<{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y})) C:<{ColorMode},<{ColorMapForeground}, {ColorMapBackground}>>=[F:{Foreground} B:{Background}]";
     }
 
     /* Defaults */

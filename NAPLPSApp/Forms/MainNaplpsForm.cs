@@ -2,6 +2,7 @@
 
 using NAPLPS;
 using NAPLPSApp.Drawing;
+using System.Diagnostics;
 
 namespace NAPLPSApp.Forms
 {
@@ -48,7 +49,7 @@ namespace NAPLPSApp.Forms
 
         private void Open(object sender, EventArgs e)
         {
-            var openDialog = new OpenFileDialog { InitialDirectory = AppDomain.CurrentDomain.BaseDirectory };
+            var openDialog = new OpenFileDialog { InitialDirectory = Debugger.IsAttached ? "X:\\GitHub\\FoxCouncil\\NAPLPS\\Examples" : AppDomain.CurrentDomain.BaseDirectory };
 
             if (openDialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(openDialog.FileName))
             {

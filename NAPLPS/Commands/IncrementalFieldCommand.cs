@@ -17,8 +17,15 @@ public class IncrementalFieldCommand : GeometricDrawingCommandBase
             return;
         }
 
-        Origin = vertices[0];
-
-        Dimensions = vertices[1];
+        if (vertices.Count == 1)
+        {
+            Origin = State.Pen;
+            Dimensions = vertices[0];
+        }
+        else
+        {
+            Origin = vertices[0];
+            Dimensions = vertices[1];
+        }
     }
 }

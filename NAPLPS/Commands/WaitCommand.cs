@@ -13,12 +13,17 @@ public class WaitCommand : NaplpsCommand
     {
         if (operands.Count < 2)
         {
-            throw new Exception("Wait command must have at least 2 operands");
+            IsValid = false;
+
+            return;
         }
 
+        // Wait command requies a fixed format byte, and it must be 92, 0x5C, 01011100
         if (operands[0] != 92)
         {
-            throw new Exception("Wait command requies a fixed format byte, and it must be 92, 0x5C, 01011100");
+            IsValid = false;
+
+            return;
         }
 
         var rawWaitTime = operands[1];

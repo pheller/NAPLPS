@@ -7,6 +7,8 @@ public enum NaplpsEscapeCommands : byte
     C0 = 0x21,
     C1 = 0x22,
 
+    DOLLAR_SIGN = 0x24,
+
     DEF_MACRO = 0x40,
     DEFP_MACRO = 0x41,
     DEFT_MACRO = 0x42,
@@ -40,4 +42,6 @@ public enum NaplpsEscapeCommands : byte
     CURSOR_OFF = 0x5D,
     BLINK_STOP = 0x5E,
     UNPROTECT = 0x5F,
+
+    LOCKINGSHIFT_THREE = 0x6F,
 }

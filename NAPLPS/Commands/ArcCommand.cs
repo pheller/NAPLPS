@@ -68,25 +68,55 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
     {
         Vertices = ProcessVertices(operands);
 
-        if ((OpCode == ARC_OUTLINED || OpCode == ARC_FILLED) && operands.Count == State.MultiByteValue * 2)
+        if (OpCode == ARC_OUTLINED || OpCode == ARC_FILLED)
         {
-            SetPen(State.Pen);
+            if (operands.Count == State.MultiByteValue * 2)
+            {
+                SetPen(State.Pen);
 
-            StartPoint = State.Pen;
-            IntermediatePointDisplacement = Vertices[0];
-            EndPointDisplacement = Vertices[1];
-        }
-        else if (operands.Count == State.MultiByteValue * 3)
-        {
-            StartPoint = Vertices[0];
-            IntermediatePointDisplacement = Vertices[1];
-            EndPointDisplacement = Vertices[2];
+                StartPoint = State.Pen;
+                IntermediatePointDisplacement = Vertices[0];
+                EndPointDisplacement = Vertices[1];
+            }
+            else if (operands.Count == State.MultiByteValue)
+            {
+                // Circle
+                SetPen(State.Pen);
+
+                StartPoint = State.Pen;
+                IntermediatePointDisplacement = Vertices[0];
+                EndPointDisplacement = State.Pen;
+            }
+            else
+            {
+                IsValid = false;
+
+                return;
+            }
         }
         else
         {
-            IsValid = false;
+            if (operands.Count == State.MultiByteValue * 3)
+            {
+                SetPen(Vertices[0]);
 
-            return;
+                StartPoint = Vertices[0];
+                IntermediatePointDisplacement = Vertices[1];
+                EndPointDisplacement = Vertices[2];
+            }
+            else if (operands.Count == State.MultiByteValue * 2)
+            {
+                // Circle
+                StartPoint = Vertices[0];
+                IntermediatePointDisplacement = Vertices[1];
+                EndPointDisplacement = Vertices[0];
+            }
+            else
+            {
+                IsValid = false;
+
+                return;
+            }
         }
 
         SetPen(EndPointDisplacement);

@@ -18,11 +18,16 @@ public class SetColorCommand : NaplpsCommand
         {
             State.Foreground = Color = ParseColorComponents(operands);
         }
-        else if (State.ColorMode == 1 || State.ColorMode == 2)
+        else if ((State.ColorMode == 1 || State.ColorMode == 2) && Operands.Count != 0)
         {
             Color = ParseColorComponents(operands);
 
             State.ColorMap[State.ColorMapForeground] = Color;
+        }
+        else if (Operands.Count == 0)
+        {
+            State.IsTransparent = true;
+            State.ColorMap[State.ColorMapForeground] = NaplpsColor.Black;
         }
         else
         {

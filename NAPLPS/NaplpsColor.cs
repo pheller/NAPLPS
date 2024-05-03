@@ -4,7 +4,9 @@ namespace NAPLPS;
 
 public struct NaplpsColor
 {
-    public static NaplpsColor Empty { get; } = new(0, 0, 0);
+    public static NaplpsColor Black { get; } = new(0, 0, 0);
+
+    public static NaplpsColor White { get; } = new(byte.MaxValue, byte.MaxValue, byte.MaxValue);
 
     public byte Green { get; set; }
 
