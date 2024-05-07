@@ -11,7 +11,7 @@ public class SelectColorCommandTests
         var command = new SelectColorCommand(new(), []);
 
         Assert.IsNotNull(command);
-        Assert.AreEqual(command.State.ColorMode, 0);
+        Assert.AreEqual(0, command.State.ColorMode);
     }
 
     [TestMethod]
@@ -21,8 +21,8 @@ public class SelectColorCommandTests
 
         Assert.IsNotNull(command);
         
-        Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ColorMapForeground, 1);
+        Assert.AreEqual(1, command.State.ColorMode);
+        Assert.AreEqual(1, command.State.ColorMapForeground);
     }
 
     [TestMethod]
@@ -32,8 +32,8 @@ public class SelectColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ColorMapForeground, 2);
+        Assert.AreEqual(1, command.State.ColorMode);
+        Assert.AreEqual(2, command.State.ColorMapForeground);
     }
 
     [TestMethod]
@@ -43,8 +43,8 @@ public class SelectColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ColorMapForeground, 3);
+        Assert.AreEqual(1, command.State.ColorMode);
+        Assert.AreEqual(3, command.State.ColorMapForeground);
     }
 
     [TestMethod]
@@ -54,8 +54,8 @@ public class SelectColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ColorMapForeground, 4);
+        Assert.AreEqual(1, command.State.ColorMode);
+        Assert.AreEqual(4, command.State.ColorMapForeground);
     }
 
     [TestMethod]
@@ -65,7 +65,7 @@ public class SelectColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(command.State.ColorMode, 1);
-        Assert.AreEqual(command.State.ColorMapForeground, 5);
+        Assert.AreEqual(1, command.State.ColorMode);
+        Assert.AreEqual(5, command.State.ColorMapForeground);
     }
 }

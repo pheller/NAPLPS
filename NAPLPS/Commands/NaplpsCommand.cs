@@ -79,7 +79,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
     {
         var newUnknownCommand = new NaplpsCommand(state, opcode, operands);
 
-        System.Diagnostics.Debugger.Break();
+        // System.Diagnostics.Debugger.Break();
 
         return newUnknownCommand;
     }

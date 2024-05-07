@@ -54,12 +54,23 @@ public partial class NaplpsFormat
     public List<NaplpsSequence> ReadStream(BinaryReader reader)
     {
         var commands = new List<NaplpsSequence>();
+        var is8Bits = false;
+        byte oldBit = 0x00;
 
         try
         {
             while (!reader.IsEOF())
             {
                 var opcode = reader.ReadByte();
+
+                if (opcode > 0x80) // We're in 8Bit mode, we treat escape sequences "differently"
+                {
+                    oldBit = opcode;
+
+                    is8Bits = true;
+                    opcode ^= 0x80;
+                }
+
                 var operands = new NaplpsOperands();
 
                 var shiftIn = opcode == (byte)SHIFT_IN;
@@ -68,12 +79,6 @@ public partial class NaplpsFormat
                 while (!reader.IsEOF() && (!reader.PeekByte().IsOpcode() || shiftIn || escCmd))
                 {
                     var operand = reader.ReadByte();
-
-                    if (operand > 0x80)
-                    {
-                        // Fabled 8-bit NAPLPS
-                        // Debugger.Break();
-                    }
 
                     operands.Add(operand);
 

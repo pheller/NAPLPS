@@ -125,6 +125,11 @@ public class DrawContext : IDisposable
                 return new DrawableLineAbsolute(lineCommand);
             }
 
+            case ShiftInCommand shiftInCommand:
+            {
+                return new DrawableShiftInCommand(shiftInCommand);
+            }
+
             case PointSetAbsoluteCommand:
             case PointSetRelativeCommand:
             {

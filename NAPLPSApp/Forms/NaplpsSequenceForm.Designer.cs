@@ -41,6 +41,10 @@
             splitContainerVertical = new SplitContainer();
             splitContainerHorizontal = new SplitContainer();
             tableLayoutPanelCommand = new TableLayoutPanel();
+            labelBGColorText = new Label();
+            labelFGColorText = new Label();
+            labelBGColor = new Label();
+            labelFGColor = new Label();
             panelTextDisplay = new Panel();
             labelTextDisplay = new Label();
             labelCommandName = new LinkLabel();
@@ -182,6 +186,10 @@
             tableLayoutPanelCommand.ColumnCount = 2;
             tableLayoutPanelCommand.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 79.3478241F));
             tableLayoutPanelCommand.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20.652174F));
+            tableLayoutPanelCommand.Controls.Add(labelBGColorText, 0, 10);
+            tableLayoutPanelCommand.Controls.Add(labelFGColorText, 0, 8);
+            tableLayoutPanelCommand.Controls.Add(labelBGColor, 1, 10);
+            tableLayoutPanelCommand.Controls.Add(labelFGColor, 1, 8);
             tableLayoutPanelCommand.Controls.Add(panelTextDisplay, 0, 3);
             tableLayoutPanelCommand.Controls.Add(labelCommandName, 0, 0);
             tableLayoutPanelCommand.Controls.Add(labelOperandCount, 0, 1);
@@ -190,9 +198,13 @@
             tableLayoutPanelCommand.Dock = DockStyle.Fill;
             tableLayoutPanelCommand.Location = new Point(0, 0);
             tableLayoutPanelCommand.Name = "tableLayoutPanelCommand";
-            tableLayoutPanelCommand.RowCount = 10;
+            tableLayoutPanelCommand.RowCount = 14;
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle());
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle());
+            tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 19F));
+            tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 21F));
+            tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
@@ -206,6 +218,63 @@
             tableLayoutPanelCommand.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanelCommand.Size = new Size(276, 296);
             tableLayoutPanelCommand.TabIndex = 3;
+            // 
+            // labelBGColorText
+            // 
+            labelBGColorText.BackColor = Color.Black;
+            labelBGColorText.BorderStyle = BorderStyle.Fixed3D;
+            labelBGColorText.Dock = DockStyle.Fill;
+            labelBGColorText.Font = new Font("Consolas", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            labelBGColorText.ForeColor = Color.White;
+            labelBGColorText.Location = new Point(3, 192);
+            labelBGColorText.Name = "labelBGColorText";
+            tableLayoutPanelCommand.SetRowSpan(labelBGColorText, 2);
+            labelBGColorText.Size = new Size(213, 40);
+            labelBGColorText.TabIndex = 9;
+            labelBGColorText.Text = "BG";
+            labelBGColorText.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // labelFGColorText
+            // 
+            labelFGColorText.BackColor = Color.Black;
+            labelFGColorText.BorderStyle = BorderStyle.Fixed3D;
+            labelFGColorText.Dock = DockStyle.Fill;
+            labelFGColorText.Font = new Font("Consolas", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            labelFGColorText.ForeColor = Color.White;
+            labelFGColorText.Location = new Point(3, 152);
+            labelFGColorText.Name = "labelFGColorText";
+            tableLayoutPanelCommand.SetRowSpan(labelFGColorText, 2);
+            labelFGColorText.Size = new Size(213, 40);
+            labelFGColorText.TabIndex = 8;
+            labelFGColorText.Text = "FG";
+            labelFGColorText.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // labelBGColor
+            // 
+            labelBGColor.BorderStyle = BorderStyle.Fixed3D;
+            labelBGColor.Dock = DockStyle.Fill;
+            labelBGColor.Font = new Font("Consolas", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            labelBGColor.Location = new Point(222, 192);
+            labelBGColor.Name = "labelBGColor";
+            labelBGColor.RightToLeft = RightToLeft.No;
+            tableLayoutPanelCommand.SetRowSpan(labelBGColor, 2);
+            labelBGColor.Size = new Size(51, 40);
+            labelBGColor.TabIndex = 7;
+            labelBGColor.Text = "BG";
+            labelBGColor.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // labelFGColor
+            // 
+            labelFGColor.BorderStyle = BorderStyle.Fixed3D;
+            labelFGColor.Dock = DockStyle.Fill;
+            labelFGColor.Font = new Font("Consolas", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            labelFGColor.Location = new Point(222, 152);
+            labelFGColor.Name = "labelFGColor";
+            tableLayoutPanelCommand.SetRowSpan(labelFGColor, 2);
+            labelFGColor.Size = new Size(51, 40);
+            labelFGColor.TabIndex = 6;
+            labelFGColor.Text = "FG";
+            labelFGColor.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // panelTextDisplay
             // 
@@ -362,5 +431,9 @@
         private Panel panelTextDisplay;
         private Label labelTextDisplay;
         private DataGridView sequenceDataGridView;
+        private Label labelFGColor;
+        private Label labelBGColor;
+        private Label labelFGColorText;
+        private Label labelBGColorText;
     }
 }

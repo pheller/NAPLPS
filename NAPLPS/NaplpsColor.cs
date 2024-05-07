@@ -27,7 +27,7 @@ public struct NaplpsColor
 
     public readonly Color ToColor() => Color.FromArgb(Red, Green, Blue);
 
-    public static NaplpsColor From3BitGRB(int red3Bit, int green3Bit, int blue3Bit)
+    public static NaplpsColor From3BitGRB(int green3Bit, int red3Bit, int blue3Bit)
     {
         // Ensure the input values are within the 3-bit range
         green3Bit = Math.Clamp(green3Bit, 0, 7);

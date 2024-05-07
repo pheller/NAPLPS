@@ -3,6 +3,7 @@ using NAPLPS.Commands;
 using ScottPlot;
 using ScottPlot.WinForms;
 using System.Diagnostics;
+using System.Windows.Media;
 using Color = System.Drawing.Color;
 using FontStyle = System.Drawing.FontStyle;
 
@@ -12,7 +13,7 @@ namespace NAPLPSApp.Forms
     {
         private readonly List<NaplpsSequence> _sequence;
 
-        private readonly FormsPlot _plot;
+        private readonly FormsPlot plotter;
 
         private NaplpsSequence? _selectedSequence;
 
@@ -28,16 +29,16 @@ namespace NAPLPSApp.Forms
 
             InitializeComponent();
 
-            _plot = new() { 
+            plotter = new() { 
                 Dock = DockStyle.Fill,
                 Visible = false,
             };
-            _plot.Plot.Axes.SetLimits(0, 1, 0, 1);
+            plotter.Plot.Axes.SetLimits(0, 1, 0, 1);
 
-            tableLayoutPanelCommand.Controls.Add(_plot, 0, 4);
+            tableLayoutPanelCommand.Controls.Add(plotter, 0, 4);
 
-            tableLayoutPanelCommand.SetColumnSpan(_plot, 2);
-            tableLayoutPanelCommand.SetRowSpan(_plot, 6);
+            tableLayoutPanelCommand.SetColumnSpan(plotter, 2);
+            tableLayoutPanelCommand.SetRowSpan(plotter, 6);
 
             labelCommandName.Click += (s, e) =>
             {
@@ -69,12 +70,19 @@ namespace NAPLPSApp.Forms
 
             tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 4);
             panelTextDisplay.Visible = false;
-            _plot.Visible = false;
+            
+            labelFGColorText.Visible = false;
+            labelFGColor.Visible = false;
 
-            if (command is ShiftInCommand textCommand)
+            labelBGColorText.Visible = false;
+            labelBGColor.Visible = false;
+
+            plotter.Visible = false;
+
+            if (command is ShiftInCommand shiftInCommand)
             {
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
-                labelTextDisplay.Text = textCommand.Text;
+                labelTextDisplay.Text = shiftInCommand.Text;
                 panelTextDisplay.Visible = true;
             }
             else if (command is EscCommand escCommand)
@@ -94,12 +102,56 @@ namespace NAPLPSApp.Forms
 
                 panelTextDisplay.Visible = true;
             }
+            else if (command is SelectColorCommand selectColorCommand)
+            {
+                tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
+
+                labelTextDisplay.Text =  $" ColorMode: {state.ColorMode}\n";
+                labelTextDisplay.Text += $"Foreground: {state.ColorMapForeground}\n";
+                labelTextDisplay.Text += $"Background: {state.ColorMapBackground}\n";
+
+                panelTextDisplay.Visible = true;
+
+                labelFGColorText.Text = state.ColorMap[state.ColorMapForeground].ToString();
+                labelFGColor.BackColor = state.ColorMap[state.ColorMapForeground].ToColor();
+                labelFGColor.ForeColor = GetContrastingColor(labelFGColor.BackColor);
+
+                labelBGColorText.Text = state.ColorMap[state.ColorMapBackground].ToString();
+                labelBGColor.BackColor = state.ColorMap[state.ColorMapBackground].ToColor();
+                labelBGColor.ForeColor = GetContrastingColor(labelBGColor.BackColor);
+
+                labelFGColorText.Visible = labelBGColorText.Visible = true;
+                labelFGColor.Visible = labelBGColor.Visible = true;
+            }
+            else if (command is TextCommand textCommand)
+            {
+                tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
+
+                labelTextDisplay.Text  = $"Text Field Size: {textCommand.State.TextFieldSize}\n";
+
+                var point = new Coordinates(state.Pen.X, state.Pen.Y);
+                var size = new Coordinates(state.TextFieldSize.X, state.TextFieldSize.Y);
+
+                plotter.Plot.Clear();
+                plotter.Plot.Add.Rectangle(
+                    point.X,
+                    point.Y,
+                    point.X + size.X,
+                    point.Y + size.Y
+                );
+
+                plotter.Plot.Add.Marker(point);
+                plotter.Plot.Add.Marker(size);
+
+                panelTextDisplay.Visible = true;
+                plotter.Visible = true;
+            }
             else if (command is DomainCommand domainCommand)
             {
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
 
-                labelTextDisplay.Text  = $" Multibyte: {domainCommand.State.MultiByteValue}\n";
-                labelTextDisplay.Text += $"Singlebyte: {domainCommand.State.SingleByteValue}\n";
+                labelTextDisplay.Text = $" Multibyte: {state.MultiByteValue}\n";
+                labelTextDisplay.Text += $"Singlebyte: {state.SingleByteValue}\n";
 
                 panelTextDisplay.Visible = true;
             }
@@ -126,24 +178,24 @@ namespace NAPLPSApp.Forms
                     labelTextDisplay.Text += $"{vert}\n";
                 }
 
-                _plot.Plot.Clear();
+                plotter.Plot.Clear();
 
                 if (baseDrawCommand is PolygonCommand)
                 {
-                    _plot.Plot.Add.Polygon([..coords]);
+                    plotter.Plot.Add.Polygon([..coords]);
                 }
                 //else (baseDrawCommand is LineCommand) 
                 //{
                 //    _plot.Plot.Add.Line()
                 //}
 
-                var markers = _plot.Plot.Add.Markers(coords);
+                var markers = plotter.Plot.Add.Markers(coords);
                 
                 markers.MarkerShape = MarkerShape.FilledCircle;
-                markers.MarkerSize = 5;
+                markers.MarkerSize = 10;
 
                 panelTextDisplay.Visible = true;
-                _plot.Visible = true;
+                plotter.Visible = true;
             }
 
             labelCommandName.Text = command.ToString();
@@ -195,6 +247,14 @@ namespace NAPLPSApp.Forms
                 {
                     sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.DarkGoldenrod;
                 }
+                else if (sequence.Command is SelectColorCommand)
+                {
+                    sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.DeepPink;
+                }
+                else if (sequence.Command is TextCommand)
+                {
+                    sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.DarkBlue;
+                }
                 else if (sequence.Command is DomainCommand)
                 {
                     sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.DarkOrange;
@@ -206,6 +266,16 @@ namespace NAPLPSApp.Forms
 
                 idx++; 
             }
+        }
+
+        private static Color GetContrastingColor(Color backgroundColor)
+        {
+            // Convert RGB to YIQ (a color space used for broadcast color television).
+            double yiq = ((backgroundColor.R * 299) + (backgroundColor.G * 587) + (backgroundColor.B * 114)) / 1000;
+
+            // Determine whether the background color is light or dark.
+            // YIQ value greater than 128 means it's a light color, so return dark color (black), otherwise return light color (white).
+            return yiq >= 128 ? Color.Black : Color.White;
         }
 
         private void UpdateDataGridUI()

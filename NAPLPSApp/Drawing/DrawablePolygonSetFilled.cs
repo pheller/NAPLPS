@@ -42,7 +42,12 @@ public class DrawablePolygonSetFilled : IDrawable
         var polygon = new Polygon(polygonPoints.ToArray());
 
         var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
+        var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor(); 
+
+        //if (fgcolor == bgcolor)
+        //{
+        //    fgcolor = System.Drawing.Color.Red;
+        //}
 
         var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
         var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));

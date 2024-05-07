@@ -10,7 +10,8 @@ public class ShiftInCommand : NaplpsCommand
     {
         State.GL = NaplpsGSet.G0PrimarySet;
         State.InLockingManner = true;
+        Text = Encoding.ASCII.GetString(Operands.ToArray()).Replace(((char)26).ToString(), string.Empty);
     }
 
-    public string Text => Encoding.ASCII.GetString(Operands.ToArray());
+    public string Text { get; }
 }

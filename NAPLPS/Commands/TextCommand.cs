@@ -32,7 +32,7 @@ public class TextCommand : GeometricDrawingCommandBase
 
         // If the character field dimensions are omitted from the operand, then the
         // current character field dimensions remain unchanged.
-        if (Operands.Count == 5)
+        if (Operands.Count == 2 + State.MultiByteValue)
         {
             Vertices = ProcessVertices(Operands[2..]);
 
