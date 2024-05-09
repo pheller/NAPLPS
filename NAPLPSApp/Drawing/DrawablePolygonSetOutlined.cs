@@ -15,7 +15,7 @@ namespace NAPLPSApp.Drawing;
 
 public class DrawablePolygonSetOutlined : IDrawable
 {
-    private PolygonSetOutlinedCommand _command;
+    private readonly PolygonSetOutlinedCommand _command;
 
     public DrawablePolygonSetOutlined(PolygonSetOutlinedCommand command)
     {

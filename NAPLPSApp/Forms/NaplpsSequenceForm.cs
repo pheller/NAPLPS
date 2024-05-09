@@ -1,9 +1,10 @@
-﻿using NAPLPS;
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+using NAPLPS;
 using NAPLPS.Commands;
 using ScottPlot;
 using ScottPlot.WinForms;
 using System.Diagnostics;
-using System.Windows.Media;
 using Color = System.Drawing.Color;
 using FontStyle = System.Drawing.FontStyle;
 
@@ -15,10 +16,14 @@ namespace NAPLPSApp.Forms
 
         private readonly FormsPlot plotter;
 
+        private readonly MainNaplpsForm parentForm;
+
         private NaplpsSequence? _selectedSequence;
 
-        public NaplpsSequenceForm(List<NaplpsSequence> sequence)
+        public NaplpsSequenceForm(MainNaplpsForm parentForm, List<NaplpsSequence> sequence)
         {
+            this.parentForm = parentForm;
+
             _sequence = sequence;
 
             FormClosing += (s, e) =>
@@ -48,14 +53,59 @@ namespace NAPLPSApp.Forms
                 }
             };
 
+            iconToolStripButtonNext.Click += (s, e) => DataGridNext();
+            iconToolStripButtonPrevious.Click += (s, e) => DataGridPrevious();
+
             panelOperandsDisplay.HorizontalScroll.Enabled = false;
             panelOperandsDisplay.HorizontalScroll.Visible = false;
 
             panelOperandsDisplay.VerticalScroll.Enabled = true;
 
+            toolStripLabelBits.Text = parentForm.LoadedFile != null && parentForm.LoadedFile.Is7Bit ? "7-bit" : "8-bit";
+
             UpdateDataGridUI();
 
             PopulateData();
+
+            UpdateSelection();
+        }
+
+        private void DataGridNext()
+        {
+            sequenceDataGridView.Focus();
+
+            if (sequenceDataGridView.CurrentRow != null)
+            {
+                var currentIndex = sequenceDataGridView.CurrentRow.Index;
+                var nextIndex = currentIndex + 1;
+
+                if (currentIndex >= sequenceDataGridView.Rows.Count - 1)
+                {
+                    nextIndex = 0;
+                }
+
+                sequenceDataGridView.CurrentCell = sequenceDataGridView.Rows[nextIndex].Cells[0];
+            }
+
+            UpdateSelection();
+        }
+
+        private void DataGridPrevious()
+        {
+            sequenceDataGridView.Focus();
+
+            if (sequenceDataGridView.CurrentRow != null)
+            {
+                var currentIndex = sequenceDataGridView.CurrentRow.Index;
+                var previousIndex = currentIndex - 1;
+
+                if (currentIndex == 0)
+                {
+                    previousIndex = sequenceDataGridView.Rows.Count - 1;
+                }
+
+                sequenceDataGridView.CurrentCell = sequenceDataGridView.Rows[previousIndex].Cells[0];
+            }
 
             UpdateSelection();
         }

@@ -16,7 +16,7 @@ namespace NAPLPSApp.Drawing;
 
 public class DrawableRectangleFilled : IDrawable
 {
-    private RectangleFilledCommand _command;
+    private readonly RectangleFilledCommand _command;
 
     public DrawableRectangleFilled(RectangleFilledCommand command)
     {

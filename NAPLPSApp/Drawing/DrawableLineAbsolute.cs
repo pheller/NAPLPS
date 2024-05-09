@@ -14,7 +14,7 @@ namespace NAPLPSApp.Drawing;
 
 public class DrawableLineAbsolute : IDrawable
 {
-    private LineAbsoluteCommand _command;
+    private readonly LineAbsoluteCommand _command;
 
     public DrawableLineAbsolute(LineAbsoluteCommand command)
     {

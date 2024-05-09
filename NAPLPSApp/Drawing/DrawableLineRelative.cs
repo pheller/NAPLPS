@@ -14,7 +14,7 @@ namespace NAPLPSApp.Drawing;
 
 public class DrawableLineRelative : IDrawable
 {
-    private LineRelativeCommand _command;
+    private readonly LineRelativeCommand _command;
 
     public DrawableLineRelative(LineRelativeCommand command)
     {

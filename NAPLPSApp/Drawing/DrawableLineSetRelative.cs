@@ -14,7 +14,7 @@ namespace NAPLPSApp.Drawing;
 
 public class DrawableLineSetRelative : IDrawable
 {
-    private LineSetRelativeCommand _command;
+    private readonly LineSetRelativeCommand _command;
 
     public DrawableLineSetRelative(LineSetRelativeCommand command)
     {

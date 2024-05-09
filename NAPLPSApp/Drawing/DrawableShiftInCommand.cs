@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Processing;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using Color = SixLabors.ImageSharp.Color;
 using FontFamily = SixLabors.Fonts.FontFamily;
-using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using PointF = SixLabors.ImageSharp.PointF;
 using Rectangle = SixLabors.ImageSharp.Rectangle;
 
@@ -18,7 +17,7 @@ namespace NAPLPSApp.Drawing;
 
 public class DrawableShiftInCommand : IDrawable
 {
-    private ShiftInCommand _command;
+    private readonly ShiftInCommand _command;
 
     public DrawableShiftInCommand(ShiftInCommand command)
     {
@@ -34,24 +33,25 @@ public class DrawableShiftInCommand : IDrawable
         var charSize = NaplpsUtils.ConvertNormalizedToPoint(size, state.TextFieldSize.X, state.TextFieldSize.Y);
 
         string text = _command.Text;
-        float TextPadding = 0f;
-        string TextFont = "Consolas";
+        // float TextPadding = 0f;
+        // string TextFont = "Consolas";
         float TextFontSize = charSize.X;
 
         FontFamily fontFamily;
 
-        if (!SixLabors.Fonts.SystemFonts.TryGet(TextFont, out fontFamily))
-            throw new Exception($"Couldn't find font {TextFont}");
+        FontCollection fontCollection = new();
+
+        fontFamily = fontCollection.Add("Fonts\\PRM5X10.TTF");
 
         var font = fontFamily.CreateFont(TextFontSize, SixLabors.Fonts.FontStyle.Regular);
 
         var options = new TextOptions(font)
         {
-            Dpi = 72,
-            KerningMode = SixLabors.Fonts.KerningMode.None
+            Dpi = 92,
+            KerningMode = KerningMode.Auto
         };
 
-        var rectF = SixLabors.Fonts.TextMeasurer.MeasureBounds(text, options);
+        var rectF = TextMeasurer.MeasureBounds(text, options);
 
         var rect = new Rectangle(point.X, point.Y - (int)rectF.Height, (int)rectF.Width, (int)rectF.Height);
 

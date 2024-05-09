@@ -16,7 +16,7 @@ namespace NAPLPSApp.Drawing;
 
 public class DrawablePolygonSetFilled : IDrawable
 {
-    private PolygonSetFilledCommand _command;
+    private readonly PolygonSetFilledCommand _command;
 
     public DrawablePolygonSetFilled(PolygonSetFilledCommand command)
     {

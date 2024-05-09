@@ -15,7 +15,7 @@ namespace NAPLPSApp.Drawing;
 
 public class DrawableRectangleSetOutlined : IDrawable
 {
-    private RectangleSetOutlinedCommand _command;
+    private readonly RectangleSetOutlinedCommand _command;
 
     public DrawableRectangleSetOutlined(RectangleSetOutlinedCommand command)
     {

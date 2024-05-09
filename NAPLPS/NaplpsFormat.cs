@@ -12,7 +12,7 @@ public partial class NaplpsFormat
 
     public bool Is7Bit { get; private set; } = true;
 
-    public bool IsValid {  get; private set; }
+    public bool IsValid { get; private set; }
 
     public List<NaplpsError> Errors { get; } = [];
 
@@ -27,9 +27,6 @@ public partial class NaplpsFormat
         State = state;
 
         Commands = ReadStream(reader);
-
-        // Analysis
-        Is7Bit = !Commands.Any(cmd => (byte)cmd.Command.OpCode > 0x80);
 
         IsValid = true;
     }
@@ -54,7 +51,6 @@ public partial class NaplpsFormat
     public List<NaplpsSequence> ReadStream(BinaryReader reader)
     {
         var commands = new List<NaplpsSequence>();
-        var is8Bits = false;
         byte oldBit = 0x00;
 
         try
@@ -67,7 +63,8 @@ public partial class NaplpsFormat
                 {
                     oldBit = opcode;
 
-                    is8Bits = true;
+                    Is7Bit = false;
+
                     opcode ^= 0x80;
                 }
 

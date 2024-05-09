@@ -20,7 +20,7 @@ public class Vector2Converter : JsonConverter<Vector2>
                 return vector;
             }
 
-            string propertyName = reader.GetString();
+            string propertyName = reader.GetString() ?? string.Empty;
 
             reader.Read();
 

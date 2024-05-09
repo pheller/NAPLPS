@@ -1,4 +1,6 @@
-﻿namespace NAPLPSApp.Forms
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+namespace NAPLPSApp.Forms
 {
     partial class NaplpsSequenceForm
     {
@@ -32,11 +34,13 @@
             toolStrip = new ToolStrip();
             toolStripLabelCount = new ToolStripLabel();
             toolStripSeparator2 = new ToolStripSeparator();
-            iconToolStripButtonNext = new FontAwesome.Sharp.IconToolStripButton();
             iconToolStripButtonPrevious = new FontAwesome.Sharp.IconToolStripButton();
+            iconToolStripButtonNext = new FontAwesome.Sharp.IconToolStripButton();
             toolStripSeparator1 = new ToolStripSeparator();
             toolStripLabelCurrentIndex = new ToolStripLabel();
             toolStripSeparator3 = new ToolStripSeparator();
+            toolStripLabelBits = new ToolStripLabel();
+            toolStripSeparator4 = new ToolStripSeparator();
             sequenceDataGridView = new DataGridView();
             splitContainerVertical = new SplitContainer();
             splitContainerHorizontal = new SplitContainer();
@@ -71,7 +75,7 @@
             // toolStrip
             // 
             toolStrip.GripStyle = ToolStripGripStyle.Hidden;
-            toolStrip.Items.AddRange(new ToolStripItem[] { toolStripLabelCount, toolStripSeparator2, iconToolStripButtonNext, iconToolStripButtonPrevious, toolStripSeparator1, toolStripLabelCurrentIndex, toolStripSeparator3 });
+            toolStrip.Items.AddRange(new ToolStripItem[] { toolStripLabelCount, toolStripSeparator2, iconToolStripButtonPrevious, iconToolStripButtonNext, toolStripSeparator1, toolStripLabelCurrentIndex, toolStripSeparator3, toolStripLabelBits, toolStripSeparator4 });
             toolStrip.Location = new Point(0, 0);
             toolStrip.Name = "toolStrip";
             toolStrip.Size = new Size(784, 25);
@@ -89,27 +93,27 @@
             toolStripSeparator2.Name = "toolStripSeparator2";
             toolStripSeparator2.Size = new Size(6, 25);
             // 
-            // iconToolStripButtonNext
-            // 
-            iconToolStripButtonNext.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            iconToolStripButtonNext.IconChar = FontAwesome.Sharp.IconChar.ArrowLeft;
-            iconToolStripButtonNext.IconColor = Color.Black;
-            iconToolStripButtonNext.IconFont = FontAwesome.Sharp.IconFont.Auto;
-            iconToolStripButtonNext.ImageTransparentColor = Color.Magenta;
-            iconToolStripButtonNext.Name = "iconToolStripButtonNext";
-            iconToolStripButtonNext.Size = new Size(23, 22);
-            iconToolStripButtonNext.Text = "iconToolStripButton1";
-            // 
             // iconToolStripButtonPrevious
             // 
             iconToolStripButtonPrevious.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            iconToolStripButtonPrevious.IconChar = FontAwesome.Sharp.IconChar.ArrowRight;
+            iconToolStripButtonPrevious.IconChar = FontAwesome.Sharp.IconChar.ArrowLeft;
             iconToolStripButtonPrevious.IconColor = Color.Black;
             iconToolStripButtonPrevious.IconFont = FontAwesome.Sharp.IconFont.Auto;
             iconToolStripButtonPrevious.ImageTransparentColor = Color.Magenta;
             iconToolStripButtonPrevious.Name = "iconToolStripButtonPrevious";
             iconToolStripButtonPrevious.Size = new Size(23, 22);
-            iconToolStripButtonPrevious.Text = "iconToolStripButton2";
+            iconToolStripButtonPrevious.Text = "Previous";
+            // 
+            // iconToolStripButtonNext
+            // 
+            iconToolStripButtonNext.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            iconToolStripButtonNext.IconChar = FontAwesome.Sharp.IconChar.ArrowRight;
+            iconToolStripButtonNext.IconColor = Color.Black;
+            iconToolStripButtonNext.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            iconToolStripButtonNext.ImageTransparentColor = Color.Magenta;
+            iconToolStripButtonNext.Name = "iconToolStripButtonNext";
+            iconToolStripButtonNext.Size = new Size(23, 22);
+            iconToolStripButtonNext.Text = "Next";
             // 
             // toolStripSeparator1
             // 
@@ -126,6 +130,17 @@
             // 
             toolStripSeparator3.Name = "toolStripSeparator3";
             toolStripSeparator3.Size = new Size(6, 25);
+            // 
+            // toolStripLabelBits
+            // 
+            toolStripLabelBits.Name = "toolStripLabelBits";
+            toolStripLabelBits.Size = new Size(32, 22);
+            toolStripLabelBits.Text = "7-Bit";
+            // 
+            // toolStripSeparator4
+            // 
+            toolStripSeparator4.Name = "toolStripSeparator4";
+            toolStripSeparator4.Size = new Size(6, 25);
             // 
             // sequenceDataGridView
             // 
@@ -414,8 +429,8 @@
         private ToolStrip toolStrip;
         private ToolStripLabel toolStripLabelCount;
         private ToolStripSeparator toolStripSeparator2;
-        private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonNext;
         private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonPrevious;
+        private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonNext;
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripLabel toolStripLabelCurrentIndex;
         private ToolStripSeparator toolStripSeparator3;
@@ -435,5 +450,7 @@
         private Label labelBGColor;
         private Label labelFGColorText;
         private Label labelBGColorText;
+        private ToolStripLabel toolStripLabelBits;
+        private ToolStripSeparator toolStripSeparator4;
     }
 }
