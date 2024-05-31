@@ -3,6 +3,7 @@
 using NAPLPS;
 using NAPLPSApp.Drawing;
 using System.Diagnostics;
+using System.Windows.Forms;
 
 namespace NAPLPSApp.Forms
 {
@@ -16,11 +17,21 @@ namespace NAPLPSApp.Forms
 
         private readonly List<string> resolutions = ["160x120", "320x200", "320x240", "640x480", "800x600", "1024x768", "1280x960", "1600x1200", "2048x1536", "4096x3072"];
 
-        private DrawContext? _context = null;
+        private readonly List<uint> baudrates = [0, 460800, 230400, 115200, 57600, 38400, 33600, 28800, 19200, 14400, 9600, 2400, 1200, 300];
 
-        private NaplpsSequenceForm? _sequenceForm = null;
+        private readonly List<string> baudrateNames = ["Fastest", "460Kbps", "230Kbps", "115Kbps", "56Kbps", "38.4Kbps", "33.6Kbps", "28.8Kbps", "19.2Kbps", "14.4Kbps", "9.6Kbps", "2.4Kbps", "1.2Kbps", "300bps"];
+
+        private DrawContext? ctx = null;
+
+        private CancellationTokenSource? ctxRenderCancellationToken;
+
+        private NaplpsSequenceForm? sequenceForm = null;
 
         private string canvasSize;
+
+        private bool shouldAnimate = true;
+
+        private uint baudRate = 2400;
 
         public MainNaplpsForm()
         {
@@ -40,7 +51,14 @@ namespace NAPLPSApp.Forms
                     canvasSize = resolution;
                     foreach (ToolStripMenuItem menuItem in iconMenuItemSizes.DropDownItems) { menuItem.Checked = false; }
                     item.Checked = true;
-                    if (LoadedFile != null) { FileRender(LoadedFile, canvasSize.StringSize()); }
+                    if (LoadedFile != null) 
+                    { 
+                        FileRender(LoadedFile, canvasSize.StringSize()); 
+                    }
+                    else
+                    {
+                        UpdateUI();
+                    }
                 };
 
                 if (item.Text == canvasSize) { item.Checked = true; }
@@ -48,7 +66,70 @@ namespace NAPLPSApp.Forms
                 iconMenuItemSizes.DropDownItems.Add(item);
             }
 
-            UIUpdate();
+            toolStripMenuItemAnimate.Checked = shouldAnimate;
+            toolStripMenuItemAnimate.Click += (s, e) =>
+            {
+                toolStripMenuItemAnimate.Checked = shouldAnimate = !toolStripMenuItemAnimate.Checked;
+
+                if (LoadedFile != null)
+                {
+                    FileRender(LoadedFile, canvasSize.StringSize()); // TODO Retrigger rendering
+                }
+                else
+                {
+                    UpdateUI();
+                }
+            };
+
+            // Drawing Speeds
+            var idx = 0;
+            foreach (var baudrate in baudrates)
+            {
+                var name = baudrateNames[idx++];
+                var item = new ToolStripMenuItem(name) { Tag = baudrate };
+
+                item.Click += (sender, e) => {
+                    baudRate = baudrate;
+                    foreach (ToolStripMenuItem menuItem in iconMenuItemSpeedControl.DropDownItems) { menuItem.Checked = false; }
+                    item.Checked = true;
+                    if (LoadedFile != null)
+                    {
+                        FileRender(LoadedFile, canvasSize.StringSize());
+                    }
+                    else
+                    {
+                        UpdateUI();
+                    }
+                };
+
+                if (item.Tag != null && (uint)item.Tag == baudRate) { item.Checked = true; }
+
+                iconMenuItemSpeedControl.DropDownItems.Add(item);
+            }
+
+            UpdateUI();
+        }
+
+        public void SetFrame(uint frame)
+        {
+            if (ctx == null)
+            {
+                throw new ApplicationException("Opsie");
+            }
+
+            if (frame > ctx.TotalFrames)
+            {
+                return;
+            }
+
+            shouldAnimate = false;
+
+            if (ctxRenderCancellationToken != null)
+            {
+                ctxRenderCancellationToken.Cancel();
+            }
+
+            ctx.Render(frame);
         }
 
         private void New(object sender, EventArgs e)
@@ -57,7 +138,7 @@ namespace NAPLPSApp.Forms
 
             LoadedFile = NaplpsFormat.New();
 
-            UIUpdate();
+            UpdateUI();
         }
 
         private void Open(object sender, EventArgs e)
@@ -69,7 +150,7 @@ namespace NAPLPSApp.Forms
                 FileOpen(openDialog.FileName, canvasSize.StringSize());
             }
 
-            UIUpdate();
+            UpdateUI();
         }
 
         private void Close(object sender, EventArgs e)
@@ -97,66 +178,102 @@ namespace NAPLPSApp.Forms
 
             FileRender(LoadedFile, size.Value);
 
-            _sequenceForm = new NaplpsSequenceForm(this, LoadedFile.Commands);
-
-            int newFormX = Location.X + Width;
-            int newFormY = Location.Y;
-
-            if (Screen.PrimaryScreen != null)
-            {
-                // Check if the child form will be out of the screen at this position
-                if (newFormX + _sequenceForm.Width > Screen.PrimaryScreen.WorkingArea.Width)
-                {
-                    // If it doesn't fit, position it to the left of the parent form instead
-                    newFormX = Location.X - _sequenceForm.Width;
-                }
-
-                if (newFormY + _sequenceForm.Height > Screen.PrimaryScreen.WorkingArea.Height)
-                {
-                    // If bottom is out of screen, adjust it upwards
-                    newFormY = Screen.PrimaryScreen.WorkingArea.Height - _sequenceForm.Height;
-                }
-            }
-
-            // Set the location of the child form
-            _sequenceForm.Location = new Point(newFormX, newFormY);
+            sequenceForm = new NaplpsSequenceForm(this, LoadedFile.Commands);
         }
 
         private void FileRender(NaplpsFormat file, Size size)
         {
-            _context = new DrawContext(file, size);
+            if (ctxRenderCancellationToken != null)
+            {
+                ctxRenderCancellationToken.Cancel();
+                ctxRenderCancellationToken = null;
+            }
 
-            pictureBox.Image = _context.ToImage();
+            ctx = new DrawContext(file, size);
+            ctx.OnImageUpdated += () =>
+            {
+                if (pictureBox.InvokeRequired)
+                {
+                    pictureBox.Invoke((MethodInvoker)(() => {
+                        pictureBox.Image = ctx.ToImage();
+                        toolStripStatusLabelFrame.Text = $"Frame: {ctx.CurrentIndex}";
+                    }));
+                }
+                else
+                {
+                    pictureBox.Image = ctx.ToImage();
+                    toolStripStatusLabelFrame.Text = $"Frame: {ctx.CurrentIndex}";
+                }
+            };
+
+            if (shouldAnimate)
+            {
+                ctxRenderCancellationToken = new CancellationTokenSource();
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        uint delayInMilliseconds = (uint)(baudRate == 0 ? 0 : (LoadedFile.Commands.Count * 8 * 1000.0 / baudRate));
+
+                        await ctx.RenderAsync(ctxRenderCancellationToken.Token, delayInMilliseconds);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // if (Debugger.IsAttached) MessageBox.Show("Render Cancelled");
+                    }
+                    finally
+                    {
+                        ctxRenderCancellationToken = null;
+                        UpdateUI();
+                    }
+                });
+            }
+            else
+            {
+                ctx.Render();
+            }
         }
 
         private void FileClose()
         {
+            if (ctxRenderCancellationToken!= null)
+            {
+                ctxRenderCancellationToken.Cancel();
+            }
+
+            ctxRenderCancellationToken = null;
+
             LoadedFile = null;
 
             LoadedFilePath = string.Empty;
 
-            _sequenceForm?.Dispose();
-            _sequenceForm = null;
+            pictureBox.Image = null;
+            
+            ctx?.Dispose();
 
-            UIUpdate();
+            sequenceForm?.Dispose();
+            sequenceForm = null;
+
+            UpdateUI();
         }
 
         private void SequenceFormToggle()
         {
-            if (_sequenceForm != null)
+            if (sequenceForm != null)
             {
-                if (!_sequenceForm.Visible)
+                if (!sequenceForm.Visible)
                 {
-                    _sequenceForm.Show();
+                    sequenceForm.Show();
                 }
                 else
                 {
-                    _sequenceForm.Hide();
+                    sequenceForm.Hide();
                 }
             }
         }
 
-        private void UIUpdate()
+        private void UpdateUI()
         {
             var fileLoaded = LoadedFile != null;
 
@@ -168,11 +285,23 @@ namespace NAPLPSApp.Forms
 
             iconMenuItemSequence.Enabled = fileLoaded;
 
+            toolStripStatusLabelResolution.Text = $"{canvasSize}";
+
+            if (shouldAnimate)
+            {
+                toolStripStatusLabelResolution.Text += $" | {baudrateNames[baudrates.IndexOf(baudRate)]} | Animated";
+            }
+            else
+            {
+                toolStripStatusLabelResolution.Text += " | Static";
+            }
+
             if (LoadedFile != null)
             {
                 iconDropDownButtonSequence.Text = $"Commands: {LoadedFile.Commands.Count}";
 
-                toolStripStatusLabelBitness.Text = LoadedFile.Is7Bit ? "7-bit" : "8-bit";
+                toolStripStatusLabelBitness.Text = $"Mode: {(LoadedFile.Is7Bit ? "7-bit" : "8-bit")}";
+                toolStripStatusLabelFrame.Text = $"Frame: {ctx?.CurrentIndex}";
 
                 Text = $"{Path.GetFileName(LoadedFilePath)} - NAPLPS Toolbox";
             }
@@ -184,11 +313,12 @@ namespace NAPLPSApp.Forms
                     pictureBox.Image = null;
                 }
 
-                _context?.Dispose();
+                ctx?.Dispose();
 
                 iconDropDownButtonSequence.Text = $"Commands: 0";
 
                 toolStripStatusLabelBitness.Text = string.Empty;
+                toolStripStatusLabelFrame.Text = string.Empty;
 
                 Text = "NAPLPS Toolbox";
             }

@@ -2,13 +2,26 @@
 
 namespace NAPLPS.Commands;
 
-public class TextureCommand(NaplpsState state, NaplpsOperands operands) : NaplpsCommand(state, TEXTURE, operands)
+public class TextureCommand : GeometricDrawingCommandBase
 {
-    public TexturePatterns TexturePattern { get; } = (TexturePatterns)(operands.Count != 0 ? ConvertBitsToByte([operands[0, 6], operands[0, 5], operands[0, 4]]) : 0);
+    public TexturePatterns TexturePattern { get; }
 
-    public LineTextures LineTexture { get; } = (LineTextures)(operands.Count != 0 ? ConvertBitsToByte([operands[0, 2], operands[0, 1]]) : 0);
+    public bool ShouldHighlight { get; }
 
-    public bool ShouldHighlight { get; } = operands.Count != 0 && operands[0, 3];
+    public LineTextures LineTexture { get; }
+
+    public Vector3 MaskSize { get; }
+
+    public TextureCommand(NaplpsState state, NaplpsOperands operands) : base(state, TEXTURE, operands)
+    {
+        TexturePattern = (TexturePatterns)(operands.Count != 0 ? ConvertBitsToByte([operands[0, 6], operands[0, 5], operands[0, 4]]) : 0);
+
+        ShouldHighlight = operands.Count != 0 && operands[0, 3];
+
+        LineTexture = (LineTextures)(operands.Count != 0 ? ConvertBitsToByte([operands[0, 2], operands[0, 1]]) : 0);
+
+        MaskSize = ProcessVertices(operands[1..]).FirstOrDefault();
+    }
 
     public enum LineTextures : byte
     {

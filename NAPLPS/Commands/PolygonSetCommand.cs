@@ -24,6 +24,8 @@ public abstract class PolygonSetCommand : FillableGeometricDrawingCommandBase
             {
                 MovePen(vert);
             }
+
+            SetPen(StartPoint);
         }
     }
 }

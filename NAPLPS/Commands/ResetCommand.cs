@@ -122,16 +122,22 @@ public class ResetCommand : NaplpsCommand
         NoAction,
         /// <summary>Display area to nominal black.</summary>
         ScreenBlack,
+
         /// <summary>Display area to current drawing color.</summary>
         ScreenDrawing,
+
         /// <summary>Border area to nominal black.</summary>
         BorderBlack,
+
         /// <summary>Border area to current drawing color.</summary>
         BorderDrawing,
+
         /// <summary>Display area and border area to current drawing color.</summary>
         ScreenBorderDrawing,
+
         /// <summary>Display area to current drawing color and border area to nominal black.</summary>
         ScreenDrawingBorderBlack,
+
         /// <summary>Display area and border area to nominal black.</summary>
         ScreenBorderBlack
     }

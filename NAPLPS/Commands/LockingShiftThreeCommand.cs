@@ -9,7 +9,7 @@ public class LockingShiftThreeCommand : EscCommand
 {
     public LockingShiftThreeCommand(NaplpsState state, NaplpsOperands operands) : base(state, operands)
     {
-        State.GL = NaplpsGSet.G3MosaicSet;
+        State.GL = 3;
         State.InLockingManner = true;
          
         Debugger.Break();

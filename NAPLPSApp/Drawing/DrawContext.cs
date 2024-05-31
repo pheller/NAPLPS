@@ -12,31 +12,81 @@ public class DrawContext : IDisposable
 {
     private bool disposedValue;
 
+    private readonly MemoryStream memoryStream = new();
+
     public NaplpsFormat NAPLPS { get; }
 
     public System.Drawing.Size Size { get; }
 
     public Image<Rgba32> Image { get; }
 
+    public event Action? OnImageUpdated;
+
+    public uint CurrentIndex;
+
+    public uint TotalFrames;
+
     public DrawContext(NaplpsFormat naplps, System.Drawing.Size size)
     {
         NAPLPS = naplps ?? throw new ArgumentNullException(nameof(naplps));
         Size = size;
         Image = new(Size.Width, Size.Height);
-
-        Render();
+        CurrentIndex = 0;
+        TotalFrames = (uint)NAPLPS.Commands.Count;
     }
 
-    public void Render()
+    public void Render(uint sequenceNumber = uint.MaxValue)
     {
-        NAPLPS.Commands.ToList().ForEach(sequence =>
+        CurrentIndex = 0;
+
+        foreach (var sequence in NAPLPS.Commands)
         {
             var (command, state) = sequence;
 
             var drawable = ConvertToDrawable(command);
 
             drawable?.Draw(Image, state, Size);
-        });
+
+            if (CurrentIndex == sequenceNumber)
+            {
+                break;
+            }
+            
+            CurrentIndex++;
+        }
+
+
+        OnImageUpdated?.Invoke();
+    }
+
+    public async Task RenderAsync(CancellationToken cancellationToken, uint delay)
+    {
+        CurrentIndex = 0;
+
+        foreach (var sequence in NAPLPS.Commands)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            var (command, state) = sequence;
+
+            var drawable = ConvertToDrawable(command);
+
+            drawable?.Draw(Image, state, Size);
+
+            OnImageUpdated?.Invoke();
+
+            CurrentIndex++;
+
+            if (drawable != null)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(delay), cancellationToken); // TODO: Calculate the delay
+            }
+        }
+
+        CurrentIndex = TotalFrames;
     }
 
 #if NET8_0_WINDOWS
@@ -44,13 +94,15 @@ public class DrawContext : IDisposable
     /// <returns>A hopefully well drawn NAPLPS image in a System.Drawing.Image format</returns>
     public System.Drawing.Image ToImage()
     {
-        using var ms = new MemoryStream();
+        memoryStream.SetLength(0);
 
-        Image.Save(ms, PngFormat.Instance);
+        Image.Save(memoryStream, PngFormat.Instance);
 
-        using var msi = new MemoryStream(ms.ToArray());
+        var image = System.Drawing.Image.FromStream(memoryStream);
 
-        return System.Drawing.Image.FromStream(ms);
+        image.RotateFlip(RotateFlipType.Rotate180FlipX);
+
+        return image;
     }
 #endif
 
@@ -125,6 +177,16 @@ public class DrawContext : IDisposable
                 return new DrawableLineAbsolute(lineCommand);
             }
 
+            case ArcSetFilledCommand arcCommand:
+            {
+                return new DrawableArcSetFilled(arcCommand);
+            }
+
+            case ResetCommand resetCommand:
+            {
+                return new DrawableResetCommand(resetCommand);
+            }
+
             case ShiftInCommand shiftInCommand:
             {
                 return new DrawableShiftInCommand(shiftInCommand);
@@ -152,6 +214,8 @@ public class DrawContext : IDisposable
         {
             if (disposing)
             {
+                memoryStream.Dispose();
+
                 // Dispose managed state here (managed objects)
                 Image.Dispose();
             }

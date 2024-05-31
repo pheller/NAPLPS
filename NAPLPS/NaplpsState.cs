@@ -35,11 +35,23 @@ public class NaplpsState
 
     [Category("In-Use Tables")]
     [ReadOnly(true)]
-    public NaplpsGSet GL { get; set; } = G0PrimarySet;
+    public byte GL { get; set; } = 0;
 
     [Category("In-Use Tables")]
     [ReadOnly(true)]
-    public NaplpsGSet GR { get; set; } = G1PDISet;
+    public NaplpsGSet G0 { get; set; } = PrimaryCharSet;
+
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    public NaplpsGSet G1 { get; set; } = PDISet;
+    
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    public NaplpsGSet G2 { get; set; } = SupplementalSet;
+
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    public NaplpsGSet G3 { get; set; } = MosiacSet;
 
     [Category("In-Use Tables")]
     [ReadOnly(true)]

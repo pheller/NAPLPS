@@ -4,6 +4,14 @@ namespace NAPLPS;
 
 public static class NaplpsUtils
 {
+    public static double CalculateDistance(Point p1, Point p2)
+    {
+        int dx = p2.X - p1.X;  // Difference in X coordinates
+        int dy = p2.Y - p1.Y;  // Difference in Y coordinates
+
+        return Math.Sqrt(dx * dx + dy * dy);  // Pythagorean theorem
+    }
+
     public static Point ConvertNormalizedToPoint(Size size, double normalizedX, double normalizedY)
     {
         if (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 0.75)
@@ -28,9 +36,46 @@ public static class NaplpsUtils
         int convertedX = x;
 
         // Convert y from top-right origin to bottom-left origin by subtracting from height
-        int convertedY = height - y;
+        // int convertedY = height - y;
+        int convertedY = y;
 
         return (convertedX, convertedY);
+    }
+
+    public static (int, int, int, int) ConvertNormalizedDimensionsToPixels(Size size, double normalizedX, double normalizedY, double normalizedWidth, double normalizedHeight)
+    {
+        // Adjust for negative dimensions
+        if (normalizedWidth < 0)
+        {
+            normalizedX += normalizedWidth;
+            normalizedWidth = Math.Abs(normalizedWidth);
+        }
+
+        if (normalizedHeight < 0)
+        {
+            normalizedY += normalizedHeight;
+            normalizedHeight = Math.Abs(normalizedHeight);
+        }
+
+        // Clamp the normalized coordinates to their valid ranges
+        normalizedX = Math.Clamp(normalizedX, 0, 1);
+        normalizedY = Math.Clamp(normalizedY, 0, 0.75);
+
+        // Adjust normalizedY by shrinking it to the 0-1 range
+        var shrunkY = normalizedY / 0.75;
+
+        // Convert normalized starting point to pixels
+        int startX = (int)(normalizedX * size.Width);
+        int startY = (int)(shrunkY * size.Height);
+
+        // Convert normalized dimensions to pixels
+        int widthPixels = (int)(normalizedWidth * size.Width);
+        int heightPixels = (int)(normalizedHeight * size.Height);
+
+        // Convert coordinates to the desired origin system
+        (startX, startY) = ConvertCoordinates(size.Width, size.Height, startX, startY);
+
+        return (startX, startY, widthPixels, heightPixels);
     }
 
     public static byte ConvertBitsToByte(List<bool> booleans)

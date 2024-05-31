@@ -38,6 +38,7 @@ namespace NAPLPSApp.Forms
                 Dock = DockStyle.Fill,
                 Visible = false,
             };
+
             plotter.Plot.Axes.SetLimits(0, 1, 0, 1);
 
             tableLayoutPanelCommand.Controls.Add(plotter, 0, 4);
@@ -60,6 +61,8 @@ namespace NAPLPSApp.Forms
             panelOperandsDisplay.HorizontalScroll.Visible = false;
 
             panelOperandsDisplay.VerticalScroll.Enabled = true;
+
+            toolStripLabelCounter.Text = $"0000/{_sequence.Count}";
 
             toolStripLabelBits.Text = parentForm.LoadedFile != null && parentForm.LoadedFile.Is7Bit ? "7-bit" : "8-bit";
 
@@ -110,11 +113,11 @@ namespace NAPLPSApp.Forms
             UpdateSelection();
         }
 
-        private void UpdateSelection()
+        private void UpdateSelection(bool gotoFrame = false)
         {
             var selectedIndex = sequenceDataGridView.CurrentRow?.Index ?? 0;
 
-            toolStripLabelCurrentIndex.Text = selectedIndex.ToString().PadLeft(4, '0');
+            toolStripLabelCounter.Text = $"{(selectedIndex + 1).ToString().PadLeft(4, '0')}/{_sequence.Count.ToString().PadLeft(4, '0')}";
 
             var (command, state) = _selectedSequence = _sequence[selectedIndex];
 
@@ -205,6 +208,17 @@ namespace NAPLPSApp.Forms
 
                 panelTextDisplay.Visible = true;
             }
+            else if (command is TextureCommand textureCommand)
+            {
+                tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
+
+                labelTextDisplay.Text =  $"   LINE: {textureCommand.LineTexture}\n";
+                labelTextDisplay.Text += $"HIGHLGT: {textureCommand.ShouldHighlight}\n";
+                labelTextDisplay.Text += $"TEXTURE: {textureCommand.TexturePattern}\n\n";
+                labelTextDisplay.Text += $"MASK SZ: {textureCommand.MaskSize}\n";
+
+                panelTextDisplay.Visible = true;
+            }
             else if (command is GeometricDrawingCommandBase baseDrawCommand)
             {
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
@@ -218,7 +232,6 @@ namespace NAPLPSApp.Forms
                     labelTextDisplay.Text += $"{point}\n";
 
                     coords.Add(new Coordinates(point.X, point.Y));
-
                 }
 
                 labelTextDisplay.Text += "Vertice(s):\n";
@@ -238,6 +251,22 @@ namespace NAPLPSApp.Forms
                 //{
                 //    _plot.Plot.Add.Line()
                 //}
+                else if (baseDrawCommand is RectangleCommand rectangleCmd)
+                {
+                    var point = new Coordinates(state.Pen.X, state.Pen.Y);
+                    var size = new Coordinates(rectangleCmd.Dimensions.X, rectangleCmd.Dimensions.Y);
+
+                    plotter.Plot.Clear();
+                    plotter.Plot.Add.Rectangle(
+                        point.X,
+                        point.Y,
+                        point.X + size.X,
+                        point.Y + size.Y
+                    );
+
+                    plotter.Plot.Add.Marker(point);
+                    plotter.Plot.Add.Marker(size);
+                }
 
                 var markers = plotter.Plot.Add.Markers(coords);
                 
@@ -268,18 +297,21 @@ namespace NAPLPSApp.Forms
             }
 
             propertyGridState.SelectedObject = state ?? null;
+
+            if (gotoFrame)
+            {
+                parentForm.SetFrame((uint)selectedIndex);
+            }
         }
 
         private void PopulateData()
         {
-            toolStripLabelCount.Text = $"Total: {_sequence.Count}";
-
             var idx = 0;
 
             foreach (NaplpsSequence sequence in _sequence)
             {
                 var idxName = idx.ToString().PadLeft(4, '0');
-                var commandIdName = $"0x{((byte)sequence.Command.OpCode):X2}";
+                var commandIdName = $"0x{(byte)sequence.Command.OpCode:X2}";
                 var commandName = sequence.Command.ToString().Replace("Command", string.Empty);
                 var sequenceData = sequence.State.ToString();
 
@@ -287,7 +319,8 @@ namespace NAPLPSApp.Forms
 
                 if (!sequence.Command.IsValid)
                 {
-                    sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.Red;
+                    sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.White;
+                    sequenceDataGridView.Rows[^1].DefaultCellStyle.BackColor = Color.Red;
                 }
                 else if (sequence.Command is EscCommand)
                 {
@@ -365,6 +398,7 @@ namespace NAPLPSApp.Forms
             sequenceDataGridView.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
             sequenceDataGridView.SelectionChanged += (s, e) => UpdateSelection();
+            sequenceDataGridView.DoubleClick += (s, e) => UpdateSelection(true);
         }
     }
 }

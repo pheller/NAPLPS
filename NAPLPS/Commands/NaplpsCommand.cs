@@ -18,9 +18,9 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
     {
         return opcode switch
         {
+            ESC => ProcessEscapeSequence(state, opcode, operands),
             CANCEL => new CancelCommand(state, operands),
             NSR => new NonSelectiveResetCommand(state, operands),
-            ESC => ProcessEscapeSequence(state, opcode, operands),
             SHIFT_OUT => new ShiftOutCommand(state, operands),
             SHIFT_IN => new ShiftInCommand(state, operands),
             AP_UP => new ActivePositionUpCommand(state, operands),

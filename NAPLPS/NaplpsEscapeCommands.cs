@@ -9,6 +9,15 @@ public enum NaplpsEscapeCommands : byte
 
     DOLLAR_SIGN = 0x24,
 
+    G0 = 0x28,
+    G1 = 0x29,
+    G2 = 0x2A,
+    G3 = 0x2B,
+
+    G1D = 0x2C,
+    G2D = 0x2D,
+    G3D = 0x2E,
+
     DEF_MACRO = 0x40,
     DEFP_MACRO = 0x41,
     DEFT_MACRO = 0x42,

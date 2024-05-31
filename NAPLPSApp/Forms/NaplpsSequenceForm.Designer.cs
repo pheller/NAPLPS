@@ -32,12 +32,10 @@ namespace NAPLPSApp.Forms
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(NaplpsSequenceForm));
             toolStrip = new ToolStrip();
-            toolStripLabelCount = new ToolStripLabel();
-            toolStripSeparator2 = new ToolStripSeparator();
             iconToolStripButtonPrevious = new FontAwesome.Sharp.IconToolStripButton();
             iconToolStripButtonNext = new FontAwesome.Sharp.IconToolStripButton();
             toolStripSeparator1 = new ToolStripSeparator();
-            toolStripLabelCurrentIndex = new ToolStripLabel();
+            toolStripLabelCounter = new ToolStripLabel();
             toolStripSeparator3 = new ToolStripSeparator();
             toolStripLabelBits = new ToolStripLabel();
             toolStripSeparator4 = new ToolStripSeparator();
@@ -75,23 +73,12 @@ namespace NAPLPSApp.Forms
             // toolStrip
             // 
             toolStrip.GripStyle = ToolStripGripStyle.Hidden;
-            toolStrip.Items.AddRange(new ToolStripItem[] { toolStripLabelCount, toolStripSeparator2, iconToolStripButtonPrevious, iconToolStripButtonNext, toolStripSeparator1, toolStripLabelCurrentIndex, toolStripSeparator3, toolStripLabelBits, toolStripSeparator4 });
+            toolStrip.Items.AddRange(new ToolStripItem[] { iconToolStripButtonPrevious, iconToolStripButtonNext, toolStripSeparator1, toolStripLabelCounter, toolStripSeparator3, toolStripLabelBits, toolStripSeparator4 });
             toolStrip.Location = new Point(0, 0);
             toolStrip.Name = "toolStrip";
             toolStrip.Size = new Size(784, 25);
             toolStrip.TabIndex = 0;
             toolStrip.Text = "toolStrip";
-            // 
-            // toolStripLabelCount
-            // 
-            toolStripLabelCount.Name = "toolStripLabelCount";
-            toolStripLabelCount.Size = new Size(44, 22);
-            toolStripLabelCount.Text = "Total: 0";
-            // 
-            // toolStripSeparator2
-            // 
-            toolStripSeparator2.Name = "toolStripSeparator2";
-            toolStripSeparator2.Size = new Size(6, 25);
             // 
             // iconToolStripButtonPrevious
             // 
@@ -120,11 +107,11 @@ namespace NAPLPSApp.Forms
             toolStripSeparator1.Name = "toolStripSeparator1";
             toolStripSeparator1.Size = new Size(6, 25);
             // 
-            // toolStripLabelCurrentIndex
+            // toolStripLabelCounter
             // 
-            toolStripLabelCurrentIndex.Name = "toolStripLabelCurrentIndex";
-            toolStripLabelCurrentIndex.Size = new Size(31, 22);
-            toolStripLabelCurrentIndex.Text = "0000";
+            toolStripLabelCounter.Name = "toolStripLabelCounter";
+            toolStripLabelCounter.Size = new Size(60, 22);
+            toolStripLabelCounter.Text = "0000/0000";
             // 
             // toolStripSeparator3
             // 
@@ -427,12 +414,10 @@ namespace NAPLPSApp.Forms
         #endregion
 
         private ToolStrip toolStrip;
-        private ToolStripLabel toolStripLabelCount;
-        private ToolStripSeparator toolStripSeparator2;
         private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonPrevious;
         private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonNext;
         private ToolStripSeparator toolStripSeparator1;
-        private ToolStripLabel toolStripLabelCurrentIndex;
+        private ToolStripLabel toolStripLabelCounter;
         private ToolStripSeparator toolStripSeparator3;
         private SplitContainer splitContainerVertical;
         private SplitContainer splitContainerHorizontal;

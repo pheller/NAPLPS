@@ -42,15 +42,22 @@ namespace NAPLPSApp.Forms
             closeToolStripMenuItem = new FontAwesome.Sharp.IconMenuItem();
             toolStripSeparator3 = new ToolStripSeparator();
             quitToolStripMenuItem = new FontAwesome.Sharp.IconMenuItem();
+            renderToolStripMenuItem = new ToolStripMenuItem();
+            toolStripMenuItemAnimate = new ToolStripMenuItem();
+            iconMenuItemSpeedControl = new FontAwesome.Sharp.IconMenuItem();
+            toolStripSeparatorRender = new ToolStripSeparator();
+            iconMenuItemDebugLayers = new FontAwesome.Sharp.IconMenuItem();
             viewToolStripMenuItem = new ToolStripMenuItem();
             iconMenuItemSequence = new FontAwesome.Sharp.IconMenuItem();
+            iconMenuItemSizes = new FontAwesome.Sharp.IconMenuItem();
             helpToolStripMenuItem = new ToolStripMenuItem();
             aboutToolStripMenuItem = new FontAwesome.Sharp.IconMenuItem();
             statusStripMain = new StatusStrip();
             iconDropDownButtonSequence = new FontAwesome.Sharp.IconDropDownButton();
+            toolStripStatusLabelFrame = new ToolStripStatusLabel();
             toolStripStatusLabelBitness = new ToolStripStatusLabel();
+            toolStripStatusLabelResolution = new ToolStripStatusLabel();
             pictureBox = new PictureBox();
-            iconMenuItemSizes = new FontAwesome.Sharp.IconMenuItem();
             menuMain.SuspendLayout();
             statusStripMain.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox).BeginInit();
@@ -59,11 +66,11 @@ namespace NAPLPSApp.Forms
             // menuMain
             // 
             menuMain.ImageScalingSize = new Size(24, 24);
-            menuMain.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, viewToolStripMenuItem, helpToolStripMenuItem });
+            menuMain.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, renderToolStripMenuItem, viewToolStripMenuItem, helpToolStripMenuItem });
             menuMain.Location = new Point(0, 0);
             menuMain.Name = "menuMain";
             menuMain.Padding = new Padding(4, 1, 0, 1);
-            menuMain.Size = new Size(560, 24);
+            menuMain.Size = new Size(640, 24);
             menuMain.TabIndex = 0;
             menuMain.Text = "menuStrip1";
             // 
@@ -149,6 +156,44 @@ namespace NAPLPSApp.Forms
             quitToolStripMenuItem.Text = "&Quit";
             quitToolStripMenuItem.Click += Quit;
             // 
+            // renderToolStripMenuItem
+            // 
+            renderToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItemAnimate, iconMenuItemSpeedControl, toolStripSeparatorRender, iconMenuItemDebugLayers });
+            renderToolStripMenuItem.Name = "renderToolStripMenuItem";
+            renderToolStripMenuItem.Size = new Size(56, 22);
+            renderToolStripMenuItem.Text = "Render";
+            // 
+            // toolStripMenuItemAnimate
+            // 
+            toolStripMenuItemAnimate.Checked = true;
+            toolStripMenuItemAnimate.CheckState = CheckState.Checked;
+            toolStripMenuItemAnimate.Name = "toolStripMenuItemAnimate";
+            toolStripMenuItemAnimate.Size = new Size(119, 22);
+            toolStripMenuItemAnimate.Text = "Animate";
+            // 
+            // iconMenuItemSpeedControl
+            // 
+            iconMenuItemSpeedControl.IconChar = FontAwesome.Sharp.IconChar.GaugeMed;
+            iconMenuItemSpeedControl.IconColor = Color.Black;
+            iconMenuItemSpeedControl.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            iconMenuItemSpeedControl.Name = "iconMenuItemSpeedControl";
+            iconMenuItemSpeedControl.Size = new Size(119, 22);
+            iconMenuItemSpeedControl.Text = "Speed";
+            // 
+            // toolStripSeparatorRender
+            // 
+            toolStripSeparatorRender.Name = "toolStripSeparatorRender";
+            toolStripSeparatorRender.Size = new Size(116, 6);
+            // 
+            // iconMenuItemDebugLayers
+            // 
+            iconMenuItemDebugLayers.IconChar = FontAwesome.Sharp.IconChar.LayerGroup;
+            iconMenuItemDebugLayers.IconColor = Color.Black;
+            iconMenuItemDebugLayers.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            iconMenuItemDebugLayers.Name = "iconMenuItemDebugLayers";
+            iconMenuItemDebugLayers.Size = new Size(119, 22);
+            iconMenuItemDebugLayers.Text = "Layers";
+            // 
             // viewToolStripMenuItem
             // 
             viewToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { iconMenuItemSequence, iconMenuItemSizes });
@@ -163,8 +208,18 @@ namespace NAPLPSApp.Forms
             iconMenuItemSequence.IconColor = Color.Black;
             iconMenuItemSequence.IconFont = FontAwesome.Sharp.IconFont.Auto;
             iconMenuItemSequence.Name = "iconMenuItemSequence";
-            iconMenuItemSequence.Size = new Size(188, 30);
+            iconMenuItemSequence.Size = new Size(134, 22);
             iconMenuItemSequence.Text = "Sequence";
+            // 
+            // iconMenuItemSizes
+            // 
+            iconMenuItemSizes.IconChar = FontAwesome.Sharp.IconChar.Expand;
+            iconMenuItemSizes.IconColor = Color.Black;
+            iconMenuItemSizes.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            iconMenuItemSizes.Name = "iconMenuItemSizes";
+            iconMenuItemSizes.Size = new Size(134, 22);
+            iconMenuItemSizes.Text = "Render Size";
+            iconMenuItemSizes.TextImageRelation = TextImageRelation.TextBeforeImage;
             // 
             // helpToolStripMenuItem
             // 
@@ -185,11 +240,11 @@ namespace NAPLPSApp.Forms
             // statusStripMain
             // 
             statusStripMain.ImageScalingSize = new Size(24, 24);
-            statusStripMain.Items.AddRange(new ToolStripItem[] { iconDropDownButtonSequence, toolStripStatusLabelBitness });
-            statusStripMain.Location = new Point(0, 240);
+            statusStripMain.Items.AddRange(new ToolStripItem[] { iconDropDownButtonSequence, toolStripStatusLabelFrame, toolStripStatusLabelBitness, toolStripStatusLabelResolution });
+            statusStripMain.Location = new Point(0, 417);
             statusStripMain.Name = "statusStripMain";
             statusStripMain.Padding = new Padding(1, 0, 10, 0);
-            statusStripMain.Size = new Size(560, 30);
+            statusStripMain.Size = new Size(640, 30);
             statusStripMain.TabIndex = 1;
             statusStripMain.Text = "statusStrip1";
             // 
@@ -206,10 +261,23 @@ namespace NAPLPSApp.Forms
             iconDropDownButtonSequence.Text = "Commands: 0";
             iconDropDownButtonSequence.TextAlign = ContentAlignment.MiddleLeft;
             // 
+            // toolStripStatusLabelFrame
+            // 
+            toolStripStatusLabelFrame.Name = "toolStripStatusLabelFrame";
+            toolStripStatusLabelFrame.Size = new Size(52, 25);
+            toolStripStatusLabelFrame.Text = "Frame: 0";
+            // 
             // toolStripStatusLabelBitness
             // 
             toolStripStatusLabelBitness.Name = "toolStripStatusLabelBitness";
-            toolStripStatusLabelBitness.Size = new Size(0, 25);
+            toolStripStatusLabelBitness.Size = new Size(38, 25);
+            toolStripStatusLabelBitness.Text = "Mode";
+            // 
+            // toolStripStatusLabelResolution
+            // 
+            toolStripStatusLabelResolution.Name = "toolStripStatusLabelResolution";
+            toolStripStatusLabelResolution.Size = new Size(63, 25);
+            toolStripStatusLabelResolution.Text = "Resolution";
             // 
             // pictureBox
             // 
@@ -218,26 +286,16 @@ namespace NAPLPSApp.Forms
             pictureBox.InitialImage = (Image)resources.GetObject("pictureBox.InitialImage");
             pictureBox.Location = new Point(0, 24);
             pictureBox.Name = "pictureBox";
-            pictureBox.Size = new Size(560, 216);
+            pictureBox.Size = new Size(640, 393);
             pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox.TabIndex = 2;
             pictureBox.TabStop = false;
-            // 
-            // iconMenuItemSizes
-            // 
-            iconMenuItemSizes.IconChar = FontAwesome.Sharp.IconChar.Expand;
-            iconMenuItemSizes.IconColor = Color.Black;
-            iconMenuItemSizes.IconFont = FontAwesome.Sharp.IconFont.Auto;
-            iconMenuItemSizes.Name = "iconMenuItemSizes";
-            iconMenuItemSizes.Size = new Size(188, 30);
-            iconMenuItemSizes.Text = "Render Size";
-            iconMenuItemSizes.TextImageRelation = TextImageRelation.TextBeforeImage;
             // 
             // MainNaplpsForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(560, 270);
+            ClientSize = new Size(640, 447);
             Controls.Add(pictureBox);
             Controls.Add(statusStripMain);
             Controls.Add(menuMain);
@@ -277,5 +335,12 @@ namespace NAPLPSApp.Forms
         private ToolStripMenuItem viewToolStripMenuItem;
         private FontAwesome.Sharp.IconMenuItem iconMenuItemSequence;
         private FontAwesome.Sharp.IconMenuItem iconMenuItemSizes;
+        private ToolStripMenuItem renderToolStripMenuItem;
+        private FontAwesome.Sharp.IconMenuItem iconMenuItemSpeedControl;
+        private ToolStripMenuItem toolStripMenuItemAnimate;
+        private ToolStripSeparator toolStripSeparatorRender;
+        private FontAwesome.Sharp.IconMenuItem iconMenuItemDebugLayers;
+        private ToolStripStatusLabel toolStripStatusLabelFrame;
+        private ToolStripStatusLabel toolStripStatusLabelResolution;
     }
 }
