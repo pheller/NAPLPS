@@ -175,7 +175,7 @@ public class NaplpsState
 
     public override string ToString()
     {
-        return $"O:{MultiByteValue}/{SingleByteValue} (<{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y})) C:<{ColorMode},<{ColorMapForeground}, {ColorMapBackground}>>=[F:{Foreground} B:{Background}]";
+        return $"{MultiByteValue}/{SingleByteValue} <{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}) <{ColorMode},<{ColorMapForeground}, {ColorMapBackground}> F:{Foreground} B:{Background}";
     }
 
     /* Defaults */

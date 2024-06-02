@@ -17,11 +17,11 @@ using System.Numerics;
 
 namespace NAPLPSApp.Drawing;
 
-public class DrawableRectangleSetFilled : IDrawable
+public class DrawableRectangleSetFilled : Drawable, IDrawable
 {
     private readonly RectangleSetFilledCommand _command;
 
-    public DrawableRectangleSetFilled(RectangleSetFilledCommand command)
+    public DrawableRectangleSetFilled(RectangleSetFilledCommand command) : base(command)
     {
         _command = command;
     }
@@ -59,7 +59,7 @@ public class DrawableRectangleSetFilled : IDrawable
 
         var rect = new RectangularPolygon(new PointF(startPoint.X, startPoint.Y), new PointF(dimensions.X, dimensions.Y));
 
-        var (brush, pen) = GetBrushAndPenFromState(state);
+        var (brush, pen) = GetBrushAndPenFromState();
 
         image.Mutate(x => x.Fill(brush, rect));
 
@@ -68,14 +68,5 @@ public class DrawableRectangleSetFilled : IDrawable
         //image.Mutate(x => x.Fill(brush, star2).Draw(pen, star2));
     }
 
-    private static (SolidBrush, SolidPen) GetBrushAndPenFromState(NaplpsState state)
-    {
-        var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
-
-        return (
-            Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A)),
-            Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f)
-        );
-    }
+    
 }
