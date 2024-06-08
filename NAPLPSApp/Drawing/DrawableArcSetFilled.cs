@@ -33,6 +33,13 @@ public class DrawableArcSetFilled : Drawable, IDrawable
         {
             // circle
             var circleDiameter = NaplpsUtils.CalculateDistance(midPoint, startPoint);
+
+            if (circleDiameter == 0)
+            {
+                // TODO: Fix!
+                return;
+            }
+
             var circleRadius = circleDiameter / 2;
 
             var circle = new EllipsePolygon(new PointF(startPoint.X, startPoint.Y), (float)circleRadius);
@@ -135,6 +142,11 @@ public class DrawableArcSetFilled : Drawable, IDrawable
     {
         // Similar calculation as previously, assuming non-collinear points
         int D = 2 * (A.X * (B.Y - C.Y) + B.X * (C.Y - A.Y) + C.X * (A.Y - B.Y));
+
+        if (D == 0)
+        {
+            return PointF.Empty;
+        }
 
         PointF center = new(
             ((A.X * A.X + A.Y * A.Y) * (B.Y - C.Y) + (B.X * B.X + B.Y * B.Y) * (C.Y - A.Y) + (C.X * C.X + C.Y * C.Y) * (A.Y - B.Y)) / D,
