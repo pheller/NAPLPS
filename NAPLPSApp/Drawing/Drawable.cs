@@ -26,12 +26,12 @@ public class Drawable
 
     internal (SolidBrush, SolidPen) GetBrushAndPenFromState()
     {
-        var fgcolor = _state.ColorMode == 0 ? _state.Foreground.ToColor() : _state.ColorMap[_state.ColorMapForeground].ToColor();
-        var bgcolor = _state.ColorMode == 0 ? _state.Background.ToColor() : _state.ColorMap[_state.ColorMapBackground].ToColor();
+        var bgcolor = _state.ColorMode == 2 ? _state.Foreground.ToColor() : _state.ColorMap[_state.ColorMapForeground].ToColor();
+        var fgcolor = _state.ColorMode == 2 ? _state.Background.ToColor() : _state.ColorMap[_state.ColorMapBackground].ToColor();
 
         return (
-            Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A)),
-            Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f)
+            Brushes.Solid(Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A)),
+            Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X)
         );
     }
 }

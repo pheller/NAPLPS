@@ -12,6 +12,6 @@ public class LockingShiftThreeCommand : EscCommand
         State.GL = 3;
         State.InLockingManner = true;
          
-        Debugger.Break();
+        // Debugger.Break();
     }
 }

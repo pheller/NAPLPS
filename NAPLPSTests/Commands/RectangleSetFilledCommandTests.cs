@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+
+using System.Numerics;
 
 namespace NAPLPSTests.Commands;
 

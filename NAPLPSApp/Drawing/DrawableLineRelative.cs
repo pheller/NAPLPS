@@ -32,7 +32,7 @@ public class DrawableLineRelative : IDrawable
             points.Add(new PointF(thePoint.X, thePoint.Y));
         }
         
-        if (points.Count == 0)
+        if (points.Count == 0 || state.LogicalPel.X == 0)
         {
             return;
         }
@@ -40,7 +40,7 @@ public class DrawableLineRelative : IDrawable
         var lines = new SixLabors.ImageSharp.Drawing.Path(points.ToArray());
 
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var pen = Pens.Solid(Color.FromRgba(color.R, color.G, color.B, color.A), 1f);
+        var pen = Pens.Solid(Color.FromRgba(color.R, color.G, color.B, color.A), state.LogicalPel.X);
 
         image.Mutate(x => x.Draw(pen, lines));
 

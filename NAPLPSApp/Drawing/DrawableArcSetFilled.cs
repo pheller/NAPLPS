@@ -23,26 +23,27 @@ public class DrawableArcSetFilled : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
     {
-        var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
-        var midPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X + _command.IntermediatePointDisplacement.X, _command.StartPoint.Y + _command.IntermediatePointDisplacement.Y);
-        var endPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X + _command.EndPointDisplacement.X, _command.StartPoint.Y + _command.EndPointDisplacement.Y);
-
         var (brush, pen) = GetBrushAndPenFromState();
+
+        var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
+        var midPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.IntermediatePointDisplacement.X, _command.IntermediatePointDisplacement.Y);
+        var endPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.EndPointDisplacement.X, _command.EndPointDisplacement.Y);
 
         if (startPoint == endPoint)
         {
             // circle
-            var circleDiameter = NaplpsUtils.CalculateDistance(midPoint, startPoint);
+            // var circleDiameter = NaplpsUtils.CalculateDistance(midPoint, startPoint);
+            var circleDiameter = Math.Max(midPoint.X, midPoint.Y);
 
             if (circleDiameter == 0)
             {
                 // TODO: Fix!
-                return;
+                circleDiameter = 1;
             }
 
-            var circleRadius = circleDiameter / 2;
+            var circleRadius = circleDiameter / 2f;
 
-            var circle = new EllipsePolygon(new PointF(startPoint.X, startPoint.Y), (float)circleRadius);
+            var circle = new EllipsePolygon(new PointF(startPoint.X + circleRadius, startPoint.Y - circleRadius), circleRadius);
 
             image.Mutate(x => x.Fill(brush, circle).Draw(pen, circle));
         }

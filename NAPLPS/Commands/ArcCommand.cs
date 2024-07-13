@@ -103,9 +103,13 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
                 StartPoint = Vertices[0];
                 IntermediatePointDisplacement = Vertices[1];
                 EndPointDisplacement = Vertices[2];
+
+                SetPen(Vertices[2]);
             }
             else if (operands.Count == State.MultiByteValue * 2)
             {
+                SetPen(Vertices[0]);
+
                 // Circle
                 StartPoint = Vertices[0];
                 IntermediatePointDisplacement = Vertices[1];

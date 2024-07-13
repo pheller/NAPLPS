@@ -39,7 +39,7 @@ public enum NaplpsCommands : byte
 
     CANCEL = 0x18, // Cancel
     SHIFT_TWO = 0x19, // Single-Shift Two
-    SERVICE_DELIM_CHAR = 0x1A, // Service Delimiter Character
+    SDC = 0x1A, // Service Delimiter Character
     ESC = 0x1B, // Escape
     AP_SET = 0x1C, // Active Position Set
     SHIFT_THREE = 0x1D, // Single-Shift Three

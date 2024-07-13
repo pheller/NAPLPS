@@ -35,7 +35,7 @@ public class DrawableLineSetAbsolute : IDrawable
         var lines = new SixLabors.ImageSharp.Drawing.Path(points.ToArray());
 
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var pen = Pens.Solid(Color.FromRgba(color.R, color.G, color.B, color.A), 1f);
+        var pen = Pens.Solid(Color.FromRgba(color.R, color.G, color.B, color.A), state.LogicalPel.X);
 
         image.Mutate(x => x.Draw(pen, lines));
     }

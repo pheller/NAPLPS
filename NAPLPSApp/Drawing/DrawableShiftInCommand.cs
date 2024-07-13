@@ -7,6 +7,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Numerics;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using Color = SixLabors.ImageSharp.Color;
 using FontFamily = SixLabors.Fonts.FontFamily;
@@ -15,17 +16,19 @@ using Rectangle = SixLabors.ImageSharp.Rectangle;
 
 namespace NAPLPSApp.Drawing;
 
-public class DrawableShiftInCommand : IDrawable
+public class DrawableShiftInCommand : Drawable, IDrawable
 {
     private readonly ShiftInCommand _command;
 
-    public DrawableShiftInCommand(ShiftInCommand command)
+    public DrawableShiftInCommand(ShiftInCommand command) : base(command)
     {
         _command = command;
     }
 
     public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
     {
+        var (brush, pen) = GetBrushAndPenFromState();
+
         var points = new List<PointF>();
 
         var point = NaplpsUtils.ConvertNormalizedToPoint(size, state.Pen.X, state.Pen.Y);
@@ -48,7 +51,11 @@ public class DrawableShiftInCommand : IDrawable
         var options = new TextOptions(font)
         {
             Dpi = 92,
-            KerningMode = KerningMode.Auto
+            KerningMode = KerningMode.Auto,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = SixLabors.Fonts.HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center,
+            HintingMode = HintingMode.None,
         };
 
         var rectF = TextMeasurer.MeasureBounds(text, options);
@@ -58,9 +65,15 @@ public class DrawableShiftInCommand : IDrawable
         var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
         var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
 
-        var brush = Brushes.Solid(Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A));
+        var drawingOptions = new DrawingOptions
+        {
+            Transform = Matrix3x2.CreateScale(1, -1, new PointF(point.X, point.Y))
+        };
 
         image.Mutate(x => x.Fill(brush, rect));
-        image.Mutate(x => x.DrawText(text, font, Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), new PointF(point.X, point.Y - rectF.Height)));
+        image.Mutate(x =>
+        {
+            x.DrawText(drawingOptions, text, font, Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A), new PointF(point.X, point.Y));
+        });
     }
 }
