@@ -178,6 +178,11 @@ public class NaplpsState
         return $"{MultiByteValue}/{SingleByteValue} <{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}) <{ColorMode},<{ColorMapForeground}, {ColorMapBackground}> F:{Foreground} B:{Background}";
     }
 
+    public NaplpsState Clone()
+    {
+        return FromJson(ToJson());
+    }
+
     /* Defaults */
 
     public static readonly Dictionary<byte, NaplpsColor> ColorMapDefaults = new()

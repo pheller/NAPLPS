@@ -34,7 +34,8 @@ namespace NAPLPSApp.Forms
 
             InitializeComponent();
 
-            plotter = new() { 
+            plotter = new()
+            {
                 Dock = DockStyle.Fill,
                 Visible = false,
             };
@@ -115,6 +116,11 @@ namespace NAPLPSApp.Forms
 
         private void UpdateSelection(bool gotoFrame = false)
         {
+            if (_sequence == null || _sequence.Count == 0)
+            {
+                return;
+            }
+
             var selectedIndex = sequenceDataGridView.CurrentRow?.Index ?? 0;
 
             toolStripLabelCounter.Text = $"{(selectedIndex + 1).ToString().PadLeft(4, '0')}/{_sequence.Count.ToString().PadLeft(4, '0')}";
@@ -123,7 +129,7 @@ namespace NAPLPSApp.Forms
 
             tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 4);
             panelTextDisplay.Visible = false;
-            
+
             labelFGColorText.Visible = false;
             labelFGColor.Visible = false;
 
@@ -159,7 +165,7 @@ namespace NAPLPSApp.Forms
             {
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
 
-                labelTextDisplay.Text =  $" ColorMode: {state.ColorMode}\n";
+                labelTextDisplay.Text = $" ColorMode: {state.ColorMode}\n";
                 labelTextDisplay.Text += $"Foreground: {state.ColorMapForeground}\n";
                 labelTextDisplay.Text += $"Background: {state.ColorMapBackground}\n";
 
@@ -180,7 +186,7 @@ namespace NAPLPSApp.Forms
             {
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
 
-                labelTextDisplay.Text  = $"Text Field Size: {textCommand.State.TextFieldSize}\n";
+                labelTextDisplay.Text = $"Text Field Size: {textCommand.State.TextFieldSize}\n";
 
                 var point = new Coordinates(state.Pen.X, state.Pen.Y);
                 var size = new Coordinates(state.TextFieldSize.X, state.TextFieldSize.Y);
@@ -212,7 +218,7 @@ namespace NAPLPSApp.Forms
             {
                 tableLayoutPanelCommand.SetRowSpan(panelOperandsDisplay, 2);
 
-                labelTextDisplay.Text =  $"   LINE: {textureCommand.LineTexture}\n";
+                labelTextDisplay.Text = $"   LINE: {textureCommand.LineTexture}\n";
                 labelTextDisplay.Text += $"HIGHLGT: {textureCommand.ShouldHighlight}\n";
                 labelTextDisplay.Text += $"TEXTURE: {textureCommand.TexturePattern}\n\n";
                 labelTextDisplay.Text += $"MASK SZ: {textureCommand.MaskSize}\n";
@@ -245,7 +251,7 @@ namespace NAPLPSApp.Forms
 
                 if (baseDrawCommand is PolygonCommand)
                 {
-                    plotter.Plot.Add.Polygon([..coords]);
+                    plotter.Plot.Add.Polygon([.. coords]);
                 }
                 //else (baseDrawCommand is LineCommand) 
                 //{
@@ -269,7 +275,7 @@ namespace NAPLPSApp.Forms
                 }
 
                 var markers = plotter.Plot.Add.Markers(coords);
-                
+
                 markers.MarkerShape = MarkerShape.FilledCircle;
                 markers.MarkerSize = 10;
 
@@ -347,7 +353,7 @@ namespace NAPLPSApp.Forms
                     sequenceDataGridView.Rows[^1].DefaultCellStyle.ForeColor = Color.Green;
                 }
 
-                idx++; 
+                idx++;
             }
         }
 
@@ -399,6 +405,13 @@ namespace NAPLPSApp.Forms
 
             sequenceDataGridView.SelectionChanged += (s, e) => UpdateSelection();
             sequenceDataGridView.DoubleClick += (s, e) => UpdateSelection(true);
+        }
+
+        private void iconToolStripButtonAddCommand_Click(object sender, EventArgs e)
+        {
+            var addNewCommandForm = new NewCommandForm();
+
+            addNewCommandForm.ShowDialog(this);
         }
     }
 }

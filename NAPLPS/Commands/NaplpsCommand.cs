@@ -8,7 +8,7 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
 {
     public NaplpsCommands OpCode { get; } = opcode;
 
-    public NaplpsOperands Operands { get; } = operands;
+    public NaplpsOperands Operands { get; } = operands ?? [];
 
     public bool IsValid { get; internal set; } = true;
 

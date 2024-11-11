@@ -39,6 +39,9 @@ namespace NAPLPSApp.Forms
             toolStripSeparator3 = new ToolStripSeparator();
             toolStripLabelBits = new ToolStripLabel();
             toolStripSeparator4 = new ToolStripSeparator();
+            iconToolStripButtonAddCommand = new FontAwesome.Sharp.IconToolStripButton();
+            iconToolStripButtonEditCommand = new FontAwesome.Sharp.IconToolStripButton();
+            iconToolStripButtonDeleteCommand = new FontAwesome.Sharp.IconToolStripButton();
             sequenceDataGridView = new DataGridView();
             splitContainerVertical = new SplitContainer();
             splitContainerHorizontal = new SplitContainer();
@@ -73,7 +76,7 @@ namespace NAPLPSApp.Forms
             // toolStrip
             // 
             toolStrip.GripStyle = ToolStripGripStyle.Hidden;
-            toolStrip.Items.AddRange(new ToolStripItem[] { iconToolStripButtonPrevious, iconToolStripButtonNext, toolStripSeparator1, toolStripLabelCounter, toolStripSeparator3, toolStripLabelBits, toolStripSeparator4 });
+            toolStrip.Items.AddRange(new ToolStripItem[] { iconToolStripButtonPrevious, iconToolStripButtonNext, toolStripSeparator1, toolStripLabelCounter, toolStripSeparator3, toolStripLabelBits, toolStripSeparator4, iconToolStripButtonAddCommand, iconToolStripButtonEditCommand, iconToolStripButtonDeleteCommand });
             toolStrip.Location = new Point(0, 0);
             toolStrip.Name = "toolStrip";
             toolStrip.Size = new Size(784, 25);
@@ -128,6 +131,40 @@ namespace NAPLPSApp.Forms
             // 
             toolStripSeparator4.Name = "toolStripSeparator4";
             toolStripSeparator4.Size = new Size(6, 25);
+            // 
+            // iconToolStripButtonAddCommand
+            // 
+            iconToolStripButtonAddCommand.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            iconToolStripButtonAddCommand.IconChar = FontAwesome.Sharp.IconChar.Add;
+            iconToolStripButtonAddCommand.IconColor = Color.Black;
+            iconToolStripButtonAddCommand.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            iconToolStripButtonAddCommand.ImageTransparentColor = Color.Magenta;
+            iconToolStripButtonAddCommand.Name = "iconToolStripButtonAddCommand";
+            iconToolStripButtonAddCommand.Size = new Size(23, 22);
+            iconToolStripButtonAddCommand.Text = "Add New Command";
+            iconToolStripButtonAddCommand.Click += iconToolStripButtonAddCommand_Click;
+            // 
+            // iconToolStripButtonEditCommand
+            // 
+            iconToolStripButtonEditCommand.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            iconToolStripButtonEditCommand.IconChar = FontAwesome.Sharp.IconChar.Pencil;
+            iconToolStripButtonEditCommand.IconColor = Color.Black;
+            iconToolStripButtonEditCommand.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            iconToolStripButtonEditCommand.ImageTransparentColor = Color.Magenta;
+            iconToolStripButtonEditCommand.Name = "iconToolStripButtonEditCommand";
+            iconToolStripButtonEditCommand.Size = new Size(23, 22);
+            iconToolStripButtonEditCommand.Text = "Edit Selected Command";
+            // 
+            // iconToolStripButtonDeleteCommand
+            // 
+            iconToolStripButtonDeleteCommand.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            iconToolStripButtonDeleteCommand.IconChar = FontAwesome.Sharp.IconChar.Trash;
+            iconToolStripButtonDeleteCommand.IconColor = Color.Black;
+            iconToolStripButtonDeleteCommand.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            iconToolStripButtonDeleteCommand.ImageTransparentColor = Color.Magenta;
+            iconToolStripButtonDeleteCommand.Name = "iconToolStripButtonDeleteCommand";
+            iconToolStripButtonDeleteCommand.Size = new Size(23, 22);
+            iconToolStripButtonDeleteCommand.Text = "Delete Selected Command";
             // 
             // sequenceDataGridView
             // 
@@ -437,5 +474,8 @@ namespace NAPLPSApp.Forms
         private Label labelBGColorText;
         private ToolStripLabel toolStripLabelBits;
         private ToolStripSeparator toolStripSeparator4;
+        private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonAddCommand;
+        private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonEditCommand;
+        private FontAwesome.Sharp.IconToolStripButton iconToolStripButtonDeleteCommand;
     }
 }

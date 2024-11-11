@@ -87,8 +87,9 @@ namespace NAPLPSApp.Forms
             newNAPLPSFileToolStripMenuItem.IconColor = Color.Black;
             newNAPLPSFileToolStripMenuItem.IconFont = FontAwesome.Sharp.IconFont.Auto;
             newNAPLPSFileToolStripMenuItem.Name = "newNAPLPSFileToolStripMenuItem";
-            newNAPLPSFileToolStripMenuItem.Size = new Size(165, 22);
+            newNAPLPSFileToolStripMenuItem.Size = new Size(188, 30);
             newNAPLPSFileToolStripMenuItem.Text = "&New NAPLPS File";
+            newNAPLPSFileToolStripMenuItem.Click += New;
             // 
             // openToolStripMenuItem
             // 
@@ -96,14 +97,14 @@ namespace NAPLPSApp.Forms
             openToolStripMenuItem.IconColor = Color.Black;
             openToolStripMenuItem.IconFont = FontAwesome.Sharp.IconFont.Auto;
             openToolStripMenuItem.Name = "openToolStripMenuItem";
-            openToolStripMenuItem.Size = new Size(165, 22);
+            openToolStripMenuItem.Size = new Size(188, 30);
             openToolStripMenuItem.Text = "&Open";
             openToolStripMenuItem.Click += Open;
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new Size(162, 6);
+            toolStripSeparator1.Size = new Size(185, 6);
             // 
             // saveToolStripMenuItem
             // 
@@ -112,7 +113,7 @@ namespace NAPLPSApp.Forms
             saveToolStripMenuItem.IconColor = Color.Black;
             saveToolStripMenuItem.IconFont = FontAwesome.Sharp.IconFont.Auto;
             saveToolStripMenuItem.Name = "saveToolStripMenuItem";
-            saveToolStripMenuItem.Size = new Size(165, 22);
+            saveToolStripMenuItem.Size = new Size(188, 30);
             saveToolStripMenuItem.Text = "&Save";
             // 
             // saveAsToolStripMenuItem
@@ -122,13 +123,13 @@ namespace NAPLPSApp.Forms
             saveAsToolStripMenuItem.IconColor = Color.Black;
             saveAsToolStripMenuItem.IconFont = FontAwesome.Sharp.IconFont.Auto;
             saveAsToolStripMenuItem.Name = "saveAsToolStripMenuItem";
-            saveAsToolStripMenuItem.Size = new Size(165, 22);
+            saveAsToolStripMenuItem.Size = new Size(188, 30);
             saveAsToolStripMenuItem.Text = "Sav&e As";
             // 
             // toolStripSeparator2
             // 
             toolStripSeparator2.Name = "toolStripSeparator2";
-            toolStripSeparator2.Size = new Size(162, 6);
+            toolStripSeparator2.Size = new Size(185, 6);
             // 
             // closeToolStripMenuItem
             // 
@@ -137,14 +138,14 @@ namespace NAPLPSApp.Forms
             closeToolStripMenuItem.IconColor = Color.Black;
             closeToolStripMenuItem.IconFont = FontAwesome.Sharp.IconFont.Auto;
             closeToolStripMenuItem.Name = "closeToolStripMenuItem";
-            closeToolStripMenuItem.Size = new Size(165, 22);
+            closeToolStripMenuItem.Size = new Size(188, 30);
             closeToolStripMenuItem.Text = "&Close";
-            closeToolStripMenuItem.Click += Close;
+            closeToolStripMenuItem.Click += FileClose;
             // 
             // toolStripSeparator3
             // 
             toolStripSeparator3.Name = "toolStripSeparator3";
-            toolStripSeparator3.Size = new Size(162, 6);
+            toolStripSeparator3.Size = new Size(185, 6);
             // 
             // quitToolStripMenuItem
             // 
@@ -152,7 +153,7 @@ namespace NAPLPSApp.Forms
             quitToolStripMenuItem.IconColor = Color.Black;
             quitToolStripMenuItem.IconFont = FontAwesome.Sharp.IconFont.Auto;
             quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            quitToolStripMenuItem.Size = new Size(165, 22);
+            quitToolStripMenuItem.Size = new Size(188, 30);
             quitToolStripMenuItem.Text = "&Quit";
             quitToolStripMenuItem.Click += Quit;
             // 

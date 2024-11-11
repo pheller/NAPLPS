@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using System.Diagnostics;
+using System.Reflection.Emit;
 
 namespace NAPLPS;
 
@@ -45,7 +46,24 @@ public partial class NaplpsFormat
 
     public static NaplpsFormat New()
     {
-        return new NaplpsFormat(new NaplpsState());
+        var newFile = new NaplpsFormat(new NaplpsState());
+
+        // Default
+        newFile.AddCommand(CANCEL);
+
+        return newFile;
+    }
+
+    private void AddCommand(byte cmd, NaplpsOperands operands = null)
+    {
+        AddCommand((NaplpsCommands)cmd, operands);
+    }
+
+    private void AddCommand(NaplpsCommands command, NaplpsOperands operands = null)
+    {
+        var newCommand = NaplpsCommand.Factory(State, command, operands);
+
+        Commands.Add(new NaplpsSequence(newCommand.State.Clone(), newCommand));
     }
 
     public List<NaplpsSequence> ReadStream(BinaryReader reader)
@@ -97,11 +115,7 @@ public partial class NaplpsFormat
 
                 var command = NaplpsCommand.Factory(State, (NaplpsCommands)opcode, operands);
 
-                var newStateJson = command.State.ToJson();
-
-                var newState = NaplpsState.FromJson(newStateJson);
-
-                commands.Add(new NaplpsSequence(newState, command));
+                commands.Add(new NaplpsSequence(command.State.Clone(), command));
             }
         }
         catch (EndOfStreamException)

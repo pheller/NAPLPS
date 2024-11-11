@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
+using System.Reflection;
+
 namespace NAPLPS;
 
 public static class NaplpsUtils
@@ -141,5 +143,28 @@ public static class NaplpsUtils
         }
 
         return point;
+    }
+
+    public static List<string> GetAddCommands()
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+
+        // Find all classes with the AddCommandAttribute
+        var typesWithAttribute = assembly.GetTypes()
+            .Where(type => type.GetCustomAttributes(typeof(AddCommandAttribute), false).Length > 0)
+            .ToList();
+
+        var output = new List<string>();
+
+        // Iterate and print information about each class
+        foreach (var type in typesWithAttribute)
+        {
+            var attribute = (AddCommandAttribute)type.GetCustomAttributes(typeof(AddCommandAttribute), false).FirstOrDefault();
+
+            output.Add(attribute.Name);
+            // Console.WriteLine($"Class: {type.Name}, Height: {attribute.Height}, Name: {attribute.Name}, Description: {attribute.Description}");
+        }
+
+        return output;
     }
 }

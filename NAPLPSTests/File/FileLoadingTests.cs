@@ -17,7 +17,7 @@ public class FileLoadingTests
 
         Assert.IsTrue(file.Is7Bit);
 
-        Assert.AreEqual(10, file.Commands.Count);
+        Assert.AreEqual(9, file.Commands.Count);
     }
 
     [TestMethod]
@@ -32,7 +32,7 @@ public class FileLoadingTests
 
         Assert.IsTrue(file.Is7Bit);
 
-        Assert.AreEqual(270, file.Commands.Count);
+        Assert.AreEqual(269, file.Commands.Count);
 
         // file.SavePNG(_defaultSize, $"{_outputPath}autumn");
     }

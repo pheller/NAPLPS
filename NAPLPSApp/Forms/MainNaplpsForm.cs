@@ -134,9 +134,15 @@ namespace NAPLPSApp.Forms
 
         private void New(object sender, EventArgs e)
         {
-            Close(sender, e);
+            FileClose();
+
+            LoadedFilePath = "New File";
 
             LoadedFile = NaplpsFormat.New();
+
+            FileRender(LoadedFile, canvasSize.StringSize());
+
+            sequenceForm = new NaplpsSequenceForm(this, LoadedFile.Commands);
 
             UpdateUI();
         }
@@ -151,11 +157,6 @@ namespace NAPLPSApp.Forms
             }
 
             UpdateUI();
-        }
-
-        private void Close(object sender, EventArgs e)
-        {
-            FileClose();
         }
 
         private void Quit(object sender, EventArgs e)
@@ -235,7 +236,7 @@ namespace NAPLPSApp.Forms
             }
         }
 
-        private void FileClose()
+        private void FileClose(object s = null, EventArgs e = null)
         {
             if (ctxRenderCancellationToken!= null)
             {
