@@ -32,18 +32,18 @@ public class DrawableArcSetFilled : Drawable, IDrawable
         if (startPoint == endPoint)
         {
             // circle
-            // var circleDiameter = NaplpsUtils.CalculateDistance(midPoint, startPoint);
-            var circleDiameter = Math.Max(midPoint.X, midPoint.Y);
-
+            var circleDiameter = NaplpsUtils.CalculateDistance(midPoint, startPoint);
             if (circleDiameter == 0)
             {
                 // TODO: Fix!
                 circleDiameter = 1;
             }
 
-            var circleRadius = circleDiameter / 2f;
+            float circleRadius = (float)(circleDiameter * 0.5f);
+            float centerX = (startPoint.X + midPoint.X) * 0.5f;
+            float centerY = (startPoint.Y + midPoint.Y) * 0.5f;
 
-            var circle = new EllipsePolygon(new PointF(startPoint.X + circleRadius, startPoint.Y - circleRadius), circleRadius);
+            var circle = new EllipsePolygon(new PointF(centerX, centerY), circleRadius);
 
             image.Mutate(x => x.Fill(brush, circle).Draw(pen, circle));
         }
