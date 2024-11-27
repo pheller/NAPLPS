@@ -112,7 +112,7 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
 
                 // Circle
                 StartPoint = Vertices[0];
-                IntermediatePointDisplacement = Vertices[1];
+                IntermediatePointDisplacement = Vertices[0] + Vertices[1];
                 EndPointDisplacement = Vertices[0];
             }
             else
