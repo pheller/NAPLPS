@@ -7,7 +7,11 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System;
+using System.Diagnostics;
+using System.IO;
 using System.Numerics;
+using System.Reflection;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using Color = SixLabors.ImageSharp.Color;
 using FontFamily = SixLabors.Fonts.FontFamily;
@@ -44,7 +48,10 @@ public class DrawableShiftInCommand : Drawable, IDrawable
 
         FontCollection fontCollection = new();
 
-        fontFamily = fontCollection.Add("Fonts\\PRM5X10.TTF");
+        string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
+        string fontPath = Path.Combine(appPath, "Fonts", "PRM5X10.TTF");
+
+        fontFamily = fontCollection.Add(fontPath);
 
         var font = fontFamily.CreateFont(TextFontSize, SixLabors.Fonts.FontStyle.Regular);
 
