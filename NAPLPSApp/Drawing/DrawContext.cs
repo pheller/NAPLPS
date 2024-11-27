@@ -5,6 +5,7 @@ using NAPLPS.Commands;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace NAPLPSApp.Drawing;
 
@@ -51,7 +52,7 @@ public class DrawContext : IDisposable
             {
                 break;
             }
-            
+
             CurrentIndex++;
         }
 
@@ -111,6 +112,7 @@ public class DrawContext : IDisposable
         // TODO: Reset the image??
 
         this.Render();
+        this.Image.Mutate(x => x.Flip(FlipMode.Vertical));
         Image.SaveAsPng($"{filepath}.png");
     }
 
