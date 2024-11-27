@@ -110,6 +110,7 @@ public class DrawContext : IDisposable
     {
         // TODO: Reset the image??
 
+        this.Render();
         Image.SaveAsPng($"{filepath}.png");
     }
 
