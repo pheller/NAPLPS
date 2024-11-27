@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Solution",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build Solution", // This matches the task label in tasks.json
+            "program": "${workspaceFolder}/NAPLPSAPP/bin/Debug/net8.0/NAPLPSApp",
+            "args": ["--input", "Examples/beer.nap"],
+            "cwd": "${workspaceFolder}/",
+            "stopAtEntry": false,
+            "console": "integratedTerminal"
+        }
+    ]
+}
