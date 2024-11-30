@@ -44,13 +44,17 @@ public class DrawablePolygon : IDrawable
         var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
         var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
 
-        var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
+        var pen = Pens.Solid(Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A), 1f);
         var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));
 
         image.Mutate(x => {
-            if (_command.ShouldFill) {
+            if (_command.ShouldFill)
+            {
                 x.Fill(brush, polygon);
-            } else {
+            }
+
+            if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+            {
                 x.Draw(pen, polygon);
             }
         });
