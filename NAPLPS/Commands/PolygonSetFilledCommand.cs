@@ -2,7 +2,7 @@
 
 namespace NAPLPS.Commands;
 
-public class PolygonSetFilledCommand : PolygonSetCommand
+public class PolygonSetFilledCommand : PolygonCommand
 {
     public PolygonSetFilledCommand(NaplpsState state, NaplpsOperands operands) : base(state, POLYGON_SET_FILLED, operands)
     {
