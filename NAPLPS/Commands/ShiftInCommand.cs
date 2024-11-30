@@ -4,7 +4,7 @@ using System.Text;
 
 namespace NAPLPS.Commands;
 
-public class ShiftInCommand : NaplpsCommand
+public class ShiftInCommand : GeometricDrawingCommandBase
 {
     public ShiftInCommand(NaplpsState state, NaplpsOperands operands) : base(state, SHIFT_IN, operands)
     {

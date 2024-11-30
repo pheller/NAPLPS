@@ -44,7 +44,7 @@ public class NaplpsState
     [Category("In-Use Tables")]
     [ReadOnly(true)]
     public NaplpsGSet G1 { get; set; } = PDISet;
-    
+
     [Category("In-Use Tables")]
     [ReadOnly(true)]
     public NaplpsGSet G2 { get; set; } = SupplementalSet;

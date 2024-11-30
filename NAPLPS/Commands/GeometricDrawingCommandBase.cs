@@ -13,8 +13,30 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
 
     public NaplpsTexture Texture { get; set; }
 
+    public byte ColorMode { get; set; }
+
+    public byte ColorMapForeground { get; set; }
+
+    public byte ColorMapBackground { get; set; }
+
+    public NaplpsColor Foreground { get; set; } = new(1, 1, 1);
+
+    public NaplpsColor Background { get; set; } = new();
+
     public GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands) {
-        this.Texture = state.Texture;
+        Texture = state.Texture;
+        ColorMode = state.ColorMode;
+        ColorMapForeground = state.ColorMapForeground;
+        ColorMapBackground = state.ColorMapBackground;
+        Foreground = state.Foreground;
+        Background = state.Background;
+    }
+
+    public (Color, Color) GetColors(NaplpsState state) {
+        NaplpsColor fgColor = ColorMode == 0 ? Foreground : state.ColorMap[ColorMapForeground];
+        NaplpsColor bgColor = ColorMode == 0 ? Background : state.ColorMap[ColorMapBackground];
+
+        return (fgColor.ToColor(), bgColor.ToColor());
     }
 
     internal void SetPen(Vector3 point)

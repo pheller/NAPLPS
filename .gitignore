@@ -399,3 +399,6 @@ FodyWeavers.xsd
 
 # NAP Artifacts
 *.nap.png
+
+# mac files
+.DS_Store

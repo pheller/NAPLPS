@@ -14,11 +14,11 @@ using SixLabors.ImageSharp.Drawing;
 
 namespace NAPLPSApp.Drawing;
 
-public class DrawablePolygon : IDrawable
+public class DrawablePolygon : Drawable, IDrawable
 {
     private readonly PolygonCommand _command;
 
-    public DrawablePolygon(PolygonCommand command)
+    public DrawablePolygon(PolygonCommand command) : base(command)
     {
         _command = command;
     }
@@ -40,12 +40,7 @@ public class DrawablePolygon : IDrawable
         }
 
         var polygon = new Polygon(polygonPoints.ToArray());
-
-        var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
-
-        var pen = Pens.Solid(Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A), 1f);
-        var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));
+        var (brush, pen) = GetBrushAndPenFromFillableCommand();
 
         image.Mutate(x => {
             if (_command.ShouldFill)

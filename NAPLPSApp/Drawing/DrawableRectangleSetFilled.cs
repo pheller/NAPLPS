@@ -40,15 +40,22 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
         var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, startPoint.X, startPoint.Y, dimensions.X, dimensions.Y);
 
         var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
+        var (brush, pen) = GetBrushAndPenFromFillableCommand();
 
-        var (brush, pen) = GetBrushAndPenFromState();
+        image.Mutate(x => {
+            if (_command.ShouldFill)
+            {
+                x.Fill(brush, rect);
+            }
 
-        image.Mutate(x => x.Fill(brush, rect));
+            if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+            {
+                x.Draw(pen, rect);
+            }
+        });
 
         //image.Mutate(x => x.Fill(brush, rect).Draw(pen, rect));
 
         //image.Mutate(x => x.Fill(brush, star2).Draw(pen, star2));
     }
-
-    
 }
