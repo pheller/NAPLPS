@@ -7,16 +7,11 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Numerics;
 using System.Reflection;
-using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
+using Point = SixLabors.ImageSharp.Point;
 using Color = SixLabors.ImageSharp.Color;
 using FontFamily = SixLabors.Fonts.FontFamily;
 using PointF = SixLabors.ImageSharp.PointF;
-using Rectangle = SixLabors.ImageSharp.Rectangle;
 
 namespace NAPLPSApp.Drawing;
 
