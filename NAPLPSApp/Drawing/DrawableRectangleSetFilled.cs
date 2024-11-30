@@ -40,14 +40,7 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
         var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, startPoint.X, startPoint.Y, dimensions.X, dimensions.Y);
 
         var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
-
-        var (fgColor, bgColor) = _command.GetColors(state);
-
-        var brush = Brushes.Solid(Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A));
-
-        var penColor = _command.ShouldFill ? bgColor : fgColor;
-        var penWidth = state.LogicalPel.X == 0 ? 1 : state.LogicalPel.X;
-        var pen = Pens.Solid(Color.FromRgba(penColor.R, penColor.G, penColor.B, penColor.A), penWidth);
+        var (brush, pen) = GetBrushAndPenFromFillableCommand();
 
         image.Mutate(x => {
             if (_command.ShouldFill)

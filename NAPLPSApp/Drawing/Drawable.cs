@@ -24,6 +24,21 @@ public class Drawable
         _state = _baseCommand.State ?? new();
     }
 
+    internal (SolidBrush, SolidPen) GetBrushAndPenFromFillableCommand()
+    {
+        var fillableCommand = (FillableGeometricDrawingCommandBase)_baseCommand;
+
+        var (fgColor, bgColor) = fillableCommand.GetColors(_state);
+
+        var brush = Brushes.Solid(Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A));
+
+        var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
+        var penWidth = _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X;
+        var pen = Pens.Solid(Color.FromRgba(penColor.R, penColor.G, penColor.B, penColor.A), penWidth);
+
+        return (brush, pen);
+    }
+
     internal (SolidBrush, SolidPen) GetBrushAndPenFromState()
     {
         var bgcolor = _state.ColorMode == 2 ? _state.Foreground.ToColor() : _state.ColorMap[_state.ColorMapForeground].ToColor();
