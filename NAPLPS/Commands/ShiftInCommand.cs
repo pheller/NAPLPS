@@ -11,7 +11,10 @@ public class ShiftInCommand : NaplpsCommand
         State.GL = 0;
         State.InLockingManner = true;
         Text = Encoding.ASCII.GetString(Operands.ToArray()).Replace(((char)26).ToString(), string.Empty);
+        Field = State.Field;
     }
 
     public string Text { get; }
+
+    public NaplpsField Field { get; }
 }
