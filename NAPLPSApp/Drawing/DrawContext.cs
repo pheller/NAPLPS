@@ -101,8 +101,6 @@ public class DrawContext : IDisposable
 
         var image = System.Drawing.Image.FromStream(memoryStream);
 
-        image.RotateFlip(RotateFlipType.Rotate180FlipX);
-
         return image;
     }
 #endif
@@ -110,9 +108,7 @@ public class DrawContext : IDisposable
     public void SaveAsPng(string filepath)
     {
         // TODO: Reset the image??
-
         this.Render();
-        this.Image.Mutate(x => x.Flip(FlipMode.Vertical));
         Image.SaveAsPng($"{filepath}.png");
     }
 

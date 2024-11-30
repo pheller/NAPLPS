@@ -65,19 +65,11 @@ public class DrawableShiftInCommand : Drawable, IDrawable
             HintingMode = HintingMode.None,
         };
 
-        var rectF = TextMeasurer.MeasureBounds(text, options);
-
-        var rect = new Rectangle(point.X, point.Y - (int)rectF.Height, (int)rectF.Width, (int)rectF.Height);
-
         var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
         var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
 
-        var drawingOptions = new DrawingOptions
-        {
-            Transform = Matrix3x2.CreateScale(1, -1, new PointF(point.X, point.Y))
-        };
+        var drawingOptions = new DrawingOptions();
 
-        image.Mutate(x => x.Fill(brush, rect));
         image.Mutate(x =>
         {
             x.DrawText(drawingOptions, text, font, Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A), new PointF(point.X, point.Y));
