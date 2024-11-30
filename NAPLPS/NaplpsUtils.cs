@@ -16,12 +16,6 @@ public static class NaplpsUtils
 
     public static Point ConvertNormalizedToPoint(Size size, double normalizedX, double normalizedY)
     {
-        if (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 0.75)
-        {
-            normalizedX = Math.Clamp(normalizedX, 0, 1);
-            normalizedY = Math.Clamp(normalizedY, 0, 0.75);
-        }
-
         var shrunkY = normalizedY / 0.75;
 
         int actualX = (int)(normalizedX * size.Width);
@@ -39,7 +33,7 @@ public static class NaplpsUtils
 
         // Convert y from top-right origin to bottom-left origin by subtracting from height
         // int convertedY = height - y;
-        int convertedY = y;
+        int convertedY = height - y;
 
         return (convertedX, convertedY);
     }
