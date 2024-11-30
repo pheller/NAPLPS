@@ -35,29 +35,11 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
             return;
         }
 
-        var normalizedStartPoint = _command.StartPoint;
-        var normalizedDimensions = _command.Dimensions;
+        var startPoint = _command.StartPoint;
+        var dimensions = _command.Dimensions;
+        var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, startPoint.X, startPoint.Y, dimensions.X, dimensions.Y);
 
-        // Adjust for negative height in normalized coordinates
-        if (normalizedDimensions.Y < 0)
-        {
-            normalizedStartPoint.Y += normalizedDimensions.Y;  // Move start point up by the height
-            normalizedDimensions.Y = Math.Abs(normalizedDimensions.Y);  // Use the absolute value of the height
-        }
-
-        // Adjust for negative width in normalized coordinates
-        if (normalizedDimensions.X < 0)
-        {
-            normalizedStartPoint.X += normalizedDimensions.X;  // Move start point left by the width
-            normalizedDimensions.X = Math.Abs(normalizedDimensions.X);  // Use the absolute value of the width
-        }
-
-        var normalizedEndpoint = normalizedStartPoint + normalizedDimensions;
-
-        var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, normalizedStartPoint.X, normalizedStartPoint.Y);
-        var dimensions = NaplpsUtils.ConvertNormalizedToPoint(size, normalizedEndpoint.X, normalizedEndpoint.Y);
-
-        var rect = new RectangularPolygon(new PointF(startPoint.X, startPoint.Y), new PointF(dimensions.X, dimensions.Y));
+        var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
 
         var (brush, pen) = GetBrushAndPenFromState();
 
