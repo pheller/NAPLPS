@@ -45,7 +45,17 @@ public class DrawableArc : Drawable, IDrawable
 
             var circle = new EllipsePolygon(new PointF(centerX, centerY), circleRadius);
 
-            image.Mutate(x => x.Fill(brush, circle).Draw(pen, circle));
+            image.Mutate(x => {
+                if (_command.ShouldFill)
+                {
+                    x.Fill(brush, circle);
+                }
+
+                if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+                {
+                    x.Draw(pen, circle);
+                }
+            });
         }
         else
         {
