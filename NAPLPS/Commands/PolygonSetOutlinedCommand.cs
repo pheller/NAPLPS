@@ -2,7 +2,7 @@
 
 namespace NAPLPS.Commands;
 
-public class PolygonSetOutlinedCommand : PolygonSetCommand
+public class PolygonSetOutlinedCommand : PolygonCommand
 {
     public PolygonSetOutlinedCommand(NaplpsState state, NaplpsOperands operands) : base(state, POLYGON_SET_OUTLINED, operands)
     {

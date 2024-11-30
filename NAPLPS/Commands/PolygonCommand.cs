@@ -4,15 +4,42 @@ namespace NAPLPS.Commands;
 
 public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
 {
+    public Vector3 StartPoint {get; private set;}
+
     public PolygonCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        SetPen(State.Pen);
-
-        Vertices = ProcessVertices(operands);
-
-        foreach (var vert in Vertices)
+        if (operands.Count == 0)
         {
-            MovePen(vert);
+            IsValid = false;
+            return;
+        }
+
+        if (opcode == POLYGON_FILLED || opcode == POLYGON_OUTLINED)
+        {
+            StartPoint = State.Pen;
+            SetPen(State.Pen);
+
+            Vertices = ProcessVertices(operands);
+
+            foreach (var vert in Vertices)
+            {
+                MovePen(vert);
+            }
+        }
+        else
+        {
+            StartPoint = ProcessVertices(operands[..State.MultiByteValue]).FirstOrDefault();
+
+            SetPen(StartPoint);
+
+            Vertices = ProcessVertices(operands[State.MultiByteValue..]);
+
+            foreach (var vert in Vertices)
+            {
+                MovePen(vert);
+            }
+
+            SetPen(StartPoint);
         }
     }
 }
