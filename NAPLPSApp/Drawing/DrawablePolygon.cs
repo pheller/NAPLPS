@@ -9,15 +9,16 @@ using PointF = SixLabors.ImageSharp.PointF;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
+using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using SixLabors.ImageSharp.Drawing;
 
 namespace NAPLPSApp.Drawing;
 
-public class DrawablePolygonOutlined : IDrawable
+public class DrawablePolygon : IDrawable
 {
-    private readonly PolygonOutlinedCommand _command;
+    private readonly PolygonCommand _command;
 
-    public DrawablePolygonOutlined(PolygonOutlinedCommand command)
+    public DrawablePolygon(PolygonCommand command)
     {
         _command = command;
     }
@@ -33,12 +34,25 @@ public class DrawablePolygonOutlined : IDrawable
             polygonPoints.Add(new PointF(polyPoint.X, polyPoint.Y));
         }
 
+        if (polygonPoints.Count <= 1)
+        {
+            return;
+        }
+
         var polygon = new Polygon(polygonPoints.ToArray());
 
         var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
+        var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
 
         var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
+        var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));
 
-        image.Mutate(x => x.Draw(pen, polygon));
+        image.Mutate(x => {
+            if (_command.ShouldFill) {
+                x.Fill(brush, polygon);
+            } else {
+                x.Draw(pen, polygon);
+            }
+        });
     }
 }

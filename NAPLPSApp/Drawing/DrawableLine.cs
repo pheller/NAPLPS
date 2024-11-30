@@ -12,11 +12,11 @@ using PointF = SixLabors.ImageSharp.PointF;
 
 namespace NAPLPSApp.Drawing;
 
-public class DrawableLineSetRelative : IDrawable
+public class DrawableLine : IDrawable
 {
-    private readonly LineSetRelativeCommand _command;
+    private readonly LineCommand _command;
 
-    public DrawableLineSetRelative(LineSetRelativeCommand command)
+    public DrawableLine(LineCommand command)
     {
         _command = command;
     }
@@ -31,16 +31,17 @@ public class DrawableLineSetRelative : IDrawable
 
             points.Add(new PointF(thePoint.X, thePoint.Y));
         }
-        
+
         if (points.Count < 2)
         {
             return;
         }
 
+        float penWidth = state.LogicalPel.X == 0 ? 1f : state.LogicalPel.X;
         var lines = new SixLabors.ImageSharp.Drawing.Path(points.ToArray());
 
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var pen = Pens.Solid(Color.FromRgba(color.R, color.G, color.B, color.A), state.LogicalPel.X);
+        var pen = Pens.Solid(Color.FromRgba(color.R, color.G, color.B, color.A), penWidth);
 
         image.Mutate(x => x.Draw(pen, lines));
     }

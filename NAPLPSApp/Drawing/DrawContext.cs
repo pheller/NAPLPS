@@ -116,24 +116,9 @@ public class DrawContext : IDisposable
     {
         switch (command)
         {
-            case PolygonSetFilledCommand polygonCommand:
+            case PolygonCommand polygonCommand:
             {
-                return new DrawablePolygonSetFilled(polygonCommand);
-            }
-
-            case PolygonSetOutlinedCommand polygonCommand:
-            {
-                return new DrawablePolygonSetOutlined(polygonCommand);
-            }
-
-            case PolygonFilledCommand polygonCommand:
-            {
-                return new DrawablePolygonFilled(polygonCommand);
-            }
-
-            case PolygonOutlinedCommand polygonCommand:
-            {
-                return new DrawablePolygonOutlined(polygonCommand);
+                return new DrawablePolygon(polygonCommand);
             }
 
             case RectangleSetFilledCommand rectangleCommand:
@@ -156,29 +141,14 @@ public class DrawContext : IDisposable
                 return new DrawableRectangleOutlined(rectangleCommand);
             }
 
-            case LineSetRelativeCommand lineCommand:
+            case LineCommand lineCommand:
             {
-                return new DrawableLineSetRelative(lineCommand);
-            }
-
-            case LineSetAbsoluteCommand lineCommand:
-            {
-                return new DrawableLineSetAbsolute(lineCommand);
-            }
-
-            case LineRelativeCommand lineCommand:
-            {
-                return new DrawableLineRelative(lineCommand);
-            }
-
-            case LineAbsoluteCommand lineCommand:
-            {
-                return new DrawableLineAbsolute(lineCommand);
+                return new DrawableLine(lineCommand);
             }
 
             case ArcSetFilledCommand arcCommand:
             {
-                return new DrawableArcSetFilled(arcCommand);
+                return new DrawableArc(arcCommand);
             }
 
             case ResetCommand resetCommand:
