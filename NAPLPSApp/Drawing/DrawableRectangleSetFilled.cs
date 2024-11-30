@@ -41,14 +41,28 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
 
         var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
 
-        var (brush, pen) = GetBrushAndPenFromState();
+        var (fgColor, bgColor) = _command.GetColors(state);
 
-        image.Mutate(x => x.Fill(brush, rect));
+        var brush = Brushes.Solid(Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A));
+
+        var penColor = _command.ShouldFill ? bgColor : fgColor;
+        var penWidth = state.LogicalPel.X == 0 ? 1 : state.LogicalPel.X;
+        var pen = Pens.Solid(Color.FromRgba(penColor.R, penColor.G, penColor.B, penColor.A), penWidth);
+
+        image.Mutate(x => {
+            if (_command.ShouldFill)
+            {
+                x.Fill(brush, rect);
+            }
+
+            if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+            {
+                x.Draw(pen, rect);
+            }
+        });
 
         //image.Mutate(x => x.Fill(brush, rect).Draw(pen, rect));
 
         //image.Mutate(x => x.Fill(brush, star2).Draw(pen, star2));
     }
-
-    
 }

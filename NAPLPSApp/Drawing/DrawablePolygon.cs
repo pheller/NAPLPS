@@ -41,11 +41,13 @@ public class DrawablePolygon : IDrawable
 
         var polygon = new Polygon(polygonPoints.ToArray());
 
-        var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
+        var (fgColor, bgColor) = _command.GetColors(state);
 
-        var pen = Pens.Solid(Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A), 1f);
-        var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));
+        var brush = Brushes.Solid(Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A));
+
+        var penColor = _command.ShouldFill ? bgColor : fgColor;
+        var penWidth = state.LogicalPel.X == 0 ? 1 : state.LogicalPel.X;
+        var pen = Pens.Solid(Color.FromRgba(penColor.R, penColor.G, penColor.B, penColor.A), penWidth);
 
         image.Mutate(x => {
             if (_command.ShouldFill)

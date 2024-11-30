@@ -26,8 +26,6 @@ public class DrawableShiftInCommand : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
     {
-        var (brush, pen) = GetBrushAndPenFromState();
-
         var points = new List<PointF>();
 
         var field = state.Field;
@@ -62,14 +60,13 @@ public class DrawableShiftInCommand : Drawable, IDrawable
             HintingMode = HintingMode.None,
         };
 
-        var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
+        var (fgColor, bgColor) = _command.GetColors(state);
 
         var drawingOptions = new DrawingOptions();
 
         image.Mutate(x =>
         {
-            x.DrawText(drawingOptions, text, font, Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A), new PointF(point.X, point.Y));
+            x.DrawText(drawingOptions, text, font, Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A), new PointF(point.X, point.Y));
         });
     }
 }

@@ -114,6 +114,7 @@ public class DrawContext : IDisposable
 
     private static IDrawable? ConvertToDrawable(NaplpsCommand command)
     {
+        Console.WriteLine(command.OpCode);
         switch (command)
         {
             case PolygonCommand polygonCommand:
