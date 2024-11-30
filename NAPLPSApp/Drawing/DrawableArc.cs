@@ -12,11 +12,11 @@ using SizeF = SixLabors.ImageSharp.SizeF;
 
 namespace NAPLPSApp.Drawing;
 
-public class DrawableArcSetFilled : Drawable, IDrawable
+public class DrawableArc : Drawable, IDrawable
 {
-    private readonly ArcSetFilledCommand _command;
+    private readonly ArcCommand _command;
 
-    public DrawableArcSetFilled(ArcSetFilledCommand command) : base(command)
+    public DrawableArc(ArcCommand command) : base(command)
     {
         _command = command;
     }
