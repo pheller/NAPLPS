@@ -14,13 +14,19 @@ public static class NaplpsUtils
         return Math.Sqrt(dx * dx + dy * dy);  // Pythagorean theorem
     }
 
-    public static Point ConvertNormalizedToPoint(Size size, double normalizedX, double normalizedY)
+    public static (int, int) ConvertNormalizedToScreenScale(Size size, double normalizedX, double normalizedY)
     {
         var shrunkY = normalizedY / 0.75;
 
         int actualX = (int)(normalizedX * size.Width);
         int actualY = (int)(shrunkY * size.Height);
 
+        return (actualX, actualY);
+    }
+
+    public static Point ConvertNormalizedToPoint(Size size, double normalizedX, double normalizedY)
+    {
+        var (actualX, actualY) = ConvertNormalizedToScreenScale(size, normalizedX, normalizedY);
         (actualX, actualY) = ConvertCoordinates(size.Width, size.Height, actualX, actualY);
 
         return new Point(actualX, actualY);
