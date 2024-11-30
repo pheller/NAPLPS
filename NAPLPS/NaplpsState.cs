@@ -83,6 +83,10 @@ public class NaplpsState
     [ReadOnly(true)]
     public Vector3 Pen { get; set; } = new();
 
+    [Category("Drawing")]
+    [ReadOnly(true)]
+    public NaplpsField Field { get; set; } = new();
+
     /* Text States */
 
     /// <summary>

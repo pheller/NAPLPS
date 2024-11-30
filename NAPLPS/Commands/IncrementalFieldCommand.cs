@@ -27,5 +27,7 @@ public class IncrementalFieldCommand : GeometricDrawingCommandBase
             Origin = vertices[0];
             Dimensions = vertices[1];
         }
+
+        state.Field = new NaplpsField(Origin, Dimensions);
     }
 }

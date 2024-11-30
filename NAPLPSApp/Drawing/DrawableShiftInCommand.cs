@@ -35,7 +35,9 @@ public class DrawableShiftInCommand : Drawable, IDrawable
 
         var points = new List<PointF>();
 
-        var point = NaplpsUtils.ConvertNormalizedToPoint(size, state.Pen.X, state.Pen.Y);
+        var field = state.Field;
+        var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, field.Origin.X, field.Origin.Y, field.Dimensions.X, field.Dimensions.Y);
+        var point = new Point(x1, y1);
 
         var charSize = NaplpsUtils.ConvertNormalizedToPoint(size, state.TextFieldSize.X, state.TextFieldSize.Y);
 
