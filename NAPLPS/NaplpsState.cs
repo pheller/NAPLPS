@@ -87,6 +87,10 @@ public class NaplpsState
     [ReadOnly(true)]
     public NaplpsField Field { get; set; } = new();
 
+    [Category("Drawing")]
+    [ReadOnly(true)]
+    public NaplpsTexture Texture { get; set; } = new();
+
     /* Text States */
 
     /// <summary>

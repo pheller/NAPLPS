@@ -2,7 +2,7 @@
 
 namespace NAPLPS.Commands;
 
-public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : NaplpsCommand(state, opcode, operands)
+public abstract class GeometricDrawingCommandBase : NaplpsCommand
 {
     private static readonly bool[] _twoDimensionalZero = [false, false, false];
     private static readonly bool[] _threeDimensionalZero = [false, false];
@@ -10,6 +10,12 @@ public abstract class GeometricDrawingCommandBase(NaplpsState state, NaplpsComma
     public List<Vector3> Vertices { get; internal set; } = [];
 
     public List<Vector3> Points { get; private set; } = [];
+
+    public NaplpsTexture Texture { get; set; }
+
+    public GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands) {
+        this.Texture = state.Texture;
+    }
 
     internal void SetPen(Vector3 point)
     {

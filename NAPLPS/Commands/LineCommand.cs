@@ -27,7 +27,7 @@ public abstract class LineCommand : GeometricDrawingCommandBase
                 {
                     SetPen(vert);
                 }
-                else 
+                else
                 {
                     MovePen(vert);
                 }
