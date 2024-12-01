@@ -75,8 +75,8 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
                 SetPen(State.Pen);
 
                 StartPoint = State.Pen;
-                IntermediatePointDisplacement = Vertices[0];
-                EndPointDisplacement = Vertices[1];
+                IntermediatePointDisplacement = StartPoint + Vertices[0];
+                EndPointDisplacement = IntermediatePointDisplacement + Vertices[1];
             }
             else if (operands.Count == State.MultiByteValue)
             {
@@ -84,7 +84,7 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
                 SetPen(State.Pen);
 
                 StartPoint = State.Pen;
-                IntermediatePointDisplacement = Vertices[0];
+                IntermediatePointDisplacement = StartPoint + Vertices[0];
                 EndPointDisplacement = State.Pen;
             }
             else
@@ -101,8 +101,8 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
                 SetPen(Vertices[0]);
 
                 StartPoint = Vertices[0];
-                IntermediatePointDisplacement = Vertices[1];
-                EndPointDisplacement = Vertices[2];
+                IntermediatePointDisplacement = StartPoint + Vertices[1];
+                EndPointDisplacement = IntermediatePointDisplacement + Vertices[2];
 
                 SetPen(Vertices[2]);
             }
@@ -112,7 +112,7 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
 
                 // Circle
                 StartPoint = Vertices[0];
-                IntermediatePointDisplacement = Vertices[0] + Vertices[1];
+                IntermediatePointDisplacement = StartPoint + Vertices[1];
                 EndPointDisplacement = Vertices[0];
             }
             else
