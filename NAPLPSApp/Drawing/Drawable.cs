@@ -3,12 +3,17 @@
 using NAPLPS;
 using NAPLPS.Commands;
 
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 using Color = SixLabors.ImageSharp.Color;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using SolidBrush = SixLabors.ImageSharp.Drawing.Processing.SolidBrush;
+using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
 
 namespace NAPLPSApp.Drawing;
 
@@ -24,19 +29,63 @@ public class Drawable
         _state = _baseCommand.State ?? new();
     }
 
-    internal (SolidBrush, SolidPen) GetBrushAndPenFromFillableCommand()
+    internal (Brush, SolidPen) GetBrushAndPenFromFillableCommand()
     {
         var fillableCommand = (FillableGeometricDrawingCommandBase)_baseCommand;
 
         var (fgColor, bgColor) = fillableCommand.GetColors(_state);
 
-        var brush = Brushes.Solid(Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A));
+        var brush = GetFillBrush(fgColor, bgColor);
 
         var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
         var penWidth = _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X;
         var pen = Pens.Solid(Color.FromRgba(penColor.R, penColor.G, penColor.B, penColor.A), penWidth);
 
         return (brush, pen);
+    }
+
+    internal Brush GetFillBrush(System.Drawing.Color fgColor, System.Drawing.Color bgColor)
+    {
+        var fillableCommand = (GeometricDrawingCommandBase)_baseCommand;
+        var texturePattern = fillableCommand.Texture.TexturePattern;
+
+        Color fgColorImageSharp = Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A);
+        Color bgColorImageSharp = Color.FromRgba(bgColor.R, bgColor.G, bgColor.B, bgColor.A);
+
+        switch (texturePattern)
+        {
+            case TexturePatterns.VerticalHatching:
+                return new PatternBrush(
+                    fgColorImageSharp,
+                    bgColorImageSharp,
+                    new bool[,] {
+                        {false, true}
+                    }
+                );
+
+            case TexturePatterns.HorizontalHatching:
+                return new PatternBrush(
+                    fgColorImageSharp,
+                    bgColorImageSharp,
+                    new bool[,] {
+                        {false},
+                        {true}
+                    }
+                );
+
+            case TexturePatterns.CrossHatching:
+                return new PatternBrush(
+                    fgColorImageSharp,
+                    bgColorImageSharp,
+                    new bool[,] {
+                        {false, true},
+                        {true, false}
+                    }
+                );
+
+            default:
+                return Brushes.Solid(fgColorImageSharp);
+        }
     }
 
     internal (SolidBrush, SolidPen) GetBrushAndPenFromState()
