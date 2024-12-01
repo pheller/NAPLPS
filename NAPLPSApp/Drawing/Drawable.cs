@@ -3,12 +3,9 @@
 using NAPLPS;
 using NAPLPS.Commands;
 
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
+using Brush = SixLabors.ImageSharp.Drawing.Processing.Brush;
 using Color = SixLabors.ImageSharp.Color;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
