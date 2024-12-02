@@ -53,12 +53,12 @@ public partial class NaplpsFormat
         return newFile;
     }
 
-    private void AddCommand(byte cmd, NaplpsOperands operands = null)
+    private void AddCommand(byte cmd, NaplpsOperands? operands = null)
     {
         AddCommand((NaplpsCommands)cmd, operands);
     }
 
-    private void AddCommand(NaplpsCommands command, NaplpsOperands operands = null)
+    private void AddCommand(NaplpsCommands command, NaplpsOperands? operands = null)
     {
         var newCommand = NaplpsCommand.Factory(State, command, operands);
 
@@ -119,7 +119,7 @@ public partial class NaplpsFormat
         }
         catch (EndOfStreamException)
         {
-           Debugger.Break();
+            Debugger.Break();
         }
 
         return commands;

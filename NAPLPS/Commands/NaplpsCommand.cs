@@ -14,8 +14,13 @@ public class NaplpsCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOpera
 
     public NaplpsState State { get; } = state;
 
-    public static NaplpsCommand Factory(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands)
+    public static NaplpsCommand Factory(NaplpsState state, NaplpsCommands opcode, NaplpsOperands? operands)
     {
+        if (operands is null)
+        {
+            operands = [];
+        }
+
         return opcode switch
         {
             ESC => ProcessEscapeSequence(state, opcode, operands),

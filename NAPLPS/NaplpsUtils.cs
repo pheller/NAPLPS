@@ -14,7 +14,8 @@ public static class NaplpsUtils
         return Math.Sqrt(dx * dx + dy * dy);  // Pythagorean theorem
     }
 
-    public static (int, int, int, int) ConvertRectToScreen(Size size, double x, double y, double width, double height) {
+    public static (int, int, int, int) ConvertRectToScreen(Size size, double x, double y, double width, double height)
+    {
         var x2 = x + width;
         var y2 = y + height;
 
@@ -174,9 +175,15 @@ public static class NaplpsUtils
         // Iterate and print information about each class
         foreach (var type in typesWithAttribute)
         {
-            var attribute = (AddCommandAttribute)type.GetCustomAttributes(typeof(AddCommandAttribute), false).FirstOrDefault();
+            var attribute = type.GetCustomAttributes(typeof(AddCommandAttribute), false)?.FirstOrDefault();
 
-            output.Add(attribute.Name);
+            if (attribute == null)
+            {
+                continue;
+            }
+
+            output.Add(((AddCommandAttribute)attribute).Name);
+
             // Console.WriteLine($"Class: {type.Name}, Height: {attribute.Height}, Name: {attribute.Name}, Description: {attribute.Description}");
         }
 
