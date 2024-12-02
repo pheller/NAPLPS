@@ -159,7 +159,7 @@ public class NaplpsState
 
     [Category("Color")]
     [ReadOnly(true)]
-    public Dictionary<byte, NaplpsColor> ColorMap { get; set; } = new(ColorMapProdigyDefaults);
+    public Dictionary<byte, NaplpsColor> ColorMap { get; set; } = new(ColorMapDefaults);
 
     [Category("Color")]
     [ReadOnly(true)]
