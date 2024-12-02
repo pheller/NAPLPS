@@ -6,12 +6,9 @@ namespace NAPLPS.Commands;
 
 public abstract class LineCommand : GeometricDrawingCommandBase
 {
-    public List<Vector3> RawVertices { get; internal set; }
     public LineCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var verticies = ProcessVertices(operands);
-
-        RawVertices = verticies;
 
         if (verticies.Count == 0 || operands.Count == 0)
         {
