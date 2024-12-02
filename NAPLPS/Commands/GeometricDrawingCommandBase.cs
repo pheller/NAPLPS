@@ -23,6 +23,8 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
 
     public NaplpsColor Background { get; set; } = new();
 
+    public Vector2 LogicalPel { get; set; }
+
     public GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands) {
         Texture = state.Texture;
         ColorMode = state.ColorMode;
@@ -30,6 +32,7 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
         ColorMapBackground = state.ColorMapBackground;
         Foreground = state.Foreground;
         Background = state.Background;
+        LogicalPel = state.LogicalPel;
     }
 
     public (Color, Color) GetColors(NaplpsState state) {

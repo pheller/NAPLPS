@@ -29,9 +29,9 @@ public class DomainCommand : GeometricDrawingCommandBase
 
         if (operands.Count > 1)
         {
-            Vertices = ProcessVertices(Operands[1..], true);
+            Vertices = ProcessVertices(Operands[1..], false);
 
-            State.LogicalPel = Vertices != null ? new Point((int)Vertices[0].X, (int)Vertices[0].Y) : Point.Empty;
+            State.LogicalPel = Vertices != null ? new Vector2(Vertices[0].X, Vertices[0].Y) : Vector2.Zero;
         }
     }
 }
