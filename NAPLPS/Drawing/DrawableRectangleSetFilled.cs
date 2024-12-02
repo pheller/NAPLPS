@@ -17,35 +17,34 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
-        var polygonPoints = new List<PointF>();
-
         if (_command.StartPoint == Vector3.Zero)
         {
             return;
         }
 
-        var startPoint = _command.StartPoint;
-        var dimensions = _command.Dimensions;
-        var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, startPoint.X, startPoint.Y, dimensions.X, dimensions.Y);
-
-        var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
+        var vertices = _command.Vertices;
 
         image.Mutate(x =>
         {
-            if (_command.ShouldFill)
+            for (int i = 0; i < vertices.Count - 1; i += 2)
             {
-                x.Fill(brush, rect);
-            }
+                var v1 = vertices[i];
+                var v2 = vertices[i + 1];
 
-            if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
-            {
-                x.Draw(pen, rect);
+                var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, v1.X, v1.Y, v2.X, v2.Y);
+                var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
+
+                if (_command.ShouldFill)
+                {
+                    x.Fill(brush, rect);
+                }
+
+                if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+                {
+                    x.Draw(pen, rect);
+                }
             }
         });
-
-        //image.Mutate(x => x.Fill(brush, rect).Draw(pen, rect));
-
-        //image.Mutate(x => x.Fill(brush, star2).Draw(pen, star2));
     }
 }
