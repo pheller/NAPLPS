@@ -2,21 +2,25 @@
 
 namespace NAPLPS.Commands;
 
-public abstract class PointCommand : GeometricDrawingCommandBase
+public abstract class PointCommand : FillableGeometricDrawingCommandBase
 {
     public Vector3 Point { get; internal set; }
+
+
+    public bool IsVisible { get; internal set; }
 
     public PointCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         Point = ProcessVertices(operands).FirstOrDefault();
 
-        if (opcode == POINT_SET_ABS || opcode == POINT_SET_REL)
+        if (opcode == POINT_ABS || opcode == POINT_SET_ABS)
         {
             SetPen(Point);
-        }
-        else
+        } else
         {
-            MovePen(Point);
+            SetPen(state.Pen + Point);
         }
+
+        IsVisible = opcode == POINT_ABS || opcode == POINT_REL;
     }
 }

@@ -141,6 +141,12 @@ public class DrawContext : IDisposable
                 return new DrawableRectangleOutlined(rectangleCommand);
             }
 
+            case LineSetAbsoluteCommand:
+            case LineSetRelativeCommand:
+            {
+                return new DrawableLineSet((LineCommand)command);
+            }
+
             case LineCommand lineCommand:
             {
                 return new DrawableLine(lineCommand);
@@ -161,11 +167,10 @@ public class DrawContext : IDisposable
                 return new DrawableShiftInCommand(shiftInCommand);
             }
 
-            case PointSetAbsoluteCommand:
-            case PointSetRelativeCommand:
+            case PointCommand pointCommand:
             {
                 // NOOP
-                return null;
+                return new DrawablePoint(pointCommand);
             }
 
             default:

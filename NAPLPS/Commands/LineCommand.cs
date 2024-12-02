@@ -6,9 +6,12 @@ namespace NAPLPS.Commands;
 
 public abstract class LineCommand : GeometricDrawingCommandBase
 {
+    public List<Vector3> RawVertices { get; internal set; }
     public LineCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var verticies = ProcessVertices(operands);
+
+        RawVertices = verticies;
 
         if (verticies.Count == 0 || operands.Count == 0)
         {
@@ -17,13 +20,13 @@ public abstract class LineCommand : GeometricDrawingCommandBase
             return;
         }
 
-        if (opcode == LINE_SET_ABS || opcode == LINE_SET_REL)
+        if (opcode == LINE_SET_REL)
         {
-            SetPen(verticies.First());
-
-            foreach (var vert in verticies.Skip(1))
+            for (int i = 0; i < verticies.Count; ++i)
             {
-                if (opcode == LINE_SET_ABS)
+                var vert = verticies[i];
+
+                if (i % 2 == 0)
                 {
                     SetPen(vert);
                 }
@@ -31,6 +34,13 @@ public abstract class LineCommand : GeometricDrawingCommandBase
                 {
                     MovePen(vert);
                 }
+            }
+        }
+        else if (opcode == LINE_SET_ABS)
+        {
+            foreach (var vert in verticies)
+            {
+                SetPen(vert);
             }
         }
         else
