@@ -77,7 +77,7 @@ public class NaplpsState
 
     [Category("Drawing")]
     [ReadOnly(true)]
-    public Point LogicalPel { get; set; } = new(1, 1);
+    public Vector2 LogicalPel { get; set; } = new(0f, 0f);
 
     [Category("Drawing")]
     [ReadOnly(true)]

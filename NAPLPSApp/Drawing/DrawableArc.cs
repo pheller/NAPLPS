@@ -23,7 +23,7 @@ public class DrawableArc : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
     {
-        var (brush, pen) = GetBrushAndPenFromFillableCommand();
+        var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
 
         var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
         var midPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.IntermediatePointDisplacement.X, _command.IntermediatePointDisplacement.Y);

@@ -11,6 +11,7 @@ using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using SolidBrush = SixLabors.ImageSharp.Drawing.Processing.SolidBrush;
 using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
+using Size = System.Drawing.Size;
 
 namespace NAPLPSApp.Drawing;
 
@@ -26,7 +27,18 @@ public class Drawable
         _state = _baseCommand.State ?? new();
     }
 
-    internal (Brush, SolidPen) GetBrushAndPenFromFillableCommand()
+    public float GetPenWidth(Size size) {
+        var drawingCommand = (GeometricDrawingCommandBase)_baseCommand;
+        var logicalPel = drawingCommand.LogicalPel;
+
+        if (logicalPel.X == 0) {
+            return 1f;
+        }
+
+        return logicalPel.X * size.Width;
+    }
+
+    internal (Brush, SolidPen) GetBrushAndPenFromFillableCommand(Size size)
     {
         var fillableCommand = (FillableGeometricDrawingCommandBase)_baseCommand;
 
@@ -35,7 +47,7 @@ public class Drawable
         var brush = GetFillBrush(fgColor, bgColor);
 
         var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
-        var penWidth = _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X;
+        var penWidth = GetPenWidth(size);
         var pen = Pens.Solid(Color.FromRgba(penColor.R, penColor.G, penColor.B, penColor.A), penWidth);
 
         return (brush, pen);
