@@ -17,13 +17,13 @@ public abstract class LineCommand : GeometricDrawingCommandBase
             return;
         }
 
-        if (opcode == LINE_SET_ABS || opcode == LINE_SET_REL)
+        if (opcode == LINE_SET_REL)
         {
-            SetPen(verticies.First());
-
-            foreach (var vert in verticies.Skip(1))
+            for (int i = 0; i < verticies.Count; ++i)
             {
-                if (opcode == LINE_SET_ABS)
+                var vert = verticies[i];
+
+                if (i % 2 == 0)
                 {
                     SetPen(vert);
                 }
@@ -31,6 +31,13 @@ public abstract class LineCommand : GeometricDrawingCommandBase
                 {
                     MovePen(vert);
                 }
+            }
+        }
+        else if (opcode == LINE_SET_ABS)
+        {
+            foreach (var vert in verticies)
+            {
+                SetPen(vert);
             }
         }
         else
