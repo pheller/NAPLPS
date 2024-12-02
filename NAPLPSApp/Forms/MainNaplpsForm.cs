@@ -1,9 +1,8 @@
 // Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using NAPLPS;
-using NAPLPSApp.Drawing;
+using NAPLPS.Drawing;
 using System.Diagnostics;
-using System.Windows.Forms;
 
 namespace NAPLPSApp.Forms
 {
@@ -47,13 +46,14 @@ namespace NAPLPSApp.Forms
             {
                 var item = new ToolStripMenuItem(resolution);
 
-                item.Click += (sender, e) => { 
+                item.Click += (sender, e) =>
+                {
                     canvasSize = resolution;
                     foreach (ToolStripMenuItem menuItem in iconMenuItemSizes.DropDownItems) { menuItem.Checked = false; }
                     item.Checked = true;
-                    if (LoadedFile != null) 
-                    { 
-                        FileRender(LoadedFile, canvasSize.StringSize()); 
+                    if (LoadedFile != null)
+                    {
+                        FileRender(LoadedFile, canvasSize.StringSize());
                     }
                     else
                     {
@@ -88,7 +88,8 @@ namespace NAPLPSApp.Forms
                 var name = baudrateNames[idx++];
                 var item = new ToolStripMenuItem(name) { Tag = baudrate };
 
-                item.Click += (sender, e) => {
+                item.Click += (sender, e) =>
+                {
                     baudRate = baudrate;
                     foreach (ToolStripMenuItem menuItem in iconMenuItemSpeedControl.DropDownItems) { menuItem.Checked = false; }
                     item.Checked = true;
@@ -190,19 +191,23 @@ namespace NAPLPSApp.Forms
                 ctxRenderCancellationToken = null;
             }
 
-            ctx = new DrawContext(file, size);
+            ctx = new DrawContext(file, size.ToISSize());
+
             ctx.OnImageUpdated += () =>
             {
                 if (pictureBox.InvokeRequired)
                 {
-                    pictureBox.Invoke((MethodInvoker)(() => {
+                    pictureBox.Invoke((MethodInvoker)(() =>
+                    {
                         pictureBox.Image = ctx.ToImage();
+
                         toolStripStatusLabelFrame.Text = $"Frame: {ctx.CurrentIndex}";
                     }));
                 }
                 else
                 {
                     pictureBox.Image = ctx.ToImage();
+
                     toolStripStatusLabelFrame.Text = $"Frame: {ctx.CurrentIndex}";
                 }
             };
@@ -210,6 +215,11 @@ namespace NAPLPSApp.Forms
             if (shouldAnimate)
             {
                 ctxRenderCancellationToken = new CancellationTokenSource();
+
+                if (LoadedFile == null)
+                {
+                    return;
+                }
 
                 _ = Task.Run(async () =>
                 {
@@ -236,9 +246,9 @@ namespace NAPLPSApp.Forms
             }
         }
 
-        private void FileClose(object s = null, EventArgs e = null)
+        private void FileClose(object? s = null, EventArgs? e = null)
         {
-            if (ctxRenderCancellationToken!= null)
+            if (ctxRenderCancellationToken != null)
             {
                 ctxRenderCancellationToken.Cancel();
             }
@@ -250,7 +260,7 @@ namespace NAPLPSApp.Forms
             LoadedFilePath = string.Empty;
 
             pictureBox.Image = null;
-            
+
             ctx?.Dispose();
 
             sequenceForm?.Dispose();

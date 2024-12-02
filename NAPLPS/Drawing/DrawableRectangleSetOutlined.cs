@@ -1,34 +1,27 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
-using Color = SixLabors.ImageSharp.Color;
 using PointF = SixLabors.ImageSharp.PointF;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Rectangle = SixLabors.ImageSharp.Rectangle;
 
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
-public class DrawableRectangleOutlined : IDrawable
+public class DrawableRectangleSetOutlined : IDrawable
 {
-    private readonly RectangleOutlinedCommand _command;
+    private readonly RectangleSetOutlinedCommand _command;
 
-    public DrawableRectangleOutlined(RectangleOutlinedCommand command)
+    public DrawableRectangleSetOutlined(RectangleSetOutlinedCommand command)
     {
         _command = command;
     }
 
-    public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
+    public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
         var polygonPoints = new List<PointF>();
 
-        var startPointF = _command.Points.FirstOrDefault();
-
-        var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, startPointF.X, startPointF.Y);
+        var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
 
         var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
 
@@ -36,7 +29,7 @@ public class DrawableRectangleOutlined : IDrawable
 
         var rect = new Rectangle(startPoint.X, startPoint.Y, dimensions.X, dimensions.Y);
 
-        var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
+        var pen = Pens.Solid(fgcolor.ToISColor(), 1f);
 
         image.Mutate(x => x.Draw(pen, rect));
     }

@@ -1,13 +1,6 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 public class DrawContext : IDisposable
 {
@@ -17,7 +10,7 @@ public class DrawContext : IDisposable
 
     public NaplpsFormat NAPLPS { get; }
 
-    public System.Drawing.Size Size { get; }
+    public Size Size { get; }
 
     public Image<Rgba32> Image { get; }
 
@@ -27,7 +20,7 @@ public class DrawContext : IDisposable
 
     public uint TotalFrames;
 
-    public DrawContext(NaplpsFormat naplps, System.Drawing.Size size)
+    public DrawContext(NaplpsFormat naplps, Size size)
     {
         NAPLPS = naplps ?? throw new ArgumentNullException(nameof(naplps));
         Size = size;
@@ -90,25 +83,10 @@ public class DrawContext : IDisposable
         CurrentIndex = TotalFrames;
     }
 
-#if NET8_0_WINDOWS
-    /// <summary>Converts the NAPLPS final image to a System.Drawing.Image</summary>
-    /// <returns>A hopefully well drawn NAPLPS image in a System.Drawing.Image format</returns>
-    public System.Drawing.Image ToImage()
-    {
-        memoryStream.SetLength(0);
-
-        Image.Save(memoryStream, PngFormat.Instance);
-
-        var image = System.Drawing.Image.FromStream(memoryStream);
-
-        return image;
-    }
-#endif
-
     public void SaveAsPng(string filepath)
     {
         // TODO: Reset the image??
-        this.Render();
+        Render();
         Image.SaveAsPng($"{filepath}.png");
     }
 

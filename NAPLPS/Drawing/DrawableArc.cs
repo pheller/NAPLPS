@@ -1,16 +1,11 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using PointF = SixLabors.ImageSharp.PointF;
 using SizeF = SixLabors.ImageSharp.SizeF;
 
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 public class DrawableArc : Drawable, IDrawable
 {
@@ -21,18 +16,18 @@ public class DrawableArc : Drawable, IDrawable
         _command = command;
     }
 
-    public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
+    public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
 
-        var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
-        var midPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.IntermediatePointDisplacement.X, _command.IntermediatePointDisplacement.Y);
-        var endPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.EndPointDisplacement.X, _command.EndPointDisplacement.Y);
+        var startPoint = ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
+        var midPoint = ConvertNormalizedToPoint(size, _command.IntermediatePointDisplacement.X, _command.IntermediatePointDisplacement.Y);
+        var endPoint = ConvertNormalizedToPoint(size, _command.EndPointDisplacement.X, _command.EndPointDisplacement.Y);
 
         if (startPoint == endPoint)
         {
             // circle
-            var circleDiameter = NaplpsUtils.CalculateDistance(midPoint, startPoint);
+            var circleDiameter = CalculateDistance(midPoint, startPoint);
             if (circleDiameter == 0)
             {
                 // TODO: Fix!
@@ -45,7 +40,8 @@ public class DrawableArc : Drawable, IDrawable
 
             var circle = new EllipsePolygon(new PointF(centerX, centerY), circleRadius);
 
-            image.Mutate(x => {
+            image.Mutate(x =>
+            {
                 if (_command.ShouldFill)
                 {
                     x.Fill(brush, circle);
@@ -62,7 +58,7 @@ public class DrawableArc : Drawable, IDrawable
             // Calculate circle properties that approximately fits the points
             var center = CalculateCircleCenter(startPoint, midPoint, endPoint);
 
-            var circleDiameter = (float)NaplpsUtils.CalculateDistance(midPoint, startPoint);
+            var circleDiameter = (float)CalculateDistance(midPoint, startPoint);
             var circleRadius = circleDiameter / 2;
 
             // Create size based on radius
@@ -73,7 +69,7 @@ public class DrawableArc : Drawable, IDrawable
             float endAngle = AngleFromCenter(center, endPoint);
 
             // Sweep direction and large arc
-            bool sweepDirection = (endAngle < startAngle);
+            bool sweepDirection = endAngle < startAngle;
             float angleDifference = endAngle - startAngle;
             if (angleDifference < 0) angleDifference += 360;
             bool isLargeArc = angleDifference > 180;
@@ -81,7 +77,7 @@ public class DrawableArc : Drawable, IDrawable
             // Assuming rotationAngle is 0 for simplicity, more complex for ellipse
             float rotationAngle = 0;
 
-            var spline = new ArcLineSegment(new (startPoint.X, startPoint.Y), new(endPoint.X, endPoint.Y), circleSize, rotationAngle, isLargeArc, sweepDirection);
+            var spline = new ArcLineSegment(new(startPoint.X, startPoint.Y), new(endPoint.X, endPoint.Y), circleSize, rotationAngle, isLargeArc, sweepDirection);
 
             image.Mutate(x => x.DrawPolygon(pen, spline.Flatten().ToArray()));
         }
@@ -144,12 +140,12 @@ public class DrawableArc : Drawable, IDrawable
         //image.Mutate(x => x.Draw(pen, lines));
     }
 
-    private static float AngleFromCenter(PointF center, System.Drawing.Point point)
+    private static float AngleFromCenter(PointF center, Point point)
     {
         return (float)(Math.Atan2(point.Y - center.Y, point.X - center.X) * (180 / Math.PI));
     }
 
-    private static PointF CalculateCircleCenter(System.Drawing.Point A, System.Drawing.Point B, System.Drawing.Point C)
+    private static PointF CalculateCircleCenter(Point A, Point B, Point C)
     {
         // Similar calculation as previously, assuming non-collinear points
         int D = 2 * (A.X * (B.Y - C.Y) + B.X * (C.Y - A.Y) + C.X * (A.Y - B.Y));

@@ -1,29 +1,21 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using System.Net;
-using NAPLPS;
-using NAPLPS.Commands;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using Color = SixLabors.ImageSharp.Color;
-using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using PointF = SixLabors.ImageSharp.PointF;
 
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 public class DrawablePoint : Drawable, IDrawable
 {
     private readonly PointCommand _command;
 
-    public DrawablePoint(PointCommand command): base(command)
+    public DrawablePoint(PointCommand command) : base(command)
     {
         _command = command;
     }
 
-    public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
+    public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
         if (!_command.IsVisible)
         {

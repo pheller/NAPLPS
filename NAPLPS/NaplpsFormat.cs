@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using System.Diagnostics;
-using System.Reflection.Emit;
 
 namespace NAPLPS;
 

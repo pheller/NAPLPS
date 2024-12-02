@@ -1,10 +1,6 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 /// <summary>Used on every drawable shape or command.</summary>
 public interface IDrawable
@@ -13,5 +9,5 @@ public interface IDrawable
     /// <param name="image"></param>
     /// <param name="state"></param>
     /// <param name="size"></param>
-    void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size);
+    void Draw(Image<Rgba32> image, NaplpsState state, Size size);
 }

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
 using NAPLPS;
-using NAPLPSApp.Drawing;
+using NAPLPS.Drawing;
 
 namespace NAPLPSApp;
 
@@ -19,7 +19,7 @@ public static class FileFunctions
             return false;
         }
 
-        using var drawCtx = new DrawContext(naplpsFile, new System.Drawing.Size(1024, 768));
+        using var drawCtx = new DrawContext(naplpsFile, new SixLabors.ImageSharp.Size(1024, 768));
 
         drawCtx.SaveAsPng(name);
 

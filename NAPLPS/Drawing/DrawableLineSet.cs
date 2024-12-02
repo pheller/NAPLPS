@@ -1,27 +1,22 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using Color = SixLabors.ImageSharp.Color;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using PointF = SixLabors.ImageSharp.PointF;
 
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 public class DrawableLineSet : Drawable, IDrawable
 {
     private readonly LineCommand _command;
 
-    public DrawableLineSet(LineCommand command): base(command)
+    public DrawableLineSet(LineCommand command) : base(command)
     {
         _command = command;
     }
 
-    public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
+    public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
         var points = new List<PointF>();
 
@@ -40,9 +35,9 @@ public class DrawableLineSet : Drawable, IDrawable
         float penWidth = GetPenWidth(size);
 
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var pen = Pens.Solid(Color.FromRgba(color.R, color.G, color.B, color.A), penWidth);
+        var pen = Pens.Solid(color.ToISColor(), penWidth);
 
-        image.Mutate(x => 
+        image.Mutate(x =>
         {
             for (var i = 0; i < points.Count - 1; i += 2)
             {

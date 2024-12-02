@@ -1,19 +1,14 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
-
 using SixLabors.ImageSharp.Drawing.Processing;
 
 using Brush = SixLabors.ImageSharp.Drawing.Processing.Brush;
-using Color = SixLabors.ImageSharp.Color;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using SolidBrush = SixLabors.ImageSharp.Drawing.Processing.SolidBrush;
 using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
-using Size = System.Drawing.Size;
 
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 /// <summary>Used on every drawable shape or command.</summary>
 public class Drawable
@@ -27,11 +22,14 @@ public class Drawable
         _state = _baseCommand.State ?? new();
     }
 
-    public float GetPenWidth(Size size) {
+    public float GetPenWidth(Size size)
+    {
         var drawingCommand = (GeometricDrawingCommandBase)_baseCommand;
+
         var logicalPel = drawingCommand.LogicalPel;
 
-        if (logicalPel.X == 0) {
+        if (logicalPel.X == 0)
+        {
             return 1f;
         }
 
@@ -48,22 +46,23 @@ public class Drawable
 
         var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
         var penWidth = GetPenWidth(size);
-        var pen = Pens.Solid(Color.FromRgba(penColor.R, penColor.G, penColor.B, penColor.A), penWidth);
+        var pen = Pens.Solid(penColor.ToISColor(), penWidth);
 
         return (brush, pen);
     }
 
-    internal Brush GetFillBrush(System.Drawing.Color fgColor, System.Drawing.Color bgColor)
+    internal Brush GetFillBrush(Color fgColor, Color bgColor)
     {
         var fillableCommand = (GeometricDrawingCommandBase)_baseCommand;
         var texturePattern = fillableCommand.Texture.TexturePattern;
 
-        Color fgColorImageSharp = Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A);
-        Color bgColorImageSharp = Color.FromRgba(bgColor.R, bgColor.G, bgColor.B, bgColor.A);
+        var fgColorImageSharp = fgColor.ToISColor();
+        var bgColorImageSharp = bgColor.ToISColor();
 
         switch (texturePattern)
         {
             case TexturePatterns.VerticalHatching:
+            {
                 return new PatternBrush(
                     fgColorImageSharp,
                     bgColorImageSharp,
@@ -71,8 +70,10 @@ public class Drawable
                         {false, true}
                     }
                 );
+            }
 
             case TexturePatterns.HorizontalHatching:
+            {
                 return new PatternBrush(
                     fgColorImageSharp,
                     bgColorImageSharp,
@@ -81,8 +82,10 @@ public class Drawable
                         {true}
                     }
                 );
+            }
 
             case TexturePatterns.CrossHatching:
+            {
                 return new PatternBrush(
                     fgColorImageSharp,
                     bgColorImageSharp,
@@ -91,9 +94,12 @@ public class Drawable
                         {true, false}
                     }
                 );
+            }
 
             default:
+            {
                 return Brushes.Solid(fgColorImageSharp);
+            }
         }
     }
 
@@ -103,8 +109,8 @@ public class Drawable
         var fgcolor = _state.ColorMode == 2 ? _state.Background.ToColor() : _state.ColorMap[_state.ColorMapBackground].ToColor();
 
         return (
-            Brushes.Solid(Color.FromRgba(bgcolor.R, bgcolor.G, bgcolor.B, bgcolor.A)),
-            Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X)
+            Brushes.Solid(bgcolor.ToISColor()),
+            Pens.Solid(fgcolor.ToISColor(), _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X)
         );
     }
 }

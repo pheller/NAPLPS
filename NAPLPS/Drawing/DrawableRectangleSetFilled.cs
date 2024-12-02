@@ -1,21 +1,10 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
-using Color = SixLabors.ImageSharp.Color;
 using PointF = SixLabors.ImageSharp.PointF;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
-using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
-using SolidBrush = SixLabors.ImageSharp.Drawing.Processing.SolidBrush;
-using Rectangle = SixLabors.ImageSharp.Rectangle;
-using SixLabors.ImageSharp.Drawing;
-using System.Numerics;
 
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 public class DrawableRectangleSetFilled : Drawable, IDrawable
 {
@@ -26,7 +15,7 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
         _command = command;
     }
 
-    public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
+    public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
         var polygonPoints = new List<PointF>();
 
@@ -42,7 +31,8 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
         var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
 
-        image.Mutate(x => {
+        image.Mutate(x =>
+        {
             if (_command.ShouldFill)
             {
                 x.Fill(brush, rect);

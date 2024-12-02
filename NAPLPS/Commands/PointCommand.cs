@@ -16,7 +16,8 @@ public abstract class PointCommand : FillableGeometricDrawingCommandBase
         if (opcode == POINT_ABS || opcode == POINT_SET_ABS)
         {
             SetPen(Point);
-        } else
+        }
+        else
         {
             SetPen(state.Pen + Point);
         }

@@ -1,10 +1,5 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
-using Color = SixLabors.ImageSharp.Color;
 using PointF = SixLabors.ImageSharp.PointF;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -12,7 +7,7 @@ using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using Rectangle = SixLabors.ImageSharp.Rectangle;
 
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 public class DrawableRectangleFilled : IDrawable
 {
@@ -23,7 +18,7 @@ public class DrawableRectangleFilled : IDrawable
         _command = command;
     }
 
-    public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
+    public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
         var polygonPoints = new List<PointF>();
 
@@ -39,8 +34,8 @@ public class DrawableRectangleFilled : IDrawable
         // var rect = Rectangle.FromLTRB(startPoint.X, startPoint.Y + dimensions.Y,  )
         var rect = new Rectangle(startPoint.X, startPoint.Y, dimensions.X, dimensions.Y);
 
-        var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
-        var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));
+        var pen = Pens.Solid(fgcolor.ToISColor(), 1f);
+        var brush = Brushes.Solid(fgcolor.ToISColor());
 
         image.Mutate(x => x.Fill(brush, rect).Draw(pen, rect));
     }

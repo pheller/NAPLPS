@@ -1,19 +1,13 @@
 ﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS;
-using NAPLPS.Commands;
 using SixLabors.Fonts;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System.Reflection;
-using Point = SixLabors.ImageSharp.Point;
-using Color = SixLabors.ImageSharp.Color;
 using FontFamily = SixLabors.Fonts.FontFamily;
 using PointF = SixLabors.ImageSharp.PointF;
 
-namespace NAPLPSApp.Drawing;
+namespace NAPLPS.Drawing;
 
 public class DrawableShiftInCommand : Drawable, IDrawable
 {
@@ -24,7 +18,7 @@ public class DrawableShiftInCommand : Drawable, IDrawable
         _command = command;
     }
 
-    public void Draw(Image<Rgba32> image, NaplpsState state, System.Drawing.Size size)
+    public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
         var points = new List<PointF>();
 
@@ -34,28 +28,28 @@ public class DrawableShiftInCommand : Drawable, IDrawable
 
         var charSize = NaplpsUtils.ConvertNormalizedToPoint(size, state.TextFieldSize.X, state.TextFieldSize.Y);
 
-        string text = _command.Text;
-        // float TextPadding = 0f;
-        // string TextFont = "Consolas";
+        var text = _command.Text;
+
         float TextFontSize = charSize.X;
 
         FontFamily fontFamily;
 
         FontCollection fontCollection = new();
 
-        string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
-        string fontPath = Path.Combine(appPath, "Fonts", "PRM5X10.TTF");
+        var appPath = IOPath.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
+
+        var fontPath = IOPath.Combine(appPath, "Fonts", "PRM5X10.TTF");
 
         fontFamily = fontCollection.Add(fontPath);
 
-        var font = fontFamily.CreateFont(TextFontSize, SixLabors.Fonts.FontStyle.Regular);
+        var font = fontFamily.CreateFont(TextFontSize, FontStyle.Regular);
 
         var options = new TextOptions(font)
         {
             Dpi = 92,
             KerningMode = KerningMode.Auto,
             VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = SixLabors.Fonts.HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
             TextAlignment = TextAlignment.Center,
             HintingMode = HintingMode.None,
         };
@@ -66,7 +60,7 @@ public class DrawableShiftInCommand : Drawable, IDrawable
 
         image.Mutate(x =>
         {
-            x.DrawText(drawingOptions, text, font, Color.FromRgba(fgColor.R, fgColor.G, fgColor.B, fgColor.A), new PointF(point.X, point.Y));
+            x.DrawText(drawingOptions, text, font, fgColor.ToISColor(), new PointF(point.X, point.Y));
         });
     }
 }

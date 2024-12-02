@@ -43,6 +43,11 @@ public static class Extensions
 
     // Color Extensions
 
+    public static ISColor ToISColor(this Color color)
+    {
+        return ISColor.FromRgba(color.R, color.G, color.B, color.A);
+    }
+
     public static Color From3BitGRB(this Color _, int red3Bit, int green3Bit, int blue3Bit)
     {
         // Ensure the input values are within the 3-bit range
