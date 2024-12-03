@@ -25,12 +25,13 @@ public class DrawableShiftInCommand : Drawable, IDrawable
         var field = state.Field;
         var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, field.Origin.X, field.Origin.Y, field.Dimensions.X, field.Dimensions.Y);
         var point = new Point(x1, y1);
+        var pointF = new PointF(point.X, point.Y);
 
-        var charSize = NaplpsUtils.ConvertNormalizedToPoint(size, state.TextFieldSize.X, state.TextFieldSize.Y);
+        var (charSizeX, charSizeY) = NaplpsUtils.ConvertNormalizedToScreenScale(size, state.TextFieldSize.X, state.TextFieldSize.Y);
 
         var text = _command.Text;
 
-        float TextFontSize = charSize.X;
+        float TextFontSize = charSizeX;
 
         FontFamily fontFamily;
 
@@ -56,11 +57,15 @@ public class DrawableShiftInCommand : Drawable, IDrawable
 
         var (fgColor, bgColor) = _command.GetColors(state);
 
-        var drawingOptions = new DrawingOptions();
+        var drawingOptions = new DrawingOptions
+        {
+            Transform = Matrix3x2.CreateScale(1, charSizeY / charSizeX, pointF)
+        };
 
         image.Mutate(x =>
         {
-            x.DrawText(drawingOptions, text, font, fgColor.ToISColor(), new PointF(point.X, point.Y));
+            x.DrawText(drawingOptions, text, font, fgColor.ToISColor(), pointF);
+            
         });
     }
 }
