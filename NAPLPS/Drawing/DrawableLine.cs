@@ -36,7 +36,7 @@ public class DrawableLine : Drawable, IDrawable
         var lines = new SixLabors.ImageSharp.Drawing.Path(points.ToArray());
 
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var pen = Pens.Solid(color.ToISColor(), penWidth);
+        var pen = GetTexturedPen(color.ToISColor(), penWidth);
 
         image.Mutate(x => x.Draw(pen, lines));
     }

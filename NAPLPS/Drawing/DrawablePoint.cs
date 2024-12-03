@@ -38,7 +38,9 @@ public class DrawablePoint : Drawable, IDrawable
 
 
         var logicalPel = _command.LogicalPel;
-        var (width, height) = NaplpsUtils.ConvertNormalizedToScreenScale(size, logicalPel.X, logicalPel.Y);
+        var scaledLogicalPel = GetScaledLogicalPel(size);
+        var width = scaledLogicalPel.X;
+        var height = scaledLogicalPel.Y;
 
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
 
