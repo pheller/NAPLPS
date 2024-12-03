@@ -26,11 +26,9 @@ public class Drawable
     {
         var drawingCommand = (GeometricDrawingCommandBase)_baseCommand;
         var logicalPel = drawingCommand.LogicalPel;
+        var (pelX, pelY) = ConvertNormalizedToScreenScale(size, logicalPel.X, logicalPel.Y);
 
-        return new System.Drawing.Point(
-            (int)(Math.Abs(logicalPel.X * size.Width)) + 1,
-            (int)(Math.Abs(logicalPel.Y * size.Height)) + 1
-        );
+        return new System.Drawing.Point(pelX, pelY);
     }
 
     public float GetPenWidth(Size size)
