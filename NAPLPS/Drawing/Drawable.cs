@@ -84,10 +84,16 @@ public class Drawable
         var fgColorImageSharp = fgColor.ToISColor();
         var bgColorImageSharp = bgColor.ToISColor();
 
+        if (fillableCommand.ColorMode != 2)
+        {
+            bgColorImageSharp = ISColor.Transparent;
+        }
+
         var scaledLogicalPel = GetScaledLogicalPel(size);
 
         switch (texturePattern)
         {
+            case TexturePatterns.MaskA:
             case TexturePatterns.VerticalHatching:
             {
                 var pattern = new bool[1, scaledLogicalPel.X * 2];
@@ -104,6 +110,7 @@ public class Drawable
                 );
             }
 
+            case TexturePatterns.MaskB:
             case TexturePatterns.HorizontalHatching:
             {
                 var pattern = new bool[scaledLogicalPel.X * 2, 1];
@@ -120,16 +127,26 @@ public class Drawable
                 );
             }
 
+            case TexturePatterns.MaskC:
             case TexturePatterns.CrossHatching:
             {
-                return new PatternBrush(
-                    fgColorImageSharp,
-                    bgColorImageSharp,
-                    new bool[,] {
-                        {false, true},
-                        {false, false}
+                    var pelX = scaledLogicalPel.X;
+                    var length = pelX * 2;
+                    var pattern = new bool[length, length];
+
+                    for (var y = 0; y < length; ++y)
+                    {
+                        for (var x = 0; x < length; ++x)
+                        {
+                            pattern[y, x] = y >= pelX || x < pelX;
+                        }
                     }
-                );
+
+                    return new PatternBrush(
+                        fgColorImageSharp,
+                        bgColorImageSharp,
+                        pattern
+                    );
             }
 
             default:
