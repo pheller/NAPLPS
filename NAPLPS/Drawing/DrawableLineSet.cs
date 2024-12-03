@@ -35,7 +35,7 @@ public class DrawableLineSet : Drawable, IDrawable
         float penWidth = GetPenWidth(size);
 
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var pen = Pens.Solid(color.ToISColor(), penWidth);
+        var pen = GetTexturedPen(color.ToISColor(), penWidth);
 
         image.Mutate(x =>
         {

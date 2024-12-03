@@ -22,36 +22,60 @@ public class Drawable
         _state = _baseCommand.State ?? new();
     }
 
-    public float GetPenWidth(Size size)
+    public System.Drawing.Point GetScaledLogicalPel(Size size)
     {
         var drawingCommand = (GeometricDrawingCommandBase)_baseCommand;
-
         var logicalPel = drawingCommand.LogicalPel;
 
-        if (logicalPel.X == 0)
-        {
-            return 1f;
-        }
-
-        return logicalPel.X * size.Width;
+        return new System.Drawing.Point(
+            (int)(Math.Abs(logicalPel.X * size.Width)) + 1,
+            (int)(Math.Abs(logicalPel.Y * size.Height)) + 1
+        );
     }
 
-    internal (Brush, SolidPen) GetBrushAndPenFromFillableCommand(Size size)
+    public float GetPenWidth(Size size)
+    {
+        var scaledLogicalPel = GetScaledLogicalPel(size);
+        return Math.Max(scaledLogicalPel.X, scaledLogicalPel.Y);
+    }
+
+    internal (Brush, Pen) GetBrushAndPenFromFillableCommand(Size size)
     {
         var fillableCommand = (FillableGeometricDrawingCommandBase)_baseCommand;
 
         var (fgColor, bgColor) = fillableCommand.GetColors(_state);
 
-        var brush = GetFillBrush(fgColor, bgColor);
+        var brush = GetFillBrush(size, fgColor, bgColor);
 
         var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
         var penWidth = GetPenWidth(size);
-        var pen = Pens.Solid(penColor.ToISColor(), penWidth);
+        var pen = GetTexturedPen(penColor.ToISColor(), penWidth);
 
         return (brush, pen);
     }
 
-    internal Brush GetFillBrush(Color fgColor, Color bgColor)
+    internal Pen GetTexturedPen(SixLabors.ImageSharp.Color color, float penWidth)
+    {
+        var fillableCommand = (GeometricDrawingCommandBase)_baseCommand;
+        var lineTexture = fillableCommand.Texture.LineTexture;
+
+        switch (lineTexture)
+        {
+            case NaplpsTexture.LineTextures.Dotted:
+                return Pens.Dot(color, penWidth);
+
+            case NaplpsTexture.LineTextures.DottedDashed:
+                return Pens.DashDot(color, penWidth);
+
+            case NaplpsTexture.LineTextures.Dashed:
+                return Pens.Dash(color, penWidth);
+
+            default:
+                return Pens.Solid(color, penWidth);
+        }
+    }
+
+    internal Brush GetFillBrush(Size size, Color fgColor, Color bgColor)
     {
         var fillableCommand = (GeometricDrawingCommandBase)_baseCommand;
         var texturePattern = fillableCommand.Texture.TexturePattern;
@@ -59,28 +83,39 @@ public class Drawable
         var fgColorImageSharp = fgColor.ToISColor();
         var bgColorImageSharp = bgColor.ToISColor();
 
+        var scaledLogicalPel = GetScaledLogicalPel(size);
+
         switch (texturePattern)
         {
             case TexturePatterns.VerticalHatching:
             {
+                var pattern = new bool[1, scaledLogicalPel.X * 2];
+
+                for (var i = 0; i < pattern.Length; ++i)
+                {
+                    pattern[0, i] = i >= pattern.Length / 2;
+                }
+
                 return new PatternBrush(
                     fgColorImageSharp,
                     bgColorImageSharp,
-                    new bool[,] {
-                        {false, true}
-                    }
+                    pattern
                 );
             }
 
             case TexturePatterns.HorizontalHatching:
             {
+                var pattern = new bool[scaledLogicalPel.X * 2, 1];
+
+                for (var i = 0; i < pattern.Length; ++i)
+                {
+                    pattern[i, 0] = i >= pattern.Length / 2;
+                }
+
                 return new PatternBrush(
                     fgColorImageSharp,
                     bgColorImageSharp,
-                    new bool[,] {
-                        {false},
-                        {true}
-                    }
+                    pattern
                 );
             }
 
@@ -91,7 +126,7 @@ public class Drawable
                     bgColorImageSharp,
                     new bool[,] {
                         {false, true},
-                        {true, false}
+                        {false, false}
                     }
                 );
             }
