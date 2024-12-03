@@ -28,7 +28,10 @@ public class Drawable
         var logicalPel = drawingCommand.LogicalPel;
         var (pelX, pelY) = ConvertNormalizedToScreenScale(size, logicalPel.X, logicalPel.Y);
 
-        return new System.Drawing.Point(pelX, pelY);
+        return new System.Drawing.Point(
+            Math.Max(1, Math.Abs(pelX)),
+            Math.Max(1, Math.Abs(pelY))
+        );
     }
 
     public float GetPenWidth(Size size)
