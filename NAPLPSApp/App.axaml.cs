@@ -13,6 +13,8 @@ public partial class App : Application
 
     public override void Initialize()
     {
+        DataContext = new AppViewModel();
+        
         AvaloniaXamlLoader.Load(this);
     }
 
