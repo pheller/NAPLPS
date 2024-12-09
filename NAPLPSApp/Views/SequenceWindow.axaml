@@ -1,0 +1,162 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:i="https://github.com/projektanker/icons.avalonia"
+		xmlns:c="clr-namespace:NAPLPSApp.Converters"
+		xmlns:b="clr-namespace:Avalonia.Xaml.Interactions.Core;assembly=Avalonia.Xaml.Interactions"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:sp="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
+		xmlns:vm="using:NAPLPSApp.ViewModels"
+		xmlns:pgc="clr-namespace:Avalonia.PropertyGrid.Controls;assembly=Avalonia.PropertyGrid"
+		mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+		x:Class="NAPLPSApp.Views.SequenceWindow"
+		x:DataType="vm:SequenceWindowViewModel"
+		Title="Sequence View"
+		Icon="/Assets/naplps.ico"
+		Width="1500" Height="1000">
+	<Window.Resources>
+		<c:EqualityConverter x:Key="EqualityConverter" />
+		<c:InequalityConverter x:Key="InequalityConverter" />
+	</Window.Resources>
+
+	<Grid RowDefinitions="Auto,*" ColumnDefinitions="*,Auto">
+		<Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" BorderBrush="{DynamicResource SystemControlForegroundBaseHighBrush}" BorderThickness="0,0,0,1">
+			<StackPanel Orientation="Horizontal" Margin="5">
+				<Button i:Attached.Icon="fa-solid fa-arrow-left" VerticalAlignment="Center" Command="{Binding FramePreviousCommand}"/>
+				<Button i:Attached.Icon="fa-solid fa-arrow-right" VerticalAlignment="Center" Command="{Binding FrameNextCommand}"/>
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-film" Margin="0,0,5,0" />
+				<TextBlock Text="{Binding CurrentFrame}" VerticalAlignment="Center"/>
+				<TextBlock Text="/" VerticalAlignment="Center"/>
+				<TextBlock Text="{Binding TotalFrames}" VerticalAlignment="Center"/>
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<TextBlock Text="7-bit" VerticalAlignment="Center"/>
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<Button i:Attached.Icon="fa-solid fa-plus" VerticalAlignment="Center"/>
+				<Button i:Attached.Icon="fa-solid fa-pencil" VerticalAlignment="Center"/>
+				<Button i:Attached.Icon="fa-solid fa-trash" VerticalAlignment="Center"/>
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<Button i:Attached.Icon="fa-solid fa-rectangle-list" Command="{Binding ToggleDetailPaneCommand}" IsVisible="{Binding IsDetailPaneVisible}" VerticalAlignment="Center"/>
+				<Button i:Attached.Icon="fa-regular fa-rectangle-list" Command="{Binding ToggleDetailPaneCommand}" IsVisible="{Binding !IsDetailPaneVisible}" VerticalAlignment="Center"/>
+			</StackPanel>
+		</Border>
+
+		<DataGrid Grid.Row="1" Grid.Column="0"
+				  ItemsSource="{Binding Commands}"
+				  SelectedIndex="{Binding SelectedIndex}"
+				  SelectedItem="{Binding SelectedCommand}"
+				  AutoGenerateColumns="False"
+				  IsReadOnly="True"
+				  SelectionMode="Extended">
+			<Interaction.Behaviors>
+				<EventTriggerBehavior EventName="SelectionChanged">
+					<InvokeCommandAction Command="{Binding SelectionChangedCommand}"/>
+				</EventTriggerBehavior>
+			</Interaction.Behaviors>
+			<DataGrid.Columns>
+				<DataGridTextColumn Header="Index" Binding="{Binding Index}">
+					<DataGridTextColumn.CellTheme>
+						<ControlTheme TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+							<Setter Property="FontFamily" Value="Consolas, Courier New, monospace"/>
+						</ControlTheme>
+					</DataGridTextColumn.CellTheme>
+				</DataGridTextColumn>
+				<DataGridTextColumn Binding="{Binding OpCode}" CanUserSort="False">
+					<DataGridTextColumn.CellTheme>
+						<ControlTheme TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+							<Setter Property="HorizontalContentAlignment" Value="Center" />
+							<Setter Property="FontFamily" Value="Consolas, Courier New, monospace"/>
+						</ControlTheme>
+					</DataGridTextColumn.CellTheme>
+				</DataGridTextColumn>
+				<DataGridTextColumn Header="Command" Binding="{Binding CommandType}" CanUserSort="False">
+					<DataGridTextColumn.CellTheme>
+						<ControlTheme TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+							<Setter Property="FontFamily" Value="Consolas, Courier New, monospace"/>
+						</ControlTheme>
+					</DataGridTextColumn.CellTheme>
+				</DataGridTextColumn>
+				<DataGridTextColumn Header="State" Binding="{Binding State}" CanUserSort="False">
+					<DataGridTextColumn.CellTheme>
+						<ControlTheme TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+							<Setter Property="FontFamily" Value="Consolas, Courier New, monospace"/>
+						</ControlTheme>
+					</DataGridTextColumn.CellTheme>
+				</DataGridTextColumn>
+			</DataGrid.Columns>
+		</DataGrid>
+
+		<Border Grid.Row="1" Grid.Column="1" Width="400" IsVisible="{Binding IsDetailPaneVisible}" Background="{DynamicResource SystemControlBackgroundBase}" BorderBrush="{DynamicResource SystemControlForegroundBaseHighBrush}" BorderThickness="1,0,0,0">
+			<Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*" ColumnDefinitions="*,Auto">
+				<TextBlock
+					FontSize="20"
+					FontFamily="Consolas, Courier New, monospace"
+					FontWeight="Bold"
+					Padding="5,0"
+					Text="{Binding CurrentSequence.Command}"/>
+
+				<TextBlock Grid.Row="1" Grid.Column="0" Padding="5,0">
+					<TextBlock Foreground="#999">Operand(s): </TextBlock>
+					<TextBlock
+						FontFamily="Consolas, Courier New, monospace"
+						FontWeight="Bold"
+						Text="{Binding CurrentSequence.Command.Operands.Count}"/>
+				</TextBlock>
+
+				<Border
+					Grid.Column="1"
+					Grid.Row="0"
+					Grid.RowSpan="2"
+					Background="{StaticResource SystemBaseLowColor}"
+					Margin="2"
+					Padding="5">
+					<TextBlock FontFamily="Consolas, Courier New, monospace" FontSize="19" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding CurrentSequence.Command.OpCode, StringFormat='0x{0:X}'}"/>
+				</Border>
+
+				<ScrollViewer
+						Grid.Row="2"
+						Grid.ColumnSpan="2"
+						MaxHeight="100"
+						Background="{StaticResource SystemBaseLowColor}"
+						IsVisible="{Binding OperandsDetails, Converter={StaticResource InequalityConverter}, ConverterParameter=''}">
+					<TextBlock Margin="2" Padding="3" FontFamily="Consolas, Courier New, monospace" TextWrapping="Wrap" Text="{Binding OperandsDetails}"/>
+				</ScrollViewer>
+
+				<Separator Grid.Row="3" Grid.ColumnSpan="2" Background="{DynamicResource SystemControlForegroundBaseHighBrush}" IsVisible="{Binding ExtraDetails, Converter={StaticResource InequalityConverter}, ConverterParameter=''}"/>
+
+				<ScrollViewer
+						Grid.Row="4"
+						Grid.ColumnSpan="2"
+						MaxHeight="100"
+						VerticalContentAlignment="Top"
+						Background="{StaticResource SystemBaseLowColor}"
+						IsVisible="{Binding ExtraDetails, Converter={StaticResource InequalityConverter}, ConverterParameter=''}">
+					<TextBlock Margin="2" Padding="3" FontFamily="Consolas, Courier New, monospace" Height="90" TextWrapping="Wrap" VerticalAlignment="Top" Text="{Binding ExtraDetails}"/>
+				</ScrollViewer>
+
+				<StackPanel Grid.Row="4" Grid.ColumnSpan="2" IsVisible="{Binding IsColorInfoVisible}">
+					<Border Width="50" Height="50" HorizontalAlignment="Right" Background="{Binding ColorForeground}">
+						<TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding ColorForegroundText}">FG</TextBlock>
+					</Border>
+					<Border Width="50" Height="50" HorizontalAlignment="Right" Background="{Binding ColorBackground}">
+						<TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding ColorBackgroundText}">BG</TextBlock>
+					</Border>
+				</StackPanel>
+
+				<Separator Grid.Row="5" Grid.ColumnSpan="2" Background="{DynamicResource SystemControlForegroundBaseHighBrush}" IsVisible="{Binding IsPlotviewVisible}"/>
+
+				<sp:AvaPlot Grid.Row="6" Grid.ColumnSpan="2" Height="200" MaxHeight="200" Name="VectorPlot" IsVisible="{Binding IsPlotviewVisible}"/>
+
+				<Separator Grid.Row="7" Grid.ColumnSpan="2" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<ScrollViewer Grid.Row="8" Grid.ColumnSpan="2">
+					<pgc:PropertyGrid VerticalAlignment="Top" DataContext="{Binding CurrentSequence.State}"></pgc:PropertyGrid>
+				</ScrollViewer>
+			</Grid>
+		</Border>
+	</Grid>
+</Window>

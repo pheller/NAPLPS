@@ -1,0 +1,133 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:NAPLPSApp.ViewModels"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:views="clr-namespace:NAPLPSApp.Views"
+		xmlns:i="https://github.com/projektanker/icons.avalonia"
+		xmlns:converters="clr-namespace:NAPLPSApp.Converters"
+		xmlns:Media="using:Avalonia.Media"
+		mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="768"
+		x:Class="NAPLPSApp.Views.MainWindow"
+		x:DataType="vm:MainWindowViewModel"
+		Icon="/Assets/naplps.ico"
+		Title="{Binding TitleBar}">
+	<Window.Resources>
+		<converters:EqualityConverter x:Key="EqualityConverter" />
+		<converters:InequalityConverter x:Key="InequalityConverter" />
+	</Window.Resources>
+
+	<Design.DataContext>
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
+
+	<DockPanel>
+		<Menu DockPanel.Dock="Top">
+			<MenuItem Header="_File">
+				<MenuItem Header="_New" Command="{Binding NewCommand}" i:MenuItem.Icon="fa-solid fa-file"/>
+				<Separator/>
+				<MenuItem Header="_Open" Command="{Binding OpenCommand}"  i:MenuItem.Icon="fa-solid fa-folder-open"/>
+				<MenuItem Header="_Save" Command="{Binding SaveCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-floppy-disk"/>
+				<MenuItem Header="_Close" Command="{Binding CloseCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-xmark"/>
+				<Separator/>
+				<MenuItem Header="_Export PNG" Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
+				<Separator/>
+				<MenuItem Header="_Quit" Command="{Binding QuitCommand}" i:MenuItem.Icon="fa-solid fa-door-open"/>
+			</MenuItem>
+			<MenuItem Header="_Render">
+				<MenuItem Header="_Re-render" Command="{Binding RerenderCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-recycle"/>
+				<Separator/>
+				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding IsAnimated}" i:MenuItem.Icon="fa-solid fa-check"/>
+				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding !IsAnimated}"/>
+				<MenuItem Header="_Speed" i:MenuItem.Icon="fa-solid fa-gauge">
+					<MenuItem Header="Fastest" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="0" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=0}" />
+					<MenuItem Header="460Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="460800" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=460800}" />
+					<MenuItem Header="230Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="230400" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=230400}" />
+					<MenuItem Header="115Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="115200" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=115200}" />
+					<MenuItem Header="56Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="57600" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=57600}" />
+					<MenuItem Header="38.4Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="38400" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=38400}" />
+					<MenuItem Header="33.6Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="33600" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=33600}" />
+					<MenuItem Header="28.8Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="28800" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=28800}" />
+					<MenuItem Header="19.2Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="19200" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=19200}" />
+					<MenuItem Header="14.4Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="14400" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=14400}" />
+					<MenuItem Header="9.6Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="9600" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=9600}" />
+					<MenuItem Header="2.4Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="2400" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=2400}" />
+					<MenuItem Header="1.2Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="1200" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=1200}" />
+					<MenuItem Header="300bps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="300" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=300}" />
+					<MenuItem Header="110bps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="110" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=110}" />
+				</MenuItem>
+				<Separator/>
+				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
+			</MenuItem>
+			<MenuItem Header="_View">
+				<MenuItem Header="_Sequence" Command="{Binding ToggleSequenceCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-shoe-prints"/>
+				<Separator/>
+				<MenuItem Header="_Canvas Size" i:MenuItem.Icon="fa-solid fa-display">
+					<MenuItem Header="160x120" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="160x120" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='160x120'}" />
+					<MenuItem Header="320x200" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="320x200" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='320x200'}" />
+					<MenuItem Header="320x240" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="320x240" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='320x240'}" />
+					<MenuItem Header="640x480" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="640x480" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='640x480'}" />
+					<MenuItem Header="800x600" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="800x600" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='800x600'}" />
+					<MenuItem Header="1024x768" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="1024x768" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='1024x768'}" />
+					<MenuItem Header="1280x960" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="1280x960" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='1280x960'}" />
+					<MenuItem Header="1600x1200" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="1600x1200" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='1600x1200'}" />
+					<MenuItem Header="2048x1536" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="2048x1536" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='2048x1536'}" />
+					<MenuItem Header="4096x3072" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="4096x3072" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='4096x3072'}" />
+				</MenuItem>
+				<MenuItem Header="_Stretch" i:MenuItem.Icon="fa-solid fa-maximize">
+					<MenuItem Header="None" Command="{Binding SetStretchModeCommand}" CommandParameter="None" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.None}}" />
+					<MenuItem Header="Fill" Command="{Binding SetStretchModeCommand}" CommandParameter="Fill" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.Fill}}" />
+					<MenuItem Header="Uniform" Command="{Binding SetStretchModeCommand}" CommandParameter="Uniform" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.Uniform}}" />
+					<MenuItem Header="Uniform To Fill" Command="{Binding SetStretchModeCommand}" CommandParameter="UniformToFill" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.UniformToFill}}" />
+				</MenuItem>
+			</MenuItem>
+			<MenuItem Header="_Help">
+				<MenuItem Header="_Help (github.com)" Command="{Binding HelpCommand}" i:MenuItem.Icon="fa-solid fa-question"/>
+				<Separator/>
+				<MenuItem Header="GitHub Code" Command="{Binding GitHubCommand}" i:MenuItem.Icon="fa-brand fa-github"/>
+				<Separator/>
+				<MenuItem Header="_About" Command="{Binding AboutCommand}" i:MenuItem.Icon="fa-solid fa-circle-info"/>
+			</MenuItem>
+		</Menu>
+
+		<Border DockPanel.Dock="Bottom" VerticalAlignment="Bottom" Background="{DynamicResource SystemControlBackgroundBase}" Padding="5">
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+				<i:Icon Value="fa-solid fa-floppy-disk" Margin="0,0,5,0" />
+				<TextBlock Text="{Binding FileName}" VerticalAlignment="Center" />
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsFileLoaded}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-text-width" Margin="0,0,5,0" IsVisible="{Binding IsFileLoaded}" />
+				<TextBlock Text="{Binding BitWidth}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}" />
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-gauge" Margin="0,0,5,0" />
+				<TextBlock Text="{Binding BaudRate}" VerticalAlignment="Center" IsVisible="{Binding BaudRate, Converter={StaticResource InequalityConverter}, ConverterParameter='0'}" />
+				<TextBlock Text="bps" VerticalAlignment="Center" IsVisible="{Binding BaudRate, Converter={StaticResource InequalityConverter}, ConverterParameter='0'}" />
+				<TextBlock Text="Fastest" VerticalAlignment="Center" IsVisible="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter='0'}" />
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-display" Margin="0,0,5,0" />
+				<TextBlock Text="{Binding CanvasSize}" VerticalAlignment="Center" />
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-maximize" Margin="0,0,5,0" />
+				<TextBlock Text="{Binding ImageStretch}" VerticalAlignment="Center" />
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-shoe-prints" Margin="0,0,5,0" />
+				<TextBlock Text="Animated" VerticalAlignment="Center" IsVisible="{Binding IsAnimated}" />
+				<TextBlock Text="Static" VerticalAlignment="Center" IsVisible="{Binding !IsAnimated}" />
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsFileLoaded}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-film" Margin="0,0,5,0" IsVisible="{Binding IsFileLoaded}" />
+				<TextBlock Text="{Binding CurrentFrame}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
+				<TextBlock Text="/" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
+				<TextBlock Text="{Binding TotalFrames}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
+			</StackPanel>
+		</Border>
+
+		<Grid Background="#222222">
+			<Image Source="{Binding CanvasImage}" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="{Binding ImageStretch}"/>
+		</Grid>
+	</DockPanel>
+</Window>

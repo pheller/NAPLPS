@@ -53,6 +53,25 @@ public partial class NaplpsFormat
         return newFile;
     }
 
+    public void Save(string fullpath)
+    {
+        using var file = File.Create(fullpath);
+        using var writer = new BinaryWriter(file);
+
+        foreach (var command in Commands)
+        {
+            writer.Write((byte)command.Command.OpCode);
+
+            foreach (var operand in command.Command.Operands)
+            {
+                writer.Write(operand);
+            }
+        }
+
+        writer.Flush();
+        file.Close();
+    }
+
     private void AddCommand(byte cmd, NaplpsOperands? operands = null)
     {
         AddCommand((NaplpsCommands)cmd, operands);
@@ -65,7 +84,7 @@ public partial class NaplpsFormat
         Commands.Add(new NaplpsSequence(newCommand.State.Clone(), newCommand));
     }
 
-    public List<NaplpsSequence> ReadStream(BinaryReader reader)
+    private List<NaplpsSequence> ReadStream(BinaryReader reader)
     {
         var commands = new List<NaplpsSequence>();
         byte oldBit = 0x00;

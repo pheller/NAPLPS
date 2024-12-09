@@ -26,7 +26,7 @@ public class DrawContext : IDisposable
         Size = size;
         Image = new(Size.Width, Size.Height);
         CurrentIndex = 0;
-        TotalFrames = (uint)NAPLPS.Commands.Count;
+        TotalFrames = (uint)NAPLPS.Commands.Count - 1;
     }
 
     public void Render(uint sequenceNumber = uint.MaxValue)
@@ -49,6 +49,10 @@ public class DrawContext : IDisposable
             CurrentIndex++;
         }
 
+        if (CurrentIndex >= TotalFrames)
+        {
+            CurrentIndex = TotalFrames;
+        }
 
         OnImageUpdated?.Invoke();
     }
@@ -80,7 +84,10 @@ public class DrawContext : IDisposable
             }
         }
 
-        CurrentIndex = TotalFrames;
+        if (CurrentIndex >= TotalFrames)
+        {
+            CurrentIndex = TotalFrames;
+        }
     }
 
     public void SaveAsPng(string filepath)

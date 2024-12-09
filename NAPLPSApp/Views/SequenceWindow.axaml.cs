@@ -1,0 +1,26 @@
+using Avalonia.Controls;
+using NAPLPS.Drawing;
+using NAPLPSApp.ViewModels;
+using ScottPlot.Avalonia;
+
+namespace NAPLPSApp.Views;
+
+public partial class SequenceWindow : Window
+{
+    public SequenceWindow()
+    {
+        InitializeComponent();
+    }
+
+    public SequenceWindow(DrawContext drawContext) : this()
+    {
+        var vectorPlot = this.Find<AvaPlot>("VectorPlot");
+
+        if (vectorPlot is null)
+        {
+            return;
+        }
+
+        DataContext = new SequenceWindowViewModel(drawContext, vectorPlot);
+    }
+}
