@@ -32,7 +32,7 @@
 				<TextBlock Text="{Binding TotalFrames}" VerticalAlignment="Center"/>
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
-				<TextBlock Text="7-bit" VerticalAlignment="Center"/>
+				<TextBlock Text="{Binding BitWidth}" VerticalAlignment="Center"/>
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 				<Button i:Attached.Icon="fa-solid fa-plus" VerticalAlignment="Center"/>
