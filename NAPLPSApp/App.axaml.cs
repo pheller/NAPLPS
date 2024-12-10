@@ -1,8 +1,7 @@
-using Avalonia;
-using Avalonia.Controls;
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using NAPLPSApp.ViewModels;
 using NAPLPSApp.Views;
 
 namespace NAPLPSApp;
@@ -14,7 +13,7 @@ public partial class App : Application
     public override void Initialize()
     {
         DataContext = new AppViewModel();
-        
+
         AvaloniaXamlLoader.Load(this);
     }
 

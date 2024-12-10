@@ -1,4 +1,6 @@
-﻿namespace NAPLPS.Helpers;
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
+namespace NAPLPS.Helpers;
 
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public class AddCommandAttribute(int height, string name, string description) : Attribute

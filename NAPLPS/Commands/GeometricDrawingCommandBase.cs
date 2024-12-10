@@ -1,4 +1,4 @@
-// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
@@ -25,7 +25,8 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
 
     public Vector2 LogicalPel { get; set; }
 
-    public GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands) {
+    public GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    {
         Texture = state.Texture;
         ColorMode = state.ColorMode;
         ColorMapForeground = state.ColorMapForeground;
@@ -35,7 +36,8 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
         LogicalPel = state.LogicalPel;
     }
 
-    public (Color, Color) GetColors(NaplpsState state) {
+    public (Color, Color) GetColors(NaplpsState state)
+    {
         NaplpsColor fgColor = ColorMode == 0 ? Foreground : state.ColorMap[ColorMapForeground];
         NaplpsColor bgColor = ColorMode == 0 ? Background : state.ColorMap[ColorMapBackground];
 
@@ -83,7 +85,7 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
             if ((idx + 1) == operands.Count && delta != 0)
             {
                 var remaining = State.MultiByteValue - delta;
-                
+
                 for (int i = 0; i < remaining; i++)
                 {
                     if (State.Dimensionality == 2)
@@ -98,7 +100,7 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
                         z.AddRange(_threeDimensionalZero);
                     }
                 }
-                
+
                 zeroFill = true;
             }
 

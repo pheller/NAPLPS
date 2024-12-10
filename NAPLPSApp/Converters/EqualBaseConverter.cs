@@ -1,6 +1,7 @@
-﻿using Avalonia.Data;
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
+using Avalonia.Data;
 using Avalonia.Data.Converters;
-using System;
 using System.Globalization;
 
 namespace NAPLPSApp.Converters;

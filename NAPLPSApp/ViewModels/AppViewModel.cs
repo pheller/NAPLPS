@@ -1,10 +1,9 @@
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.Input;
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.ViewModels;
 
 public partial class AppViewModel : ViewModelBase
-{    
+{
     public AppViewModel()
     {
     }

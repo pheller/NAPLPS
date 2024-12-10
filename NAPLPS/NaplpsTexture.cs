@@ -1,8 +1,9 @@
-﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS;
 
-public struct NaplpsTexture {
+public struct NaplpsTexture
+{
     public TexturePatterns TexturePattern { get; set; }
 
     public bool ShouldHighlight { get; set; }

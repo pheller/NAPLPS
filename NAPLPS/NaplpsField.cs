@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS;
 
@@ -8,7 +8,8 @@ public struct NaplpsField
 
     public Vector3 Dimensions { get; set; } = new Vector3(1f, 1f, 1f);
 
-    public NaplpsField(Vector3 origin, Vector3 dimensions) {
+    public NaplpsField(Vector3 origin, Vector3 dimensions)
+    {
         Origin = origin;
         Dimensions = dimensions;
     }

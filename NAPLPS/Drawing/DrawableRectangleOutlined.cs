@@ -1,9 +1,7 @@
-﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
-using PointF = SixLabors.ImageSharp.PointF;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Rectangle = SixLabors.ImageSharp.Rectangle;
 
 namespace NAPLPS.Drawing;

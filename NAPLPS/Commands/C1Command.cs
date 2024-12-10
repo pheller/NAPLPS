@@ -1,4 +1,4 @@
-// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
@@ -6,4 +6,4 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class C1Command(NaplpsState state, NaplpsOperands operands) : EscCommand(state, operands)
 {
-} 
+}

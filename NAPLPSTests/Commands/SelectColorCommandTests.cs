@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSTests.Commands;
 
@@ -20,7 +20,7 @@ public class SelectColorCommandTests
         var command = new SelectColorCommand(new(), [0x44]);
 
         Assert.IsNotNull(command);
-        
+
         Assert.AreEqual(1, command.State.ColorMode);
         Assert.AreEqual(1, command.State.ColorMapForeground);
     }

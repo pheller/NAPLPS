@@ -1,7 +1,4 @@
-using System;
-using Avalonia.Controls;
-using Avalonia.Controls.Templates;
-using NAPLPSApp.ViewModels;
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp;
 

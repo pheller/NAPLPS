@@ -1,7 +1,6 @@
-﻿using Avalonia.Media.Imaging;
-using NAPLPS.Drawing;
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
 using SixLabors.ImageSharp.Formats.Bmp;
-using System.IO;
 
 namespace NAPLPSApp;
 

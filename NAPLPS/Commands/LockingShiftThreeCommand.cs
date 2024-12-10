@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
@@ -9,7 +9,7 @@ public class LockingShiftThreeCommand : EscCommand
     {
         State.GL = 3;
         State.InLockingManner = true;
-         
+
         // Debugger.Break();
     }
 }

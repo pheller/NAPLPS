@@ -1,14 +1,10 @@
-﻿using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Models;
 using MsBox.Avalonia;
 using Projektanker.Icons.Avalonia;
 using Projektanker.Icons.Avalonia.FontAwesome;
-using System;
-using System.Threading.Tasks;
 
 namespace NAPLPSApp;
 

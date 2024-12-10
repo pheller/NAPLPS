@@ -1,7 +1,4 @@
-using Avalonia.Controls;
-using NAPLPS.Drawing;
-using NAPLPSApp.ViewModels;
-using ScottPlot.Avalonia;
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.Views;
 

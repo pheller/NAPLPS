@@ -1,10 +1,10 @@
-// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
 public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
 {
-    public Vector3 StartPoint {get; private set;}
+    public Vector3 StartPoint { get; private set; }
 
     public PolygonCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {

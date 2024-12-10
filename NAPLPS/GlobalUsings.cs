@@ -1,7 +1,6 @@
-// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 // .NET
-global using System.Drawing;
 global using System.Numerics;
 global using System.Text.Json;
 global using System.Text.Json.Serialization;

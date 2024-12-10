@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 
@@ -63,16 +63,16 @@ public class Drawable
         switch (lineTexture)
         {
             case NaplpsTexture.LineTextures.Dotted:
-                return Pens.Dot(color, penWidth);
+            return Pens.Dot(color, penWidth);
 
             case NaplpsTexture.LineTextures.DottedDashed:
-                return Pens.DashDot(color, penWidth);
+            return Pens.DashDot(color, penWidth);
 
             case NaplpsTexture.LineTextures.Dashed:
-                return Pens.Dash(color, penWidth);
+            return Pens.Dash(color, penWidth);
 
             default:
-                return Pens.Solid(color, penWidth);
+            return Pens.Solid(color, penWidth);
         }
     }
 
@@ -130,23 +130,23 @@ public class Drawable
             case TexturePatterns.MaskC:
             case TexturePatterns.CrossHatching:
             {
-                    var pelX = scaledLogicalPel.X;
-                    var length = pelX * 2;
-                    var pattern = new bool[length, length];
+                var pelX = scaledLogicalPel.X;
+                var length = pelX * 2;
+                var pattern = new bool[length, length];
 
-                    for (var y = 0; y < length; ++y)
+                for (var y = 0; y < length; ++y)
+                {
+                    for (var x = 0; x < length; ++x)
                     {
-                        for (var x = 0; x < length; ++x)
-                        {
-                            pattern[y, x] = y >= pelX || x < pelX;
-                        }
+                        pattern[y, x] = y >= pelX || x < pelX;
                     }
+                }
 
-                    return new PatternBrush(
-                        fgColorImageSharp,
-                        bgColorImageSharp,
-                        pattern
-                    );
+                return new PatternBrush(
+                    fgColorImageSharp,
+                    bgColorImageSharp,
+                    pattern
+                );
             }
 
             default:

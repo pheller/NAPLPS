@@ -1,4 +1,4 @@
-// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS;
 
@@ -25,9 +25,9 @@ public enum NaplpsCommands : byte
 
     SHIFT_OUT = 0x0E, // Shift Out - Switch to Graphics Mode
     SHIFT_IN = 0x0F, // Shift In - Switch to Text Mode
-    
+
     DATA_LINK_ESCAPE = 0x10, // DLE
-    
+
     DATA_CONTROL_1 = 0x11, // Data Control Characters
     DATA_CONTROL_2 = 0x12, // Data Control Characters
     DATA_CONTROL_3 = 0x13, // Data Control Characters

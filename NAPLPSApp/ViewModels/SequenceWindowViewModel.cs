@@ -1,23 +1,11 @@
-using Avalonia.Media;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using NAPLPS;
-using NAPLPS.Commands;
-using NAPLPS.Drawing;
-using ScottPlot;
-using ScottPlot.Avalonia;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using Color = Avalonia.Media.Color;
-using Colors = Avalonia.Media.Colors;
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.ViewModels;
 
 public partial class SequenceWindowViewModel : ViewModelBase
 {
     [ObservableProperty]
-    private ObservableCollection<CommandInfo> commands = new();
+    private ObservableCollection<CommandInfo> commands = [];
 
     [ObservableProperty]
     private NaplpsSequence? currentSequence;
@@ -67,7 +55,7 @@ public partial class SequenceWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string extraDetails = string.Empty;
 
-    private AvaPlot avaPlot;
+    private readonly AvaPlot avaPlot;
 
     private readonly DrawContext context;
 
@@ -225,7 +213,7 @@ public partial class SequenceWindowViewModel : ViewModelBase
             markers.MarkerSize = 10;
         }
 
-        IsPlotviewVisible = avaPlot.Plot.PlottableList.Any();
+        IsPlotviewVisible = avaPlot.Plot.PlottableList.Count != 0;
     }
 
     [RelayCommand]

@@ -1,27 +1,10 @@
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.Chrome;
-using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
+// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
 using Avalonia.Platform.Storage;
 
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-
 using MsBox.Avalonia;
-using MsBox.Avalonia.Dto;
-using MsBox.Avalonia.Models;
-
-using NAPLPS;
-using NAPLPS.Drawing;
 
 using NAPLPSApp.Views;
-
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace NAPLPSApp.ViewModels;
 
@@ -146,7 +129,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 Title = "Save NAPLPS File",
                 FileTypeChoices = fileTypes,
                 DefaultExtension = "nap",
-                SuggestedFileName = Path.GetFileName(loadedFilePath)
+                SuggestedFileName = IOPath.GetFileName(loadedFilePath)
             };
 
             var result = await App.MainWindow.StorageProvider.SaveFilePickerAsync(options);
@@ -364,7 +347,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             IsFileLoaded = true;
 
-            FileName = Path.GetFileName(filePath);
+            FileName = IOPath.GetFileName(filePath);
 
             TitleBar = $"{FileName} - NAPLPS Toolbox";
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 FoxCouncil - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -65,7 +65,7 @@ public class DrawableShiftInCommand : Drawable, IDrawable
         image.Mutate(x =>
         {
             x.DrawText(drawingOptions, text, font, fgColor.ToISColor(), pointF);
-            
+
         });
     }
 }
