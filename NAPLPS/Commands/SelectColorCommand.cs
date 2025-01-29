@@ -14,7 +14,7 @@ public class SelectColorCommand : NaplpsCommand
     /// Additional numeric data bytes are reserved for future standardization and
     /// shall be ignored.
     /// </summary>
-    public SelectColorCommand(NaplpsState state, NaplpsOperands operands) : base(state, SELECT_COLOR, operands)
+    public SelectColorCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var actualSingleValues = Operands.Count / State.SingleByteValue;
 

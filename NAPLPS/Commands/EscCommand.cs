@@ -7,33 +7,33 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class EscCommand : NaplpsCommand
 {
-    public EscCommand(NaplpsState state, NaplpsOperands operands) : base(state, ESC, operands)
+    public EscCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        if (Operands.Count == 2 && Operands[1] == (byte)NaplpsGSet.PDISet)
-        {
-            switch ((NaplpsEscapeCommands)Operands[0])
-            {
-                case NaplpsEscapeCommands.G1:
-                case NaplpsEscapeCommands.G1D:
-                {
-                    State.G1 = NaplpsGSet.PDISet;
-                }
-                break;
+        //if (Operands.Count == 2 && Operands[1] == (byte)NaplpsGSet.PDISet)
+        //{
+        //    switch ((NaplpsEscapeCommands)Operands[0])
+        //    {
+        //        case NaplpsEscapeCommands.G1:
+        //        case NaplpsEscapeCommands.G1D:
+        //        {
+        //            State.GSets[1] = NaplpsGSet.PDISet;
+        //        }
+        //        break;
 
-                case NaplpsEscapeCommands.G2:
-                case NaplpsEscapeCommands.G2D:
-                {
-                    State.G2 = NaplpsGSet.PDISet;
-                }
-                break;
+        //        case NaplpsEscapeCommands.G2:
+        //        case NaplpsEscapeCommands.G2D:
+        //        {
+        //            State.GSets[2] = NaplpsGSet.PDISet;
+        //        }
+        //        break;
 
-                case NaplpsEscapeCommands.G3:
-                case NaplpsEscapeCommands.G3D:
-                {
-                    State.G3 = NaplpsGSet.PDISet;
-                }
-                break;
-            }
-        }
+        //        case NaplpsEscapeCommands.G3:
+        //        case NaplpsEscapeCommands.G3D:
+        //        {
+        //            State.GSets[3] = NaplpsGSet.PDISet;
+        //        }
+        //        break;
+        //    }
+        //}
     }
 }

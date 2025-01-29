@@ -4,7 +4,7 @@ namespace NAPLPS.Commands;
 
 public class PolygonSetFilledCommand : PolygonCommand
 {
-    public PolygonSetFilledCommand(NaplpsState state, NaplpsOperands operands) : base(state, POLYGON_SET_FILLED, operands)
+    public PolygonSetFilledCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(true, state, opcode, operands)
     {
         ShouldFill = true;
     }

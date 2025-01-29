@@ -11,7 +11,7 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class ArcOutlinedCommand : ArcCommand
 {
-    public ArcOutlinedCommand(NaplpsState state, NaplpsOperands operands) : base(state, ARC_OUTLINED, operands)
+    public ArcOutlinedCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(false, state, opcode, operands)
     {
         ShouldFill = false;
     }

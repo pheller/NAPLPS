@@ -4,7 +4,7 @@ namespace NAPLPS.Commands;
 
 public class RectangleSetOutlinedCommand : RectangleSetCommand
 {
-    public RectangleSetOutlinedCommand(NaplpsState state, NaplpsOperands operands) : base(state, RECTANGLE_SET_OUTLINED, operands)
+    public RectangleSetOutlinedCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         ShouldFill = false;
     }

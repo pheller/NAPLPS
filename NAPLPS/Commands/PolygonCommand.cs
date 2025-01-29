@@ -6,7 +6,7 @@ public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
 {
     public Vector3 StartPoint { get; private set; }
 
-    public PolygonCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    public PolygonCommand(bool isSet, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         if (operands.Count == 0)
         {
@@ -14,7 +14,7 @@ public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
             return;
         }
 
-        if (opcode == POLYGON_FILLED || opcode == POLYGON_OUTLINED)
+        if (!isSet)
         {
             StartPoint = State.Pen;
             SetPen(State.Pen);

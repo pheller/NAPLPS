@@ -6,7 +6,7 @@ public abstract class RectangleCommand : FillableGeometricDrawingCommandBase
 {
     public Vector3 Dimensions { get; }
 
-    public RectangleCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    public RectangleCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var verts = ProcessVertices(Operands);
 

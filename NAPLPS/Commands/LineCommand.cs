@@ -6,7 +6,7 @@ namespace NAPLPS.Commands;
 
 public abstract class LineCommand : GeometricDrawingCommandBase
 {
-    public LineCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    public LineCommand(bool isSet, bool isRelative, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var verticies = ProcessVertices(operands);
 
@@ -17,7 +17,7 @@ public abstract class LineCommand : GeometricDrawingCommandBase
             return;
         }
 
-        if (opcode == LINE_SET_REL)
+        if (isSet && isRelative)
         {
             for (int i = 0; i < verticies.Count; ++i)
             {
@@ -33,7 +33,7 @@ public abstract class LineCommand : GeometricDrawingCommandBase
                 }
             }
         }
-        else if (opcode == LINE_SET_ABS)
+        else if (isSet && !isRelative)
         {
             foreach (var vert in verticies)
             {
@@ -46,7 +46,7 @@ public abstract class LineCommand : GeometricDrawingCommandBase
 
             foreach (var vert in verticies)
             {
-                if (opcode == LINE_ABS)
+                if (!isRelative)
                 {
                     SetPen(vert);
                 }

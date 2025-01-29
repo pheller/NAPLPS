@@ -9,7 +9,7 @@ public class WaitCommand : NaplpsCommand
 
     public List<byte> WaitTimes { get; } = [];
 
-    public WaitCommand(NaplpsState state, NaplpsOperands operands) : base(state, WAIT, operands)
+    public WaitCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         if (operands.Count < 2)
         {

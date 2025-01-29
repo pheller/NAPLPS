@@ -6,22 +6,22 @@ public abstract class PointCommand : FillableGeometricDrawingCommandBase
 {
     public bool IsVisible { get; internal set; }
 
-    public PointCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    public PointCommand(bool isRelative, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var vertices = ProcessVertices(operands);
 
         foreach (var point in vertices)
         {
-            if (opcode == POINT_ABS || opcode == POINT_SET_ABS)
+            if (!isRelative)
             {
                 SetPen(point);
             }
             else
             {
-                SetPen(state.Pen + point);
+                SetPen(State.Pen + point);
             }
         }
 
-        IsVisible = opcode == POINT_ABS || opcode == POINT_REL;
+        // IsVisible = opcode == POINT_ABS || opcode == POINT_REL;
     }
 }

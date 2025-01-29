@@ -25,7 +25,7 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
 
     public Vector2 LogicalPel { get; set; }
 
-    public GeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    public GeometricDrawingCommandBase(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         Texture = state.Texture;
         ColorMode = state.ColorMode;

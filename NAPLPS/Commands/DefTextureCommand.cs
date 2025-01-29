@@ -29,12 +29,12 @@ public class DefTextureCommand : EscCommand
 {
     public ushort MaskId { get; }
 
-    public DefTextureCommand(NaplpsState state, NaplpsOperands operands) : base(state, operands)
+    public DefTextureCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        if (Operands.Count != 2 && (NaplpsEscapeCommands)Operands[0] != NaplpsEscapeCommands.DEF_TEXTURE)
-        {
-            throw new ArgumentOutOfRangeException(nameof(operands));
-        }
+        //if (Operands.Count != 2 && (NaplpsEscapeCommands)Operands[0] != NaplpsEscapeCommands.DEF_TEXTURE)
+        //{
+        //    throw new ArgumentOutOfRangeException(nameof(operands));
+        //}
 
         if (Operands[1] == 0x41)
         {

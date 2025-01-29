@@ -4,7 +4,7 @@ namespace NAPLPS.Commands;
 
 public class LineAbsoluteCommand : LineCommand
 {
-    public LineAbsoluteCommand(NaplpsState state, NaplpsOperands operands) : base(state, LINE_ABS, operands)
+    public LineAbsoluteCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(false, false, state, opcode, operands)
     {
     }
 }

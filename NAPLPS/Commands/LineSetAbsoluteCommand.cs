@@ -2,6 +2,6 @@
 
 namespace NAPLPS.Commands;
 
-public class LineSetAbsoluteCommand(NaplpsState state, NaplpsOperands operands) : LineCommand(state, LINE_SET_ABS, operands)
+public class LineSetAbsoluteCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : LineCommand(true, false, state, opcode, operands)
 {
 }

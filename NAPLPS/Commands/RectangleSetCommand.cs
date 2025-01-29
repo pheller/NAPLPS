@@ -8,7 +8,7 @@ public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
 
     public Vector3 Dimensions { get; }
 
-    public RectangleSetCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    public RectangleSetCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         if (Operands.Count == 0)
         {

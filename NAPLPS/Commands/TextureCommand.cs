@@ -15,7 +15,7 @@ public class TextureCommand : GeometricDrawingCommandBase
 
     public Vector3 MaskSize { get; }
 
-    public TextureCommand(NaplpsState state, NaplpsOperands operands) : base(state, TEXTURE, operands)
+    public TextureCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         TexturePattern = (TexturePatterns)(operands.Count != 0 ? ConvertBitsToByte([operands[0, 6], operands[0, 5], operands[0, 4]]) : 0);
         ShouldHighlight = operands.Count != 0 && operands[0, 3];

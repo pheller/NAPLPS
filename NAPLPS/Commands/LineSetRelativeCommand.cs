@@ -2,6 +2,6 @@
 
 namespace NAPLPS.Commands;
 
-public class LineSetRelativeCommand(NaplpsState state, NaplpsOperands operands) : LineCommand(state, LINE_SET_REL, operands)
+public class LineSetRelativeCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : LineCommand(true, true, state, opcode, operands)
 {
 }

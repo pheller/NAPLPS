@@ -48,7 +48,7 @@ public partial class NaplpsFormat
         var newFile = new NaplpsFormat(new NaplpsState());
 
         // Default
-        newFile.AddCommand(CANCEL);
+        // newFile.AddCommand(CANCEL);
 
         return newFile;
     }
@@ -72,22 +72,16 @@ public partial class NaplpsFormat
         file.Close();
     }
 
-    private void AddCommand(byte cmd, NaplpsOperands? operands = null)
+    private void AddCommand(byte command, NaplpsOperands? operands = null)
     {
-        AddCommand((NaplpsCommands)cmd, operands);
-    }
+        // var newCommand = NaplpsCommand.Factory(State, command, operands);
 
-    private void AddCommand(NaplpsCommands command, NaplpsOperands? operands = null)
-    {
-        var newCommand = NaplpsCommand.Factory(State, command, operands);
-
-        Commands.Add(new NaplpsSequence(newCommand.State.Clone(), newCommand));
+        // Commands.Add(new NaplpsSequence(newCommand.State.Clone(), newCommand));
     }
 
     private List<NaplpsSequence> ReadStream(BinaryReader reader)
     {
         var commands = new List<NaplpsSequence>();
-        byte oldBit = 0x00;
 
         try
         {
@@ -95,43 +89,55 @@ public partial class NaplpsFormat
             {
                 var opcode = reader.ReadByte();
 
-                if (opcode > 0x80) // We're in 8Bit mode, we treat escape sequences "differently"
+                if (opcode > 0x80)
                 {
-                    oldBit = opcode;
-
                     Is7Bit = false;
-
-                    opcode ^= 0x80;
                 }
 
-                var operands = new NaplpsOperands();
+                var commandReference = State.InUseTable[opcode];
 
-                var shiftIn = opcode == (byte)SHIFT_IN;
-                var escCmd = opcode == (byte)ESC;
-
-                while (!reader.IsEOF() && (!reader.PeekByte().IsOpcode() || shiftIn || escCmd))
+                if (commandReference == null)
                 {
-                    var operand = reader.ReadByte();
+                    Debugger.Break();
 
-                    operands.Add(operand);
+                    continue;
+                }
 
-                    if (shiftIn && reader.PeekByte() == (byte)SHIFT_OUT)
+                var commandType = commandReference.CommandType ?? typeof(NaplpsCommand);
+                var commandParameters = commandReference.Parameters;
+
+                var additionalParameters = new NaplpsOperands();
+
+                if (commandType == typeof(ControlCommand) && commandParameters.Length == 1)
+                {
+                    var controlCommand = (NaplpsControlCommands)commandParameters[0];
+
+                    if (controlCommand == Escape)
                     {
-                        break;
+                        ControlCommandEscape(reader, additionalParameters);
                     }
-                    else if (escCmd && operand == 0x22)  // Switching to C1 default set
+                    else if (controlCommand == NonSelectiveReset)
                     {
-                        operands.Add(reader.ReadByte());
-
-                        break;
+                        ControlCommandNonSelectiveReset(reader);
                     }
-                    else if (reader.PeekByte().IsOpcode() && escCmd)
+                    else if (controlCommand == ShiftIn)
                     {
-                        break;
+                        State.DoShiftIn();
+                    }
+                    else if (controlCommand == ShiftOut)
+                    {
+                        State.DoShiftOut();
                     }
                 }
 
-                var command = NaplpsCommand.Factory(State, (NaplpsCommands)opcode, operands);
+                var finalCommandParams = commandParameters.Concat([State, opcode, additionalParameters]).ToArray();
+
+                if (Activator.CreateInstance(commandType, finalCommandParams) is not NaplpsCommand command)
+                {
+                    Debugger.Break();
+
+                    continue;
+                }
 
                 commands.Add(new NaplpsSequence(command.State.Clone(), command));
             }
@@ -142,5 +148,59 @@ public partial class NaplpsFormat
         }
 
         return commands;
+    }
+
+    private static void ControlCommandEscape(BinaryReader reader, NaplpsOperands additionalParameters)
+    {
+        bool isEscape = true;
+        while (isEscape && !reader.IsEOF())
+        {
+            var peakValue = reader.PeekByte();
+
+            // Check for valid intermediate and final bytes according to NAPLPS standards
+            if ((peakValue >= 0x20 && peakValue <= 0x2F) || // Intermediate bytes
+                (peakValue >= 0x30 && peakValue <= 0x7E))   // Final bytes
+            {
+                additionalParameters.Add(reader.ReadByte());
+                isEscape = !(peakValue >= 0x30 && peakValue <= 0x7E); // Stop at final character
+            }
+            else
+            {
+                isEscape = false;
+            }
+        }
+    }
+
+    private void ControlCommandNonSelectiveReset(BinaryReader reader)
+    {
+        // TODO: Verify these default states!
+        // Reset the entire state to its default values
+        State.DoShiftIn();  // Reset character set to default
+        State.TextRotation = TextRotation.Zero;
+        State.TextPath = TextPath.Right;
+        State.TextSpacing = TextSpacing.One;
+        State.TextInterrowSpacing = TextInterrowSpacing.One;
+        State.TextMoveAttributes = TextMoveAttributes.MoveTogether;
+        State.TextCursorStyle = TextCursorStyle.Block;
+        State.ColorMap.Clear();
+        State.ColorMap = new Dictionary<byte, NaplpsColor>(NaplpsState.ColorMapDefaults);
+        State.ColorMode = 0;
+        State.LogicalPel = new Vector2(0f, 0f);  // Reset logical position
+        State.Pen = new Vector3(0f, 0f, 0f);     // Reset drawing position
+
+        // Handle the cursor position if valid bytes follow the NSR
+        if (reader.PeekChar() >= 0x40 && reader.PeekChar() <= 0x7F)
+        {
+            // Read and decode the row address (MSB first, subtract 32)
+            var row = (reader.ReadByte() & 0x7F) - 32;
+            var column = (reader.ReadByte() & 0x7F) - 32;
+
+            // Normalize cursor position for the screen (assuming 40x25 grid)
+            State.LogicalPel = new Vector2(row / 40.0f, column / 25.0f);
+        }
+        else
+        {
+            State.LogicalPel = new Vector2(0f, 0f);  // Default if invalid operands
+        }
     }
 }

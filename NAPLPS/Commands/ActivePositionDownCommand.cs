@@ -4,7 +4,7 @@ namespace NAPLPS.Commands;
 
 public class ActivePositionDownCommand : NaplpsCommand
 {
-    public ActivePositionDownCommand(NaplpsState state, NaplpsOperands operands) : base(state, AP_DOWN, operands)
+    public ActivePositionDownCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         // State.MovePen(State.TextInterrowSpacing)
     }

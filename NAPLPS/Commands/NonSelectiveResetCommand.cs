@@ -2,6 +2,6 @@
 
 namespace NAPLPS.Commands;
 
-public class NonSelectiveResetCommand(NaplpsState state, NaplpsOperands operands) : NaplpsCommand(state, NSR, operands)
+public class NonSelectiveResetCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : NaplpsCommand(state, opcode, operands)
 {
 }

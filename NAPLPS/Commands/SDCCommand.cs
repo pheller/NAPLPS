@@ -5,7 +5,7 @@ namespace NAPLPS.Commands;
 /// <summary>Required to logically delimit the end of the unprotected field transmission</summary>
 public class SDCCommand : NaplpsCommand
 {
-    public SDCCommand(NaplpsState state, NaplpsOperands operands) : base(state, SDC, operands)
+    public SDCCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
     }
 }

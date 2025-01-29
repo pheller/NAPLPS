@@ -12,7 +12,7 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class ArcFilledCommand : ArcCommand
 {
-    public ArcFilledCommand(NaplpsState state, NaplpsOperands operands) : base(state, ARC_FILLED, operands)
+    public ArcFilledCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(false, state, opcode, operands)
     {
         ShouldFill = true;
     }

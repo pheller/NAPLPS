@@ -4,7 +4,7 @@ namespace NAPLPS.Commands;
 
 public class PointSetAbsoluteCommand : PointCommand
 {
-    public PointSetAbsoluteCommand(NaplpsState state, NaplpsOperands operands) : base(state, POINT_SET_ABS, operands)
+    public PointSetAbsoluteCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(false, state, opcode, operands)
     {
     }
 }

@@ -8,7 +8,7 @@ public class SetColorCommand : NaplpsCommand
 {
     public NaplpsColor Color;
 
-    public SetColorCommand(NaplpsState state, NaplpsOperands operands) : base(state, SET_COLOR, operands)
+    public SetColorCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         if (State.ColorMode == 0 && Operands.Count == 0)
         {

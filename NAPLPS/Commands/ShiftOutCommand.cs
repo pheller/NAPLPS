@@ -4,9 +4,8 @@ namespace NAPLPS.Commands;
 
 public class ShiftOutCommand : NaplpsCommand
 {
-    public ShiftOutCommand(NaplpsState state, NaplpsOperands operands) : base(state, SHIFT_OUT, operands)
+    public ShiftOutCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        State.GL = 1;
-        State.InLockingManner = true;
+        State.DoShiftOut();
     }
 }

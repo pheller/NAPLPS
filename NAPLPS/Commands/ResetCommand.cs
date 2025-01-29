@@ -32,7 +32,7 @@ public class ResetCommand : NaplpsCommand
 
     public ScreenBorderReset ColorScreenBorder { get; }
 
-    public ResetCommand(NaplpsState state, NaplpsOperands operands) : base(state, RESET, operands)
+    public ResetCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         /*	If the RESET command is received with no operands, it is interpreted as if it
 		/*	had been sent with bits b6 to b1 in both bytes set equal to 0. If only one byte

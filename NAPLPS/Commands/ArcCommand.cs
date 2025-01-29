@@ -64,11 +64,11 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
 
     public Vector3 EndPointDisplacement { get; internal set; }
 
-    public ArcCommand(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    public ArcCommand(bool isSet, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         Vertices = ProcessVertices(operands);
 
-        if (OpCode == ARC_OUTLINED || OpCode == ARC_FILLED)
+        if (!isSet)
         {
             if (operands.Count == State.MultiByteValue * 2)
             {

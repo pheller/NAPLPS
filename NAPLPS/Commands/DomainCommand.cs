@@ -12,7 +12,7 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class DomainCommand : GeometricDrawingCommandBase
 {
-    public DomainCommand(NaplpsState state, NaplpsOperands operands) : base(state, DOMAIN, operands)
+    public DomainCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         if (Operands.Count == 0)
         {

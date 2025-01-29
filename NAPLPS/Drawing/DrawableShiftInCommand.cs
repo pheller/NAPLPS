@@ -29,7 +29,7 @@ public class DrawableShiftInCommand : Drawable, IDrawable
 
         var (charSizeX, charSizeY) = NaplpsUtils.ConvertNormalizedToScreenScale(size, state.TextFieldSize.X, state.TextFieldSize.Y);
 
-        var text = _command.Text;
+        var text = "FIX ME";
 
         float TextFontSize = charSizeX;
 

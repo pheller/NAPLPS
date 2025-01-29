@@ -2,6 +2,6 @@
 
 namespace NAPLPS.Commands;
 
-public class PointSetRelativeCommand(NaplpsState state, NaplpsOperands operands) : PointCommand(state, POINT_SET_REL, operands)
+public class PointSetRelativeCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : PointCommand(true, state, opcode, operands)
 {
 }

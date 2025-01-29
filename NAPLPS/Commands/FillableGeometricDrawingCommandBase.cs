@@ -2,7 +2,7 @@
 
 namespace NAPLPS.Commands;
 
-public abstract class FillableGeometricDrawingCommandBase(NaplpsState state, NaplpsCommands opcode, NaplpsOperands operands) : GeometricDrawingCommandBase(state, opcode, operands)
+public abstract class FillableGeometricDrawingCommandBase(NaplpsState state, byte opcode, NaplpsOperands operands) : GeometricDrawingCommandBase(state, opcode, operands)
 {
     public bool ShouldFill { get; internal set; }
 }

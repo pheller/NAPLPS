@@ -4,7 +4,7 @@ namespace NAPLPS.Commands;
 
 public class PolygonOutlinedCommand : PolygonCommand
 {
-    public PolygonOutlinedCommand(NaplpsState state, NaplpsOperands operands) : base(state, POLYGON_OUTLINED, operands)
+    public PolygonOutlinedCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(false, state, opcode, operands)
     {
         ShouldFill = false;
     }

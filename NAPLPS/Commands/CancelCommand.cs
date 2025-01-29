@@ -10,6 +10,6 @@ namespace NAPLPS.Commands;
 /// unprocessed presentation layer code. The operation of the CAN character is
 /// not guaranteed unless it is guaranteed to be delivered by the lower layers.
 /// </summary>
-public class CancelCommand(NaplpsState state, NaplpsOperands operands) : NaplpsCommand(state, CANCEL, operands)
+public class CancelCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : NaplpsCommand(state, opcode, operands)
 {
 }

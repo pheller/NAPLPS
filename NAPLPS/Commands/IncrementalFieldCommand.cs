@@ -8,7 +8,7 @@ public class IncrementalFieldCommand : GeometricDrawingCommandBase
 
     public Vector3 Dimensions { get; }
 
-    public IncrementalFieldCommand(NaplpsState state, NaplpsOperands operands) : base(state, INCREMENTAL_FIELD, operands)
+    public IncrementalFieldCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var vertices = ProcessVertices(Operands);
 

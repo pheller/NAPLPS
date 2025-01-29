@@ -56,7 +56,14 @@
 					<MenuItem Header="300bps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="300" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=300}" />
 					<MenuItem Header="110bps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="110" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=110}" />
 				</MenuItem>
+			</MenuItem>
+			<MenuItem Header="_Tools">
+				<MenuItem Header="_Toolbox"></MenuItem>
 				<Separator/>
+				<MenuItem Header="_Group Layers" IsEnabled="false"></MenuItem>
+				<MenuItem Header="_Ungroup Layers" IsEnabled="false"></MenuItem>
+				<Separator/>
+				<MenuItem Header="_Properties" IsEnabled="false"></MenuItem>
 				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
 			</MenuItem>
 			<MenuItem Header="_View">

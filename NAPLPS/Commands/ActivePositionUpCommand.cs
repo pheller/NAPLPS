@@ -4,7 +4,7 @@ namespace NAPLPS.Commands;
 
 public class ActivePositionUpCommand : NaplpsCommand
 {
-    public ActivePositionUpCommand(NaplpsState state, NaplpsOperands operands) : base(state, AP_UP, operands)
+    public ActivePositionUpCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         // State.MovePen(State.TextInterrowSpacing)
     }

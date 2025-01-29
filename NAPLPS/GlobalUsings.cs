@@ -11,7 +11,7 @@ global using IOPath = System.IO.Path;
 global using NAPLPS.Commands;
 global using NAPLPS.Helpers;
 
-global using static NAPLPS.NaplpsCommands;
+global using static NAPLPS.NaplpsControlCommands;
 global using static NAPLPS.NaplpsUtils;
 global using static NAPLPS.Commands.TextCommand;
 

@@ -97,7 +97,7 @@ public partial class SequenceWindowViewModel : ViewModelBase
 
         if (command is ShiftInCommand shiftInCommand)
         {
-            ExtraDetails = shiftInCommand.Text;
+            ExtraDetails = "FIX ME"; // shiftInCommand.Text;
         }
         else if (command is EscCommand escCommand)
         {

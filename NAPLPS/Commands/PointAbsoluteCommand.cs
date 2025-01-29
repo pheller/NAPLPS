@@ -2,6 +2,6 @@
 
 namespace NAPLPS.Commands;
 
-public class PointAbsoluteCommand(NaplpsState state, NaplpsOperands operands) : PointCommand(state, POINT_ABS, operands)
+public class PointAbsoluteCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : PointCommand(false, state, opcode, operands)
 {
 }
