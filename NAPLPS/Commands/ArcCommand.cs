@@ -58,6 +58,8 @@ namespace NAPLPS.Commands;
 /// </summary>
 public abstract class ArcCommand : FillableGeometricDrawingCommandBase
 {
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValue;
+
     public Vector3 StartPoint { get; internal set; }
 
     public Vector3 IntermediatePointDisplacement { get; internal set; }
@@ -80,7 +82,7 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
             }
             else if (operands.Count == State.MultiByteValue)
             {
-                // Circle
+                // Circle  
                 SetPen(State.Pen);
 
                 StartPoint = State.Pen;
@@ -110,7 +112,7 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
             {
                 SetPen(Vertices[0]);
 
-                // Circle
+                // Circle  
                 StartPoint = Vertices[0];
                 IntermediatePointDisplacement = StartPoint + Vertices[1];
                 EndPointDisplacement = Vertices[0];
@@ -125,5 +127,4 @@ public abstract class ArcCommand : FillableGeometricDrawingCommandBase
 
         SetPen(EndPointDisplacement);
     }
-
 }

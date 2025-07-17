@@ -10,6 +10,10 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class ResetCommand : NaplpsCommand
 {
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.Fixed;
+
+    public static new readonly int OperandCount = 2;
+
     /// <summary>
     /// If bit bl of byte 1 equals 1, the DOMAIN parameters are reset to their
     /// default values. If b1 is 0, the DOMAIN parameters are not changed.

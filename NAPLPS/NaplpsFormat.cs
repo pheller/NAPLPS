@@ -14,10 +14,19 @@ public partial class NaplpsFormat
 
     public bool IsValid { get; private set; }
 
+    /// <summary>If we are streaming, we'll assume there is no end and wait indefinately until more data comes in</summary>
+    public bool IsStreaming { get; private set; } = false;
+
     public List<NaplpsError> Errors { get; } = [];
 
     public List<NaplpsSequence> Commands { get; } = [];
 
+    /// <summary>
+    /// Eventually this doesn't need to be in the Format class, but for now it is; considering:
+    /// - It's not part of the NAPLPS specification.
+    /// - It's implimentation dependent and can vary between different NAPLPS systems.
+    /// - We'll eventually want to support different rendering styles for different systems.
+    /// </summary>
     public NaplpsState State { get; }
 
     private NaplpsFormat(BinaryReader reader) : this(reader, new()) { }
@@ -89,6 +98,8 @@ public partial class NaplpsFormat
             {
                 var opcode = reader.ReadByte();
 
+                // We operate in 7 bit mode until we get 8 bits,
+                // once switched, we can't go back to 7 bit mode.
                 if (opcode > 0x80)
                 {
                     Is7Bit = false;
@@ -106,15 +117,34 @@ public partial class NaplpsFormat
                 var commandType = commandReference.CommandType ?? typeof(NaplpsCommand);
                 var commandParameters = commandReference.Parameters;
 
+                var operandType = commandReference.OperandType;
                 var additionalParameters = new NaplpsOperands();
 
-                if (commandType == typeof(ControlCommand) && commandParameters.Length == 1)
+                if (operandType != NaplpsOperandType.None)
+                {
+                    while (IsValidNumericalDataNext(reader))
+                    {
+                        additionalParameters.Add(reader.ReadByte());
+                    }
+                }
+
+                if (commandReference.CommandType == typeof(NumericalDataCommand))
+                {
+                    // Should never get here??
+                    Debugger.Break();
+
+                    continue;
+                }
+
+                if (commandType == typeof(ControlCommand) && commandParameters.Count == 1)
                 {
                     var controlCommand = (NaplpsControlCommands)commandParameters[0];
 
                     if (controlCommand == Escape)
                     {
                         ControlCommandEscape(reader, additionalParameters);
+
+                        State.DoEscape(additionalParameters);
                     }
                     else if (controlCommand == NonSelectiveReset)
                     {
@@ -127,6 +157,11 @@ public partial class NaplpsFormat
                     else if (controlCommand == ShiftOut)
                     {
                         State.DoShiftOut();
+                    }
+                    else if (controlCommand == Cancel)
+                    {
+                        // Cancel all running macros and do not treat this as a queued command, if we're queuing...
+                        // Noop
                     }
                 }
 
@@ -150,9 +185,26 @@ public partial class NaplpsFormat
         return commands;
     }
 
+    private bool IsValidNumericalDataNext(BinaryReader reader)
+    {
+        if (reader.IsEOF())
+        {
+            return false;
+        }
+
+        var nextByte = reader.PeekByte();
+
+        var operandReference = State.InUseTable[nextByte];
+
+        var isNumericalData = operandReference.CommandType == typeof(NumericalDataCommand);
+
+        return isNumericalData;
+    }
+
     private static void ControlCommandEscape(BinaryReader reader, NaplpsOperands additionalParameters)
     {
         bool isEscape = true;
+
         while (isEscape && !reader.IsEOF())
         {
             var peakValue = reader.PeekByte();

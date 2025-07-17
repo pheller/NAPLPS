@@ -7,6 +7,8 @@ namespace NAPLPS.Commands;
 
 public class TextureCommand : GeometricDrawingCommandBase
 {
+    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.FixedAndMultiValue;
+
     public TexturePatterns TexturePattern { get; }
 
     public bool ShouldHighlight { get; }

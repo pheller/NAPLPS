@@ -38,7 +38,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string canvasSize = "1024x768";
 
     [ObservableProperty]
-    private string titleBar = DEFAULT_APP_NAME;
+    private string titleBar = DEFAULT_APP_NAME + " [" + Program.Version + "]";
 
     [ObservableProperty]
     private string fileName = DEFAULT_NO_FILE_NAME;
@@ -330,7 +330,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         FileName = DEFAULT_NO_FILE_NAME;
 
-        TitleBar = "NAPLPS Toolbox";
+        TitleBar = $"{DEFAULT_APP_NAME} [{Program.Version}]";
     }
 
     private async Task FileLoad(string filePath)
@@ -349,7 +349,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             FileName = IOPath.GetFileName(filePath);
 
-            TitleBar = $"{FileName} - NAPLPS Toolbox";
+            TitleBar = $"{FileName} - {DEFAULT_APP_NAME} [{Program.Version}]";
 
             BitWidth = loadedFile.Is7Bit ? "7-Bit" : "8-Bit";
 

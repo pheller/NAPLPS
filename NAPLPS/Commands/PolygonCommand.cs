@@ -4,6 +4,8 @@ namespace NAPLPS.Commands;
 
 public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
 {
+    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.MultiValue;
+
     public Vector3 StartPoint { get; private set; }
 
     public PolygonCommand(bool isSet, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)

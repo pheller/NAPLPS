@@ -4,6 +4,8 @@ namespace NAPLPS.Commands;
 
 public class WaitCommand : NaplpsCommand
 {
+    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.Fixed;
+
     /// <summary>The time to wait in 1/10 second increments</summary>
     public byte WaitTime { get; }
 

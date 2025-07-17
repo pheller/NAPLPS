@@ -4,6 +4,10 @@ namespace NAPLPS;
 
 public class NaplpsOperands : List<byte>
 {
+    public NaplpsOperands() : base() { }
+
+    public NaplpsOperands(IEnumerable<byte> operands) : base(operands) { }
+
     /// <summary>Get a range of NaplpsOperands</summary>
     /// <param name="range">The range requested</param>
     /// <returns>A new NaplpOperands, shallow copied, of the range requested</returns>

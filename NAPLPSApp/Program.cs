@@ -10,6 +10,8 @@ namespace NAPLPSApp;
 
 sealed class Program
 {
+    public const string Version = "0.1.0";
+
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
@@ -39,7 +41,7 @@ sealed class Program
 
         var messageBoxParams = new MessageBoxCustomParams
         {
-            ContentHeader = "A modern toolbox to read, save, create, and alter NAPLPS files, new and old!\nAn Open Source Project: https://github.com/FoxCouncil/NAPLPS",
+            ContentHeader = $"Version: {Version}\n\nA modern toolbox to read, save, create, and alter NAPLPS files, new and old!\nAn Open Source Project: https://github.com/FoxCouncil/NAPLPS",
             ContentTitle = "About NAPLPS Toolbox",
             ContentMessage = $"{bigDescription}\n\nCreated by Fox & Contributors!\n\tpheller\n\tportyspice",
             ButtonDefinitions = [new ButtonDefinition { Name = "Cool Beans!", IsDefault = true }],

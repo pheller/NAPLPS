@@ -10,6 +10,8 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class TextCommand : GeometricDrawingCommandBase
 {
+    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.FixedAndMultiValue;
+
     public TextCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         if (Operands.Count == 0)

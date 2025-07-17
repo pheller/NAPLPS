@@ -6,6 +6,8 @@ namespace NAPLPS.Commands;
 
 public abstract class LineCommand : GeometricDrawingCommandBase
 {
+    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.MultiValue;
+
     public LineCommand(bool isSet, bool isRelative, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         var verticies = ProcessVertices(operands);

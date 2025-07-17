@@ -12,6 +12,8 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class DomainCommand : GeometricDrawingCommandBase
 {
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.FixedAndMultiValue;
+
     public DomainCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         if (Operands.Count == 0)
@@ -19,13 +21,11 @@ public class DomainCommand : GeometricDrawingCommandBase
             return;
         }
 
-        State.SingleByteValue = ConvertBitsToByte([Operands[0, 1], Operands[0, 2]]);
-        State.SingleByteValue++;
+        var (singleByteValue, multiByteValue, dimensionality) = ProcessFixedByte(Operands);
 
-        State.MultiByteValue = ConvertBitsToByte([Operands[0, 3], Operands[0, 4], Operands[0, 5]]);
-        State.MultiByteValue++;
-
-        State.Dimensionality = (byte)(Operands[0, 6] ? 3 : 2);
+        State.SingleByteValue = singleByteValue;
+        State.MultiByteValue = multiByteValue;
+        State.Dimensionality = dimensionality;
 
         if (operands.Count > 1)
         {
@@ -33,5 +33,28 @@ public class DomainCommand : GeometricDrawingCommandBase
 
             State.LogicalPel = Vertices != null ? new Vector2(Vertices[0].X, Vertices[0].Y) : Vector2.Zero;
         }
+    }
+
+    public static (byte, byte, byte) ProcessFixedByte(byte operand)
+    {
+        return ProcessFixedByte(new NaplpsOperands([operand]));
+    }
+
+    public static (byte, byte, byte) ProcessFixedByte(NaplpsOperands operands)
+    {
+        if (operands.Count < 1)
+        {
+            return (0, 0, 0);
+        }
+
+        byte singleByteValue = ConvertBitsToByte([operands[0, 1], operands[0, 2]]);
+        singleByteValue++;
+
+        byte multiByteValue = ConvertBitsToByte([operands[0, 3], operands[0, 4], operands[0, 5]]);
+        multiByteValue++;
+
+        byte dimensionality = (byte)(operands[0, 6] ? 3 : 2);
+
+        return (singleByteValue, multiByteValue, dimensionality);
     }
 }

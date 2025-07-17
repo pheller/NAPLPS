@@ -4,6 +4,8 @@ namespace NAPLPS.Commands;
 
 public class IncrementalFieldCommand : GeometricDrawingCommandBase
 {
+    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.MultiValue;
+
     public Vector3 Origin { get; }
 
     public Vector3 Dimensions { get; }

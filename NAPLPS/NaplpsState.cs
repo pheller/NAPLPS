@@ -28,6 +28,12 @@ public class NaplpsState
 
     public NaplpsState()
     {
+        Reset();
+    }
+
+    /* In-Use Table Manipulation */
+    public void Reset()
+    {
         // 7-Bit Default In-Use Table
         C0Set.CopyTo(InUseTable, C0);
         PrimaryCharacterSet.CopyTo(InUseTable, GLeft);
@@ -36,8 +42,6 @@ public class NaplpsState
         C1Set.CopyTo(InUseTable, C1);
         GeneralPDISet.CopyTo(InUseTable, GRight);
     }
-
-    /* In-Use Table Manipulation */
 
     public void DoShiftIn()
     {
@@ -49,6 +53,26 @@ public class NaplpsState
     {
         GeneralPDISet.CopyTo(InUseTable, GLeft);
         InLockingManner = true;
+    }
+
+    public bool DoEscape(NaplpsOperands sequence)
+    {
+        // 7-bit escape sequence for C-Set Designation requires two bytes
+        if (sequence.Count < 2)
+        {
+            return false;
+        }
+
+        switch (sequence[0])
+        {
+            case CC.EscapeC0Set:
+            {
+                C0Set.CopyTo(InUseTable, C0);
+            }
+            break;
+        }
+
+        return true;
     }
 
     /* State Recording Utilities */

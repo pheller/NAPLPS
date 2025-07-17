@@ -3,9 +3,12 @@
 namespace NAPLPS.Commands;
 
 /// <summary>
+/// The SET COLOR command is used to specify color values applied to all subsequent graphics commands.
 /// </summary>
 public class SetColorCommand : NaplpsCommand
 {
+    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.MultiValue;
+
     public NaplpsColor Color;
 
     public SetColorCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
@@ -35,7 +38,7 @@ public class SetColorCommand : NaplpsCommand
         }
     }
 
-    private NaplpsColor ParseColorComponents(NaplpsOperands operands)
+    private static NaplpsColor ParseColorComponents(NaplpsOperands operands)
     {
         var color = new NaplpsColor();
 

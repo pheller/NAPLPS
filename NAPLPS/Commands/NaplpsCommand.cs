@@ -6,6 +6,10 @@ public class NaplpsCommand(NaplpsState state, byte opcode, NaplpsOperands operan
 {
     public byte OpCode { get; } = opcode;
 
+    public static NaplpsOperandType OperandType = NaplpsOperandType.None;
+
+    public static int OperandCount => 0;
+
     public NaplpsOperands Operands { get; } = operands ?? [];
 
     public bool IsValid { get; internal set; } = true;
