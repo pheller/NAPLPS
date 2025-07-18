@@ -218,7 +218,7 @@ public class NaplpsState
 
     public override string ToString()
     {
-        return $"{MultiByteValue}/{SingleByteValue} <{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y}) <{ColorMode},<{ColorMapForeground}, {ColorMapBackground}> F:{Foreground} B:{Background}";
+        return $"{MultiByteValue}/{SingleByteValue} <{ColorMode},<{ColorMapForeground:D2}, {ColorMapBackground:D2}> F:{Foreground:D2} B:{Background:D2} <{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y})";
     }
 
     public NaplpsState Clone()

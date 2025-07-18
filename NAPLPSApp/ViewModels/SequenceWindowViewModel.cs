@@ -116,7 +116,6 @@ public partial class SequenceWindowViewModel : ViewModelBase
         {
             IsColorInfoVisible = true;
 
-
             var str = $" ColorMode: {state.ColorMode}\n";
             ExtraDetails += $"Foreground: {state.ColorMapForeground} | {state.ColorMap[state.ColorMapForeground]}\n";
             ExtraDetails += $"Background: {state.ColorMapBackground} | {state.ColorMap[state.ColorMapBackground]}\n\n";
@@ -259,7 +258,7 @@ public partial class SequenceWindowViewModel : ViewModelBase
             Commands.Add(new CommandInfo
             {
                 Index = ++index,
-                OpCode = sequence.Command.OpCode.ToString("X"),
+                OpCode = sequence.Command.OpCode.ToString("X2"),
                 CommandType = sequence.Command.ToString().Replace("Command", string.Empty),
                 State = sequence.State.ToString(),
             });

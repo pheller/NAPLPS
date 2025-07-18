@@ -310,6 +310,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
         loadedFilePath = DEFAULT_NEW_FILE_NAME;
 
+        BuildDrawContext();
+
+        IsFileLoaded = true;
+
+        FileName = DEFAULT_NEW_FILE_NAME;
+
+        TitleBar = $"{FileName} - {DEFAULT_APP_NAME} [{Program.Version}]";
+
+        BitWidth = loadedFile.Is7Bit ? "7-Bit" : "8-Bit";
+
         await UpdateCanvas();
     }
 

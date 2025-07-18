@@ -56,8 +56,8 @@ public partial class NaplpsFormat
     {
         var newFile = new NaplpsFormat(new NaplpsState());
 
-        // Default
-        // newFile.AddCommand(CANCEL);
+        newFile.AddControlCommand(Cancel);
+        newFile.AddControlCommand(NonSelectiveReset);
 
         return newFile;
     }
@@ -86,6 +86,20 @@ public partial class NaplpsFormat
         // var newCommand = NaplpsCommand.Factory(State, command, operands);
 
         // Commands.Add(new NaplpsSequence(newCommand.State.Clone(), newCommand));
+    }
+
+    private void AddControlCommand(NaplpsControlCommands command, NaplpsOperands? operands = null)
+    {
+        var newCommand = new ControlCommand(command, State, (byte)command, operands ?? []);
+
+        if (newCommand.IsValid)
+        {
+            Commands.Add(new NaplpsSequence(newCommand.State.Clone(), newCommand));
+        }
+        else
+        {
+            // Errors.Add(new NaplpsError());
+        }
     }
 
     private List<NaplpsSequence> ReadStream(BinaryReader reader)
