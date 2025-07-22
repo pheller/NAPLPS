@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
+using System.Collections;
 
 namespace NAPLPS.Commands;
 

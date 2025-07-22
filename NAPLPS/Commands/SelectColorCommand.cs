@@ -1,4 +1,4 @@
-// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
@@ -9,7 +9,7 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class SelectColorCommand : NaplpsCommand
 {
-    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.SingleValue;
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.SingleValue;
 
     /// <summary>
     /// The SELECT COLOR opcode can take zero, one, or two single-value operands.

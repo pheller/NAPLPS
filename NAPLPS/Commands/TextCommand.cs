@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
@@ -10,7 +10,7 @@ namespace NAPLPS.Commands;
 /// </summary>
 public class TextCommand : GeometricDrawingCommandBase
 {
-    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.FixedAndMultiValue;
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.FixedAndMultiValue;
 
     public TextCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {

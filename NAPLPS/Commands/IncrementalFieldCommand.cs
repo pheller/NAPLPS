@@ -1,10 +1,10 @@
-﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
 public class IncrementalFieldCommand : GeometricDrawingCommandBase
 {
-    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.MultiValue;
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValue;
 
     public Vector3 Origin { get; }
 

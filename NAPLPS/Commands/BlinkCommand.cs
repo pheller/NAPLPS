@@ -1,4 +1,6 @@
-﻿namespace NAPLPS.Commands;
+﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
+namespace NAPLPS.Commands;
 
 internal class BlinkCommand : NaplpsCommand
 {

@@ -2,9 +2,9 @@
 
 namespace NAPLPSApp.Views;
 
-public partial class MainWindow : Window
+public partial class AddCommandWindow : Window
 {
-    public MainWindow()
+    public AddCommandWindow()
     {
         InitializeComponent();
     }

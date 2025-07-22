@@ -41,4 +41,10 @@
 	<ItemGroup>
 		<ProjectReference Include="..\NAPLPS\NAPLPS.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Views\AddCommandWindow.axaml.cs">
+	    <DependentUpon>AddCommandWindow.axaml</DependentUpon>
+	  </Compile>
+	</ItemGroup>
 </Project>

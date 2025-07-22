@@ -1,8 +1,8 @@
-// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
-public class NaplpsCommand(NaplpsState state, byte opcode, NaplpsOperands operands)
+public class NaplpsCommand(NaplpsState? state, byte opcode, NaplpsOperands? operands)
 {
     public byte OpCode { get; } = opcode;
 
@@ -14,7 +14,7 @@ public class NaplpsCommand(NaplpsState state, byte opcode, NaplpsOperands operan
 
     public bool IsValid { get; internal set; } = true;
 
-    public NaplpsState State { get; } = state;
+    public NaplpsState State { get; } = state ?? new NaplpsState();
 
     private static NaplpsCommand BreakAndReturn(NaplpsState state, byte opcode, NaplpsOperands operands)
     {

@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
+using System.Runtime.CompilerServices;
 
 namespace NAPLPS.Commands;
 

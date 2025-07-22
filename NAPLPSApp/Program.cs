@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Models;

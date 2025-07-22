@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSTests.Commands;
 
@@ -21,7 +21,7 @@ public class ShiftInCommandTests
     [TestMethod]
     public void ByteMagazineMarch1983Page163Road()
     {
-        const string asciiString = "ROAD";
+        // const string asciiString = "ROAD";
 
         //var shiftInCommand = new ShiftInCommand(new(), [0x52, 0x4F, 0x41, 0x44]);
 
@@ -39,7 +39,7 @@ public class ShiftInCommandTests
     [TestMethod]
     public void ByteMagazineMarch1983Page164Figure1()
     {
-        const string asciiString = "Figure 1";
+        // const string asciiString = "Figure 1";
 
         //var shiftInCommand = new ShiftInCommand(new(), [0x46, 0x69, 0x67, 0x75, 0x72, 0x65, 0x20, 0x31]);
 

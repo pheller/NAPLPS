@@ -1,10 +1,10 @@
-// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS.Commands;
 
 public class WaitCommand : NaplpsCommand
 {
-    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.Fixed;
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.Fixed;
 
     /// <summary>The time to wait in 1/10 second increments</summary>
     public byte WaitTime { get; }

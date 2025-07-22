@@ -1,4 +1,4 @@
-// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using System.Diagnostics;
 
@@ -6,7 +6,7 @@ namespace NAPLPS.Commands;
 
 public abstract class LineCommand : GeometricDrawingCommandBase
 {
-    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.MultiValue;
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValue;
 
     public LineCommand(bool isSet, bool isRelative, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {

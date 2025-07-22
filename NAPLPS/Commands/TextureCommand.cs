@@ -1,4 +1,4 @@
-// Copyright (c) 2024 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
 using LineTextures = NAPLPS.NaplpsTexture.LineTextures;
@@ -7,7 +7,7 @@ namespace NAPLPS.Commands;
 
 public class TextureCommand : GeometricDrawingCommandBase
 {
-    public static new readonly NaplpsOperandType OperandType =  NaplpsOperandType.FixedAndMultiValue;
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.FixedAndMultiValue;
 
     public TexturePatterns TexturePattern { get; }
 
