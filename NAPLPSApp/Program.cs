@@ -10,7 +10,7 @@ namespace NAPLPSApp;
 
 sealed class Program
 {
-    public const string Version = "0.1.1";
+    public const string Version = "0.1.2";
 
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
@@ -53,5 +53,27 @@ sealed class Program
         var messageBox = MessageBoxManager.GetMessageBoxCustom(messageBoxParams);
 
         await messageBox.ShowAsync();
+    }
+
+    public static async Task<bool> ShowQuestionDialogBox(Window owner, string title, string question)
+    {
+        var iconBitmap = new Bitmap(AssetLoader.Open(new Uri("avares://NAPLPSApp/Assets/naplps.ico")));
+
+        var messageBoxParams = new MessageBoxCustomParams
+        {
+            ContentHeader = title,
+            ContentTitle = "Question",
+            ContentMessage = question,
+            ButtonDefinitions = [new ButtonDefinition { Name = "Yes", IsDefault = true }, new ButtonDefinition { Name = "No" }],
+            WindowIcon = new WindowIcon(iconBitmap), // Set the window icon
+            ImageIcon = iconBitmap,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        };
+
+        var messageBox = MessageBoxManager.GetMessageBoxCustom(messageBoxParams);
+
+        var result = await messageBox.ShowWindowDialogAsync(owner);
+
+        return result == "Yes";
     }
 }

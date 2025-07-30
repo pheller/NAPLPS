@@ -1,5 +1,8 @@
 // Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
+using NAPLPS.Drawing;
+using NAPLPSApp.Views;
+
 namespace NAPLPSApp.ViewModels;
 
 public partial class SequenceWindowViewModel : ViewModelBase
@@ -61,6 +64,8 @@ public partial class SequenceWindowViewModel : ViewModelBase
 
     private NaplpsFormat loadedFile => context.NAPLPS;
 
+    private Window? addCommandWindow;
+
     public SequenceWindowViewModel(DrawContext context, AvaPlot avaPlot)
     {
         this.context = context;
@@ -82,6 +87,15 @@ public partial class SequenceWindowViewModel : ViewModelBase
     [RelayCommand]
     private void SelectionChanged()
     {
+        if (SelectedIndex >= loadedFile.Commands.Count)
+        {
+            SelectedIndex = loadedFile.Commands.Count - 1;
+        }
+        else if (SelectedIndex < 0)
+        {
+            SelectedIndex = 0;
+        }
+
         CurrentFrame = SelectedIndex + 1;
 
         CurrentSequence = loadedFile.Commands[SelectedIndex];
@@ -242,6 +256,59 @@ public partial class SequenceWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void Add(Window parent)
+    {
+        if (addCommandWindow == null)
+        {
+            addCommandWindow = new AddCommandWindow();
+
+            addCommandWindow.Closed += (s, e) => addCommandWindow = null;
+            addCommandWindow.ShowDialog(parent);
+        }
+        else
+        {
+            addCommandWindow.Close();
+            addCommandWindow = null;
+        }
+    }
+
+    [RelayCommand]
+    private async Task Delete(Window parent)
+    {
+        if (SelectedCommand == null)
+        {
+            return;
+        }
+
+        if (!await Program.ShowQuestionDialogBox(
+            parent,
+            "Delete Command " + SelectedCommand.ToString(),
+            "Are you sure you want to delete this command?\n\n" + SelectedCommand.ToString())
+        )
+        {
+            return;
+        }
+
+        var index = SelectedCommand.Index - 1;
+
+        if (index < 0 || index >= loadedFile.Commands.Count)
+        {
+            return;
+        }
+
+        loadedFile.Commands.RemoveAt(index);
+
+        LoadCommands();
+
+        if (CurrentFrame > TotalFrames)
+        {
+            CurrentFrame = TotalFrames;
+        }
+
+        SelectedIndex = CurrentFrame - 1;
+    }
+
+    [RelayCommand]
     private void ToggleDetailPane()
     {
         IsDetailPaneVisible = !IsDetailPaneVisible;
@@ -276,13 +343,4 @@ public partial class SequenceWindowViewModel : ViewModelBase
     }
 }
 
-public class CommandInfo
-{
-    public int Index { get; set; }
 
-    public string OpCode { get; set; } = string.Empty;
-
-    public string CommandType { get; set; } = string.Empty;
-
-    public string State { get; set; } = string.Empty;
-}

@@ -7,9 +7,27 @@
 		xmlns:i="https://github.com/projektanker/icons.avalonia"
 		xmlns:converters="clr-namespace:NAPLPSApp.Converters"
 		xmlns:Media="using:Avalonia.Media"
-		mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="768"
+		mc:Ignorable="d" d:DesignWidth="640" d:DesignHeight="200"
+		Width="640" Height="200"
 		x:Class="NAPLPSApp.Views.AddCommandWindow"
 		x:DataType="vm:AddCommandViewModel"
 		Icon="/Assets/naplps.ico"
 		Title="Add Command">
+	<Grid RowDefinitions="Auto,*" ColumnDefinitions="*">
+		<!-- Top Section: ComboBox -->
+		<ComboBox
+			Grid.Row="0"
+			HorizontalAlignment="Stretch"
+			ItemsSource="{Binding Commands}"
+			SelectedItem="{Binding SelectedCommand}">
+			<ComboBox.ItemTemplate>
+				<DataTemplate>
+					<TextBlock Text="{Binding Name}" />
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
+		</ComboBox>
+
+		<!-- Bottom Section: Command-specific Inputs -->
+		<TextBlock Grid.Row="1" Text="{Binding SelectedCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+	</Grid>
 </Window>

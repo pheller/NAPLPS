@@ -4,8 +4,22 @@ namespace NAPLPSApp.ViewModels;
 
 public partial class AddCommandViewModel : ViewModelBase
 {
-    public AddCommandViewModel(DrawContext context)
+    [ObservableProperty]
+    private ObservableCollection<NaplpsCommandReference> commands = [];
+
+    [ObservableProperty]
+    private string? selectedCommand;
+
+    public AddCommandViewModel()
     {
-        // this.context = context;
+        Commands.Clear();
+
+        // This will be temporary.
+        Commands = new ObservableCollection<NaplpsCommandReference>(
+            NaplpsState.GeneralPDISet
+                .Where(command => command.CommandType != typeof(NumericalDataCommand))
+        );
+
+        SelectedCommand = Commands.FirstOrDefault()?.Name;
     }
 }

@@ -35,9 +35,9 @@
 				<TextBlock Text="{Binding BitWidth}" VerticalAlignment="Center"/>
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
-				<Button i:Attached.Icon="fa-solid fa-plus" VerticalAlignment="Center"/>
+				<Button i:Attached.Icon="fa-solid fa-plus" VerticalAlignment="Center" Command="{Binding AddCommand}" CommandParameter="{Binding $parent[Window]}"/>
 				<Button i:Attached.Icon="fa-solid fa-pencil" VerticalAlignment="Center"/>
-				<Button i:Attached.Icon="fa-solid fa-trash" VerticalAlignment="Center"/>
+				<Button i:Attached.Icon="fa-solid fa-trash" VerticalAlignment="Center" Command="{Binding DeleteCommand}" CommandParameter="{Binding $parent[Window]}"/>
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 				<Button i:Attached.Icon="fa-solid fa-rectangle-list" Command="{Binding ToggleDetailPaneCommand}" IsVisible="{Binding IsDetailPaneVisible}" VerticalAlignment="Center"/>
@@ -51,7 +51,7 @@
 				  SelectedItem="{Binding SelectedCommand}"
 				  AutoGenerateColumns="False"
 				  IsReadOnly="True"
-				  SelectionMode="Extended">
+				  SelectionMode="Single">
 			<Interaction.Behaviors>
 				<EventTriggerBehavior EventName="SelectionChanged">
 					<InvokeCommandAction Command="{Binding SelectionChangedCommand}"/>

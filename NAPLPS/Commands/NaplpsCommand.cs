@@ -4,17 +4,9 @@ namespace NAPLPS.Commands;
 
 public class NaplpsCommand(NaplpsState? state, byte opcode, NaplpsOperands? operands)
 {
-    public byte OpCode { get; } = opcode;
-
     public static NaplpsOperandType OperandType = NaplpsOperandType.None;
 
     public static int OperandCount => 0;
-
-    public NaplpsOperands Operands { get; } = operands ?? [];
-
-    public bool IsValid { get; internal set; } = true;
-
-    public NaplpsState State { get; } = state ?? new NaplpsState();
 
     private static NaplpsCommand BreakAndReturn(NaplpsState state, byte opcode, NaplpsOperands operands)
     {
@@ -24,6 +16,14 @@ public class NaplpsCommand(NaplpsState? state, byte opcode, NaplpsOperands? oper
 
         return newUnknownCommand;
     }
+
+    public byte OpCode { get; } = opcode;
+
+    public NaplpsOperands Operands { get; } = operands ?? [];
+
+    public bool IsValid { get; internal set; } = true;
+
+    public NaplpsState State { get; } = state ?? new NaplpsState();
 
     public override string ToString()
     {

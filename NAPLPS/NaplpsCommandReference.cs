@@ -11,6 +11,8 @@ public class NaplpsCommandReference
 
     public List<object> Parameters { get; private set; }
 
+    public string Name => CommandType.Name.Replace("Command", string.Empty);
+
     public NaplpsOperandType OperandType
     {
         get

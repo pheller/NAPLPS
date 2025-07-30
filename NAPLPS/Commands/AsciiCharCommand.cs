@@ -10,4 +10,9 @@ public class AsciiCharCommand : NaplpsCommand
     {
         AsciiCharacter = asciiCharacter;
     }
+
+    public override string ToString()
+    {
+        return $"ASCII({AsciiCharacter})";
+    }
 }
