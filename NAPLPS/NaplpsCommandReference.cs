@@ -22,14 +22,14 @@ public class NaplpsCommandReference
                 return NaplpsOperandType.None;
             }
 
-            var field = CommandType.GetField(OperandTypeString) ?? CommandType.BaseType?.GetField(OperandTypeString);
+            var aField = CommandType.GetField(OperandTypeString) ?? CommandType.BaseType?.GetField(OperandTypeString);
 
-            if (field == null)
+            if (aField == null)
             {
                 return NaplpsOperandType.None;
             }
 
-            var value = field.GetValue(null);
+            var value = aField.GetValue(null);
 
             if (value is NaplpsOperandType operandType)
             {
@@ -49,14 +49,14 @@ public class NaplpsCommandReference
                 return 0;
             }
 
-            var field = CommandType.GetField(OperandCountString) ?? CommandType.BaseType?.GetField(OperandCountString);
+            var aField = CommandType.GetField(OperandCountString) ?? CommandType.BaseType?.GetField(OperandCountString);
 
-            if (field == null)
+            if (aField == null)
             {
                 return 0;
             }
 
-            var value = field.GetValue(null);
+            var value = aField.GetValue(null);
 
             if (value is int count)
             {

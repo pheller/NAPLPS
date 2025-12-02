@@ -1,8 +1,5 @@
 // Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
-using NAPLPS.Drawing;
-using NAPLPSApp.Views;
-
 namespace NAPLPSApp.ViewModels;
 
 public partial class SequenceWindowViewModel : ViewModelBase
