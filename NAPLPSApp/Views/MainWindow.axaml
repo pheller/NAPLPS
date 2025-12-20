@@ -12,6 +12,13 @@
 		x:DataType="vm:MainWindowViewModel"
 		Icon="/Assets/naplps.ico"
 		Title="{Binding TitleBar}">
+	<Window.KeyBindings>
+		<KeyBinding Command="{Binding PreviousFrameCommand}" Gesture="Left"/>
+		<KeyBinding Command="{Binding NextFrameCommand}" Gesture="Right"/>
+		<KeyBinding Command="{Binding FirstFrameCommand}" Gesture="Home"/>
+		<KeyBinding Command="{Binding LastFrameCommand}" Gesture="End"/>
+	</Window.KeyBindings>
+
 	<Window.Resources>
 		<converters:EqualityConverter x:Key="EqualityConverter" />
 		<converters:InequalityConverter x:Key="InequalityConverter" />

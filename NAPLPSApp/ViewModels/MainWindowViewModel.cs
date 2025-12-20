@@ -4,8 +4,6 @@ using Avalonia.Platform.Storage;
 
 using MsBox.Avalonia;
 
-using NAPLPSApp.Views;
-
 namespace NAPLPSApp.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
@@ -296,6 +294,87 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task About()
     {
         await Program.ShowAboutBox();
+    }
+
+    #endregion
+
+    #region Frame Navigation Handlers
+
+    [RelayCommand]
+    private async Task NextFrame()
+    {
+        if (drawContext == null || !IsFileLoaded)
+        {
+            return;
+        }
+
+        if (CurrentFrame < TotalFrames)
+        {
+            await RenderToFrame(CurrentFrame); // CurrentFrame is 1-based, so this renders the next frame
+        }
+    }
+
+    [RelayCommand]
+    private async Task PreviousFrame()
+    {
+        if (drawContext == null || !IsFileLoaded)
+        {
+            return;
+        }
+
+        if (CurrentFrame > 1)
+        {
+            await RenderToFrame(CurrentFrame - 2); // Go back one frame (CurrentFrame is 1-based)
+        }
+    }
+
+    [RelayCommand]
+    private async Task FirstFrame()
+    {
+        if (drawContext == null || !IsFileLoaded)
+        {
+            return;
+        }
+
+        await RenderToFrame(0);
+    }
+
+    [RelayCommand]
+    private async Task LastFrame()
+    {
+        if (drawContext == null || !IsFileLoaded)
+        {
+            return;
+        }
+
+        await RenderToFrame((int)drawContext.TotalFrames);
+    }
+
+    private async Task RenderToFrame(int frameIndex)
+    {
+        if (drawContext == null)
+        {
+            return;
+        }
+
+        renderCancellationToken?.Cancel();
+        renderCancellationToken = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Run(() => drawContext.Render((uint)frameIndex), renderCancellationToken.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Rendering was cancelled, ignore
+        }
+        catch (Exception ex)
+        {
+            if (App.MainWindow != null)
+            {
+                await MessageBoxManager.GetMessageBoxStandard("Error", $"Failed to render frame: {ex.Message}").ShowAsync();
+            }
+        }
     }
 
     #endregion
