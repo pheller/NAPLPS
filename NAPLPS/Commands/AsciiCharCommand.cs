@@ -9,6 +9,15 @@ public class AsciiCharCommand : NaplpsCommand
     public AsciiCharCommand(char asciiCharacter, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         AsciiCharacter = asciiCharacter;
+
+        MovePen(state);
+    }
+
+    private static void MovePen(NaplpsState state)
+    {
+        var pen = state.Pen;
+        pen.X += state.CharSize.X;
+        state.Pen = pen;
     }
 
     public override string ToString()

@@ -38,7 +38,7 @@ public class TextCommand : GeometricDrawingCommandBase
         {
             Vertices = ProcessVertices(Operands[2..]);
 
-            State.TextFieldSize = new Vector2(Vertices[0].X, Vertices[0].Y);
+            State.CharSize = new Vector2(Vertices[0].X, Vertices[0].Y);
         }
     }
 

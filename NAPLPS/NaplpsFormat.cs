@@ -69,7 +69,7 @@ public partial class NaplpsFormat
 
         foreach (var command in Commands)
         {
-            writer.Write((byte)command.Command.OpCode);
+            writer.Write(command.Command.OpCode);
 
             foreach (var operand in command.Command.Operands)
             {
@@ -150,6 +150,9 @@ public partial class NaplpsFormat
                     continue;
                 }
 
+                // Clone the current state before executing the command
+                var currentState = State.Clone();
+
                 if (commandType == typeof(ControlCommand) && commandParameters.Count == 1)
                 {
                     var controlCommand = (NaplpsControlCommands)commandParameters[0];
@@ -188,7 +191,7 @@ public partial class NaplpsFormat
                     continue;
                 }
 
-                commands.Add(new NaplpsSequence(command.State.Clone(), command));
+                commands.Add(new NaplpsSequence(currentState, command));
             }
         }
         catch (EndOfStreamException)

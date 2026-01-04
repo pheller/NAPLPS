@@ -1,16 +1,17 @@
 ﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
+using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Models;
-using MsBox.Avalonia;
 using Projektanker.Icons.Avalonia;
 using Projektanker.Icons.Avalonia.FontAwesome;
+using System.Reflection;
 
 namespace NAPLPSApp;
 
 sealed class Program
 {
-    public const string Version = "0.1.2";
+    public static string Version { get; } = GetLibraryVersion();
 
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
@@ -75,5 +76,19 @@ sealed class Program
         var result = await messageBox.ShowWindowDialogAsync(owner);
 
         return result == "Yes";
+    }
+
+    private static string GetLibraryVersion()
+    {
+        var assembly = typeof(NaplpsFormat).Assembly;
+
+        var info = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
+
+        if (!string.IsNullOrWhiteSpace(info?.Version))
+        {
+            return info.Version.ToString();
+        }
+
+        return assembly.GetName().Version?.ToString() ?? "?.?.?";
     }
 }

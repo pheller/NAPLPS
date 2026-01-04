@@ -4,6 +4,13 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+
+		<AssemblyVersion>0.1.3</AssemblyVersion>
+		<FileVersion>0.1.3</FileVersion>
+
+		<AssemblyTitle>NAPLPS</AssemblyTitle>
+		<Copyright>FoxCouncil &amp; Contributors; MIT Licensed</Copyright>
+		<Description>A modern toolbox to read, save, create, and alter NAPLPS files, new and old!&#x0A;An Open Source Project: https://github.com/FoxCouncil/NAPLPS</Description>
 	</PropertyGroup>
 
 	<ItemGroup>

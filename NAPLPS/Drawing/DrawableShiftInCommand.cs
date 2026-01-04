@@ -27,7 +27,7 @@ public class DrawableShiftInCommand : Drawable, IDrawable
         var point = new Point(x1, y1);
         var pointF = new PointF(point.X, point.Y);
 
-        var (charSizeX, charSizeY) = NaplpsUtils.ConvertNormalizedToScreenScale(size, state.TextFieldSize.X, state.TextFieldSize.Y);
+        var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
 
         var text = "FIX ME";
 

@@ -143,10 +143,10 @@ public partial class SequenceWindowViewModel : ViewModelBase
         }
         else if (command is TextCommand textCommand)
         {
-            ExtraDetails = $"Text Field Size: {textCommand.State.TextFieldSize}";
+            ExtraDetails = $"Text Field Size: {textCommand.State.CharSize}";
 
             var point = new Coordinates(state.Pen.X, state.Pen.Y);
-            var size = new Coordinates(state.TextFieldSize.X, state.TextFieldSize.Y);
+            var size = new Coordinates(state.CharSize.X, state.CharSize.Y);
 
             avaPlot.Plot.Add.Rectangle(
                 point.X,

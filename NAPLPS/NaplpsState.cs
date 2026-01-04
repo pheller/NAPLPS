@@ -1,11 +1,10 @@
 ﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using System.ComponentModel;
-
-using NCR = NAPLPS.NaplpsCommandReference;
-using CC = NAPLPS.Commands.ControlCommand;
 using AC = NAPLPS.Commands.AsciiCharCommand;
+using CC = NAPLPS.Commands.ControlCommand;
 using MC = NAPLPS.Commands.MosaicElementCommand;
+using NCR = NAPLPS.NaplpsCommandReference;
 
 namespace NAPLPS;
 
@@ -14,17 +13,17 @@ public class NaplpsState
 {
     public static JsonSerializerOptions GlobalJsonSerializerOptions { get; } = new()
     {
-        Converters = { new Vector3Converter(), new Vector2Converter() },
+        Converters = { new NCRArrayJsonConverter(), new Vector3JsonConverter(), new Vector2JsonConverter() },
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
     };
 
     /* Initialization */
 
-    readonly int C0 = 0;
-    readonly int GLeft = 32;
-    readonly int C1 = 128;
-    readonly int GRight = 160;
+    public static readonly int C0 = 0;
+    public static readonly int GLeft = 32;
+    public static readonly int C1 = 128;
+    public static readonly int GRight = 160;
 
     public NaplpsState()
     {
@@ -32,6 +31,7 @@ public class NaplpsState
     }
 
     /* In-Use Table Manipulation */
+
     public void Reset()
     {
         // 7-Bit Default In-Use Table
@@ -75,18 +75,9 @@ public class NaplpsState
         return true;
     }
 
-    /* State Recording Utilities */
-
-    public string ToJson() => JsonSerializer.Serialize(this, GlobalJsonSerializerOptions);
-
-    public static NaplpsState FromJson(string json) => JsonSerializer.Deserialize<NaplpsState>(json, GlobalJsonSerializerOptions) ?? new();
-
     /* In-Use Tables */
-
-    // Todo: Implement a viewer for this property
-    [Category("In-Use Tables")]
-    [ReadOnly(true)]
-    public NCR[] InUseTable = new NCR[256];
+    [Browsable(false)]
+    public NCR[] InUseTable { get; set; } = new NCR[256];
 
     [Category("In-Use Tables")]
     [ReadOnly(true)]
@@ -184,7 +175,7 @@ public class NaplpsState
     /// </summary>
     [Category("Text")]
     [ReadOnly(true)]
-    public Vector2 TextFieldSize { get; set; } = new Vector2(1.0f / 40.0f, 5.0f / 128.0f);
+    public Vector2 CharSize { get; set; } = new Vector2(1.0f / 40.0f, 5.0f / 128.0f);
 
     /* Color States */
 
@@ -216,14 +207,76 @@ public class NaplpsState
     [ReadOnly(true)]
     public NaplpsColor Background { get; set; } = new();
 
-    public override string ToString()
-    {
-        return $"{MultiByteValue}/{SingleByteValue} <{ColorMode},<{ColorMapForeground:D2}, {ColorMapBackground:D2}> F:{Foreground:D2} B:{Background:D2} <{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y})";
-    }
+    /* Helpers */
+
+    public string ToJson() => JsonSerializer.Serialize(this, GlobalJsonSerializerOptions);
+
+    public static NaplpsState FromJson(string json) => JsonSerializer.Deserialize<NaplpsState>(json, GlobalJsonSerializerOptions) ?? new();
 
     public NaplpsState Clone()
     {
-        return FromJson(ToJson());
+        var json = ToJson();
+
+        return FromJson(json);
+    }
+
+    // This is the "viewer" property that will show in the PropertyGrid.
+    [JsonIgnore]
+    [Category("In-Use Tables")]
+    [ReadOnly(true)]
+    [DisplayName("In-Use Table")]
+    [Description("Human-readable view of the 256-entry in-use table.")]
+    public string InUseTableView => FormatInUseTable();
+
+    private string FormatInUseTable()
+    {
+        static bool Matches(NCR[] table, int offset, NCR[] set)
+        {
+            if (offset + set.Length > table.Length)
+                return false;
+
+            for (int i = 0; i < set.Length; i++)
+                if (!ReferenceEquals(table[offset + i], set[i]))
+                    return false;
+
+            return true;
+        }
+
+        string Resolve(int offset, params (string name, NCR[] set)[] candidates)
+        {
+            foreach (var (name, set) in candidates)
+                if (Matches(InUseTable, offset, set))
+                    return name;
+
+            return "Unknown";
+        }
+
+        var c0 = Resolve(C0,
+            ("C0Set", C0Set)
+        );
+
+        var gLeft = Resolve(GLeft,
+            ("PrimaryCharacterSet", PrimaryCharacterSet),
+            ("SupplementaryCharacterSet", SupplementaryCharacterSet),
+            ("GeneralPDISet", GeneralPDISet),
+            ("MosiacSet", MosiacSet)
+        );
+
+        var c1 = Resolve(C1,
+            ("C1Set", C1Set)
+        );
+
+        var gRight = Resolve(GRight,
+            ("GeneralPDISet", GeneralPDISet),
+            ("MosiacSet", MosiacSet)
+        );
+
+        return $"C0={c0}\nGLeft={gLeft}\nC1={c1}\nGRight={gRight}";
+    }
+
+    public override string ToString()
+    {
+        return $"{MultiByteValue}/{SingleByteValue} <{ColorMode},<{ColorMapForeground:D2}, {ColorMapBackground:D2}> F:{Foreground:D2} B:{Background:D2} <{Pen.X},{Pen.Y}>({LogicalPel.X},{LogicalPel.Y})";
     }
 
     /* Defaults */

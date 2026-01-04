@@ -2,7 +2,7 @@
 
 namespace NAPLPS.Helpers;
 
-public class Vector3Converter : JsonConverter<Vector3>
+public class Vector3JsonConverter : JsonConverter<Vector3>
 {
     public override Vector3 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

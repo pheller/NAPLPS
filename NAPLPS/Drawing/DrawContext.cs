@@ -147,9 +147,9 @@ public class DrawContext : IDisposable
                 return new DrawableResetCommand(resetCommand);
             }
 
-            case ShiftInCommand shiftInCommand:
+            case AsciiCharCommand asciiCharCommand:
             {
-                return new DrawableShiftInCommand(shiftInCommand);
+                return new DrawableAsciiChar(asciiCharCommand);
             }
 
             case PointCommand pointCommand:
