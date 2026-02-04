@@ -20,6 +20,8 @@ public class DrawContext : IDisposable
 
     public uint TotalFrames;
 
+    public DrawContext() { }
+
     public DrawContext(NaplpsFormat naplps, Size size)
     {
         NAPLPS = naplps ?? throw new ArgumentNullException(nameof(naplps));

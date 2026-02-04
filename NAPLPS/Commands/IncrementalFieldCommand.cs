@@ -16,6 +16,10 @@ public class IncrementalFieldCommand : GeometricDrawingCommandBase
 
         if (operands.Count == 0)
         {
+            // If no data bytes follow the FIELD opcode, the active field is set to the full unit
+            // screen and the origin point is (0, 0).
+            state.Field = new NaplpsField();
+
             return;
         }
 
@@ -31,5 +35,6 @@ public class IncrementalFieldCommand : GeometricDrawingCommandBase
         }
 
         state.Field = new NaplpsField(Origin, Dimensions);
+        state.Pen = Origin;
     }
 }

@@ -13,4 +13,11 @@ public struct NaplpsField
         Origin = origin;
         Dimensions = dimensions;
     }
+
+    public override string ToString()
+    {
+        // string display this class
+
+        return $"{Origin}, {Dimensions}";
+    }
 }

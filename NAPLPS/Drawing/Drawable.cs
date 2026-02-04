@@ -1,10 +1,9 @@
 ﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
-
 using Brush = SixLabors.ImageSharp.Drawing.Processing.Brush;
-using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
+using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using SolidBrush = SixLabors.ImageSharp.Drawing.Processing.SolidBrush;
 using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
 
@@ -13,6 +12,11 @@ namespace NAPLPS.Drawing;
 /// <summary>Used on every drawable shape or command.</summary>
 public class Drawable
 {
+    public static class Options
+    {
+        public static bool DebugTextDrawing { get; set; } = true;
+    }
+
     private readonly NaplpsCommand _baseCommand;
     private readonly NaplpsState _state;
 
@@ -156,14 +160,35 @@ public class Drawable
         }
     }
 
+    internal (NaplpsColor, NaplpsColor) GetNaplpsColorFromState()
+    {
+        var fgColor = _state.ColorMode == 0 ? _state.Foreground : _state.ColorMap[_state.ColorMapForeground];
+        var bgColor = _state.ColorMode == 0 ? _state.Background : _state.ColorMap[_state.ColorMapBackground];
+
+        return (fgColor, bgColor);
+    }
+
+    internal (Color, Color) GetColorFromState()
+    {
+        var (fgColor, bgColor) = GetNaplpsColorFromState();
+
+        return (fgColor.ToColor(), bgColor.ToColor());
+    }
+
+    internal (ISColor, ISColor) GetISColorFromState()
+    {
+        var (fgColor, bgColor) = GetColorFromState();
+
+        return (fgColor.ToISColor(), bgColor.ToISColor());
+    }
+
     internal (SolidBrush, SolidPen) GetBrushAndPenFromState()
     {
-        var bgcolor = _state.ColorMode == 2 ? _state.Foreground.ToColor() : _state.ColorMap[_state.ColorMapForeground].ToColor();
-        var fgcolor = _state.ColorMode == 2 ? _state.Background.ToColor() : _state.ColorMap[_state.ColorMapBackground].ToColor();
+        var (fgColor, bgColor) = GetISColorFromState();
 
         return (
-            Brushes.Solid(bgcolor.ToISColor()),
-            Pens.Solid(fgcolor.ToISColor(), _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X)
+            Brushes.Solid(bgColor),
+            Pens.Solid(fgColor, _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X)
         );
     }
 }

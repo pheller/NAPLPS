@@ -7,6 +7,8 @@ public partial class SequenceWindow : Window
     public SequenceWindow()
     {
         InitializeComponent();
+
+        DataContext = new SequenceWindowViewModel();
     }
 
     public SequenceWindow(DrawContext drawContext) : this()

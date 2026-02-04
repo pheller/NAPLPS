@@ -100,4 +100,15 @@ public static class Extensions
         return (red6Bit, green6Bit, blue6Bit);
     }
 
+    /* Vector Helpers */
+
+    public static Vector3 ToVector3(this Vector2 vec2, float z = 0f)
+    {
+        return new Vector3(vec2.X, vec2.Y, z);
+    }
+
+    public static Vector2 ToVector2(this Vector3 vec3)
+    {
+        return new Vector2(vec3.X, vec3.Y);
+    }
 }

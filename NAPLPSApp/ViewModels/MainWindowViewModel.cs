@@ -230,6 +230,16 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             sequenceWindow = new SequenceWindow(drawContext);
 
+            if (sequenceWindow.DataContext == null)
+            {
+                return;
+            }
+
+            ((SequenceWindowViewModel)sequenceWindow.DataContext).FrameChanged += async (sender, index) =>
+            {
+                await RenderToFrame(index);
+            };
+
             sequenceWindow.Closed += (s, e) => sequenceWindow = null;
             sequenceWindow.Show();
         }

@@ -24,24 +24,31 @@
 			<StackPanel Orientation="Horizontal" Margin="5">
 				<Button i:Attached.Icon="fa-solid fa-arrow-left" VerticalAlignment="Center" Command="{Binding FramePreviousCommand}"/>
 				<Button i:Attached.Icon="fa-solid fa-arrow-right" VerticalAlignment="Center" Command="{Binding FrameNextCommand}"/>
+				
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 				<i:Icon Value="fa-solid fa-film" Margin="0,0,5,0" />
 				<TextBlock Text="{Binding CurrentFrame}" VerticalAlignment="Center"/>
 				<TextBlock Text="/" VerticalAlignment="Center"/>
 				<TextBlock Text="{Binding TotalFrames}" VerticalAlignment="Center"/>
+				
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 				<TextBlock Text="{Binding BitWidth}" VerticalAlignment="Center"/>
+				
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 				<Button i:Attached.Icon="fa-solid fa-plus" VerticalAlignment="Center" Command="{Binding AddCommand}" CommandParameter="{Binding $parent[Window]}"/>
 				<Button i:Attached.Icon="fa-solid fa-pencil" VerticalAlignment="Center"/>
 				<Button i:Attached.Icon="fa-solid fa-trash" VerticalAlignment="Center" Command="{Binding DeleteCommand}" CommandParameter="{Binding $parent[Window]}"/>
+				
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
-				<Button i:Attached.Icon="fa-solid fa-rectangle-list" Command="{Binding ToggleDetailPaneCommand}" IsVisible="{Binding IsDetailPaneVisible}" VerticalAlignment="Center"/>
-				<Button i:Attached.Icon="fa-regular fa-rectangle-list" Command="{Binding ToggleDetailPaneCommand}" IsVisible="{Binding !IsDetailPaneVisible}" VerticalAlignment="Center"/>
+				<Button i:Attached.Icon="{Binding TimelineSyncIcon}" Command="{Binding ToggleTimelineSyncLockCommand}" />
+
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<Button i:Attached.Icon="{Binding DetailPaneIcon}" Command="{Binding ToggleDetailPaneCommand}" VerticalAlignment="Center"/>
 			</StackPanel>
 		</Border>
 

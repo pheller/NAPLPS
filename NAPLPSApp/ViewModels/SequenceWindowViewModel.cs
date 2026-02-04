@@ -38,7 +38,16 @@ public partial class SequenceWindowViewModel : ViewModelBase
     private int totalFrames;
 
     [ObservableProperty]
+    private string detailPaneIcon = "fa-solid fa-rectangle-list";
+
+    [ObservableProperty]
     private bool isDetailPaneVisible = true;
+
+    [ObservableProperty]
+    private string timelineSyncIcon = "fa-solid padlock-open";
+
+    [ObservableProperty]
+    private bool isTimelineSyncLocked = false;
 
     [ObservableProperty]
     private bool isColorInfoVisible = false;
@@ -63,6 +72,14 @@ public partial class SequenceWindowViewModel : ViewModelBase
 
     private Window? addCommandWindow;
 
+    public event EventHandler<int>? FrameChanged;
+
+    public SequenceWindowViewModel()
+    {
+        this.context = new DrawContext();
+        this.avaPlot = new AvaPlot();
+    }
+
     public SequenceWindowViewModel(DrawContext context, AvaPlot avaPlot)
     {
         this.context = context;
@@ -81,6 +98,14 @@ public partial class SequenceWindowViewModel : ViewModelBase
         SelectionChanged();
     }
 
+    public void SyncToCurrentFrame()
+    {
+        if (IsTimelineSyncLocked)
+        {
+            SelectedIndex = (int)context.CurrentIndex;
+        }
+    }
+
     [RelayCommand]
     private void SelectionChanged()
     {
@@ -91,6 +116,11 @@ public partial class SequenceWindowViewModel : ViewModelBase
         else if (SelectedIndex < 0)
         {
             SelectedIndex = 0;
+        }
+
+        if (IsTimelineSyncLocked)
+        {
+            FrameChanged?.Invoke(this, SelectedIndex);
         }
 
         CurrentFrame = SelectedIndex + 1;
@@ -146,16 +176,16 @@ public partial class SequenceWindowViewModel : ViewModelBase
             ExtraDetails = $"Text Field Size: {textCommand.State.CharSize}";
 
             var point = new Coordinates(state.Pen.X, state.Pen.Y);
-            var size = new Coordinates(state.CharSize.X, state.CharSize.Y);
+            var size = new Coordinates(state.Pen.X + state.CharSize.X, state.Pen.Y + state.CharSize.Y);
 
             avaPlot.Plot.Add.Rectangle(
                 point.X,
                 point.Y,
-                point.X + size.X,
-                point.Y + size.Y
+                point.X + state.CharSize.X,
+                point.Y + state.CharSize.Y
             );
 
-            avaPlot.Plot.Add.Marker(point);
+            avaPlot.Plot.Add.Marker(point, color: ScottPlot.Color.Gray(0));
             avaPlot.Plot.Add.Marker(size);
         }
         else if (command is DomainCommand domainCommand)
@@ -169,6 +199,25 @@ public partial class SequenceWindowViewModel : ViewModelBase
             ExtraDetails += $"HIGHLGT: {textureCommand.ShouldHighlight}\n";
             ExtraDetails += $"TEXTURE: {textureCommand.TexturePattern}\n\n";
             ExtraDetails += $"MASK SZ: {textureCommand.MaskSize}";
+        }
+        else if (command is IncrementalFieldCommand incrementalFieldCommand)
+        {
+            ExtraDetails = $"Origin Size: {incrementalFieldCommand.Origin}\n";
+            ExtraDetails += $" Field Size: {incrementalFieldCommand.Dimensions}";
+
+            avaPlot.Plot.Add.Marker(new Coordinates(state.Pen.X, state.Pen.Y), color: ScottPlot.Color.Gray(0));
+
+            var point = new Coordinates(incrementalFieldCommand.Origin.X, incrementalFieldCommand.Origin.Y);
+            var size = new Coordinates(incrementalFieldCommand.Dimensions.X, incrementalFieldCommand.Dimensions.Y);
+
+            avaPlot.Plot.Add.Rectangle(
+                point.X,
+                point.Y,
+                point.X + size.X,
+                point.Y + size.Y);
+
+            avaPlot.Plot.Add.Marker(point);
+            avaPlot.Plot.Add.Marker(size);
         }
         else if (command is GeometricDrawingCommandBase baseDrawCommand)
         {
@@ -306,9 +355,17 @@ public partial class SequenceWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void ToggleTimelineSyncLock()
+    {
+        IsTimelineSyncLocked = !IsTimelineSyncLocked;
+        TimelineSyncIcon = IsTimelineSyncLocked ? "fa-solid padlock" : "fa-solid padlock-open";
+    }
+
+    [RelayCommand]
     private void ToggleDetailPane()
     {
         IsDetailPaneVisible = !IsDetailPaneVisible;
+        DetailPaneIcon = IsDetailPaneVisible ? "fa-solid fa-rectangle-list" : "fa-regular fa-rectangle-list";
     }
 
     private void LoadCommands()
