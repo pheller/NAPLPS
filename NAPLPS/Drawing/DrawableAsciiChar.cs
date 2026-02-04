@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -14,6 +14,12 @@ public class DrawableAsciiChar : Drawable, IDrawable
     private static readonly FontCollection _fontCollection = new();
     private static readonly FontFamily _fontFamily;
 
+    // Pre-computed from measuring "Mg" at reference size 100:
+    // full glyph extent (top of M to bottom of g) and the Y offset from DrawText origin
+    // to the top of the tallest glyph.
+    private static readonly float _refLineHeight;
+    private static readonly float _refTopOffset;
+
     static DrawableAsciiChar()
     {
         var assembly = typeof(DrawableAsciiChar).Assembly;
@@ -26,6 +32,13 @@ public class DrawableAsciiChar : Drawable, IDrawable
         }
 
         _fontFamily = _fontCollection.Add(stream);
+
+        // Measure the full glyph extent at a reference size.
+        // "Mg" captures both the tallest ascender (M) and deepest descender (g).
+        var refFont = _fontFamily.CreateFont(100f, FontStyle.Regular);
+        var refBounds = TextMeasurer.MeasureBounds("Mg", new TextOptions(refFont));
+        _refLineHeight = refBounds.Height;
+        _refTopOffset = refBounds.Top;
     }
 
     public DrawableAsciiChar(AsciiCharCommand command) : base(command)
@@ -35,66 +48,45 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
-        // Convert the pen (normalized) to pixel coordinates
+        // Convert the pen (normalized NAPLPS coords) to screen pixel coordinates.
+        // ConvertNormalizedToPoint flips Y so penPoint is in screen coords (Y-down)
+        // at the bottom-left of the character cell.
         var penPoint = ConvertNormalizedToPoint(size, state.Pen.X, state.Pen.Y);
 
-        // Convert character cell size (normalized) to screen scale (pixels)
+        // Convert character cell size (normalized) to screen pixels
         var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
 
-        float charWidth = MathF.Max(1f, MathF.Abs(charSizeX));
-        float charHeight = MathF.Max(1f, MathF.Abs(charSizeY));
+        float cellW = MathF.Max(1f, MathF.Abs(charSizeX));
+        float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
 
-        // Per NAPLPS spec: pen is the lower-left corner of the character field
-        float drawX = penPoint.X;
-        float drawY = penPoint.Y - charHeight; // Shift box up so pen is bottom-left corner
+        // Cell top-left in screen coords (Y-down): pen is at bottom-left, top is above
+        float cellTopX = penPoint.X;
+        float cellTopY = penPoint.Y - cellH;
 
-        var pointF = new PointF(drawX, drawY);
-
-        var rect = new RectangleF(drawX, drawY, charWidth, charHeight);
+        var rect = new RectangleF(cellTopX, cellTopY, cellW, cellH);
 
         var (fgColor, bgColor) = GetISColorFromState();
 
-        var font = _fontFamily.CreateFont(charHeight * 0.80f, FontStyle.Regular);
+        // Scale font so the full glyph range (ascender + descender) fits within the cell.
+        // Leave a small margin for authentic NAPLPS pixel font spacing.
+        float targetHeight = cellH * 0.90f;
+        float fontSize = targetHeight * 100f / _refLineHeight;
+        var font = _fontFamily.CreateFont(fontSize, FontStyle.Regular);
 
-        // --- NAPLPS baseline positioning (additive) ---
-        // Baseline ~20% above bottom of field (per common NAPLPS guidance)
-        var baselineOffset = charHeight * 0.20f;
+        // Position the text block consistently for ALL characters (shared baseline).
+        // Scale the reference measurements to the current font size.
+        float scale = fontSize / 100f;
+        float scaledLineHeight = _refLineHeight * scale;
+        float scaledTopOffset = _refTopOffset * scale;
 
-        // Convert font metrics to a pixel ascender so we can place baseline more predictably.
-        var metrics = font.FontMetrics;
-        var ascenderPx = MathF.Abs(metrics.VerticalMetrics.Ascender / (float)metrics.UnitsPerEm * font.Size);
+        // Center the glyph block vertically within the cell
+        float vertPad = (cellH - scaledLineHeight) / 2f;
 
-        var baselineY = drawY + charHeight - baselineOffset;
+        // The DrawText origin Y: we want glyphs' top (at textOriginY + scaledTopOffset)
+        // to land at cellTopY + vertPad.
+        float textOriginY = cellTopY + vertPad - scaledTopOffset;
 
         var charText = _command.AsciiCharacter.ToString();
-
-        // --- NAPLPS glyph width fit (additive) ---
-        // Leave some margin in the character field for inter-character gap.
-        // NAPLPS guidance: if you cannot leave both, leave space on the right.
-        var horizontalPadding = MathF.Max(1f, charWidth * 0.10f);
-        var targetGlyphWidth = MathF.Max(1f, charWidth - horizontalPadding);
-
-        // Measure glyph width at current font size (uses ImageSharp text measurement).
-        var measured = TextMeasurer.MeasureBounds(charText, new TextOptions(font));
-        var measuredWidth = MathF.Max(1f, measured.Width / .85f);
-
-        var leftBearing = measured.Left;
-
-        var fitScaleX = MathF.Min(1f, targetGlyphWidth / measuredWidth);
-
-        var glyphX = drawX - (leftBearing / fitScaleX);
-
-        var naplpsTextPoint = new PointF(glyphX, baselineY - ascenderPx);
-
-        // Scale around the center of the character field so shrink-fit stays centered.
-        var fieldCenter = new PointF(drawX + (charWidth / 2f), drawY + (charHeight / 2f));
-
-        var widthFitTransform = Matrix3x2.CreateScale((float)(fitScaleX), 1f, fieldCenter);
-
-        var drawingOptions = new DrawingOptions
-        {
-            Transform = widthFitTransform
-        };
 
         image.Mutate(ctx =>
         {
@@ -107,21 +99,24 @@ public class DrawableAsciiChar : Drawable, IDrawable
                 var debugDashedPen = Pens.Dash(fgColor, 1f);
 
                 // Crosshair at pen origin (bottom-left of the box)
-                ctx.DrawLine(debugStrokePen, new PointF(drawX - 4, penPoint.Y), new PointF(drawX + 4, penPoint.Y));
-                ctx.DrawLine(debugStrokePen, new PointF(drawX, penPoint.Y - 4), new PointF(drawX, penPoint.Y + 4));
+                ctx.DrawLine(debugStrokePen, new PointF(cellTopX - 4, penPoint.Y), new PointF(cellTopX + 4, penPoint.Y));
+                ctx.DrawLine(debugStrokePen, new PointF(cellTopX, penPoint.Y - 4), new PointF(cellTopX, penPoint.Y + 4));
                 ctx.Draw(debugStrokePen, rect);
 
                 // ASCII code label (optional debug text)
-                var labelFontSize = MathF.Max(8f, MathF.Min(14f, charWidth));
+                var labelFontSize = MathF.Max(8f, MathF.Min(14f, cellW));
                 var labelFont = _fontFamily.CreateFont(labelFontSize, FontStyle.Regular);
                 var labelText = $"{(int)_command.AsciiCharacter}";
 
-                ctx.DrawText(labelText, labelFont, fgColor, new PointF(drawX + 2, drawY + 2));
+                ctx.DrawText(labelText, labelFont, fgColor, new PointF(cellTopX + 2, cellTopY + 2));
 
-                ctx.DrawLine(debugDashedPen, new PointF(drawX, baselineY), new PointF(drawX + charWidth, baselineY));
+                // Baseline reference line (bottom of glyph block)
+                float debugBaseline = cellTopY + vertPad + scaledLineHeight;
+                ctx.DrawLine(debugDashedPen, new PointF(cellTopX, debugBaseline), new PointF(cellTopX + cellW, debugBaseline));
             }
 
-            ctx.DrawText(drawingOptions, charText, font, fgColor, naplpsTextPoint);
+            // Draw at left edge of cell — same textOriginY for all characters (shared baseline)
+            ctx.DrawText(charText, font, fgColor, new PointF(cellTopX, textOriginY));
         });
     }
 }

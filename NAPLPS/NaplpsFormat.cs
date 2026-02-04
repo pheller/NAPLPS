@@ -180,6 +180,49 @@ public partial class NaplpsFormat
                         // Cancel all running macros and do not treat this as a queued command, if we're queuing...
                         // Noop
                     }
+                    else if (controlCommand == ActivePositionDown)
+                    {
+                        // Move pen down one interrow spacing (NAPLPS Y-up, so subtract)
+                        var pen = State.Pen;
+                        pen.Y -= State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
+                        State.Pen = pen;
+                    }
+                    else if (controlCommand == ActivePositionUp)
+                    {
+                        // Move pen up one interrow spacing
+                        var pen = State.Pen;
+                        pen.Y += State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
+                        State.Pen = pen;
+                    }
+                    else if (controlCommand == ActivePositionReturn)
+                    {
+                        // Carriage return: move pen X to left edge of active field
+                        var pen = State.Pen;
+                        pen.X = State.Field.Origin.X;
+                        State.Pen = pen;
+                    }
+                    else if (controlCommand == ActivePositionForward)
+                    {
+                        // Tab forward: advance pen one character width along text path
+                        var pen = State.Pen;
+                        pen.X += State.CharSize.X;
+                        State.Pen = pen;
+                    }
+                    else if (controlCommand == ActivePositionBackward)
+                    {
+                        // Backspace: move pen one character width backward along text path
+                        var pen = State.Pen;
+                        pen.X -= State.CharSize.X;
+                        State.Pen = pen;
+                    }
+                    else if (controlCommand == ActivePositionHome)
+                    {
+                        // Move pen to top-left of active field (origin X, top Y minus one char height)
+                        var pen = State.Pen;
+                        pen.X = State.Field.Origin.X;
+                        pen.Y = State.Field.Origin.Y + State.Field.Dimensions.Y - State.CharSize.Y;
+                        State.Pen = pen;
+                    }
                 }
 
                 var finalCommandParams = commandParameters.Concat([State, opcode, additionalParameters]).ToArray();
@@ -272,4 +315,13 @@ public partial class NaplpsFormat
             State.LogicalPel = new Vector2(0f, 0f);  // Default if invalid operands
         }
     }
+
+    private static float GetInterrowMultiplier(TextInterrowSpacing spacing) => spacing switch
+    {
+        TextInterrowSpacing.One => 1.0f,
+        TextInterrowSpacing.FiveQuarters => 1.25f,
+        TextInterrowSpacing.ThreeHalves => 1.5f,
+        TextInterrowSpacing.Two => 2.0f,
+        _ => 1.0f
+    };
 }

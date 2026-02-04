@@ -35,6 +35,13 @@ public class IncrementalFieldCommand : GeometricDrawingCommandBase
         }
 
         state.Field = new NaplpsField(Origin, Dimensions);
-        state.Pen = Origin;
+
+        // Position pen at the top of the field.
+        // NAPLPS text convention: FIELD followed by CR+LF positions the cursor at the
+        // first text row. The APD (line feed) will move pen down by CharSize.Y into the
+        // field's top row, so we start at Origin.Y + Dimensions.Y (field top edge).
+        var pen = Origin;
+        pen.Y = Origin.Y + Dimensions.Y;
+        state.Pen = pen;
     }
 }
