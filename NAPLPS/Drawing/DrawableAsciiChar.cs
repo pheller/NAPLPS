@@ -14,16 +14,16 @@ public class DrawableAsciiChar : Drawable, IDrawable
     private static readonly FontCollection _fontCollection = new();
     private static readonly FontFamily _fontFamily;
 
-    // Pre-computed from measuring "Mg" at reference size 100:
-    // full glyph extent (top of M to bottom of g) and the Y offset from DrawText origin
-    // to the top of the tallest glyph.
+    // Pre-computed reference measurements at size 100
     private static readonly float _refLineHeight;
     private static readonly float _refTopOffset;
+    private static readonly float _refCharWidth;
 
     static DrawableAsciiChar()
     {
         var assembly = typeof(DrawableAsciiChar).Assembly;
 
+        // Use PRM5X10 as the base font — it's the "standard" NAPLPS font
         using var stream = assembly.GetManifestResourceStream("NAPLPS.Fonts.PRM5X10.TTF");
 
         if (stream == null)
@@ -33,12 +33,14 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         _fontFamily = _fontCollection.Add(stream);
 
-        // Measure the full glyph extent at a reference size.
-        // "Mg" captures both the tallest ascender (M) and deepest descender (g).
+        // Measure reference bounds at size 100
         var refFont = _fontFamily.CreateFont(100f, FontStyle.Regular);
         var refBounds = TextMeasurer.MeasureBounds("Mg", new TextOptions(refFont));
+        var refWidthBounds = TextMeasurer.MeasureBounds("M", new TextOptions(refFont));
+
         _refLineHeight = refBounds.Height;
         _refTopOffset = refBounds.Top;
+        _refCharWidth = refWidthBounds.Width;
     }
 
     public DrawableAsciiChar(AsciiCharCommand command) : base(command)
@@ -49,8 +51,6 @@ public class DrawableAsciiChar : Drawable, IDrawable
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
         // Convert the pen (normalized NAPLPS coords) to screen pixel coordinates.
-        // ConvertNormalizedToPoint flips Y so penPoint is in screen coords (Y-down)
-        // at the bottom-left of the character cell.
         var penPoint = ConvertNormalizedToPoint(size, state.Pen.X, state.Pen.Y);
 
         // Convert character cell size (normalized) to screen pixels
@@ -59,7 +59,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
         float cellW = MathF.Max(1f, MathF.Abs(charSizeX));
         float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
 
-        // Cell top-left in screen coords (Y-down): pen is at bottom-left, top is above
+        // Cell top-left in screen coords (Y-down)
         float cellTopX = penPoint.X;
         float cellTopY = penPoint.Y - cellH;
 
@@ -67,24 +67,39 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         var (fgColor, bgColor) = GetISColorFromState();
 
-        // Scale font so the full glyph range (ascender + descender) fits within the cell.
-        // Leave a small margin for authentic NAPLPS pixel font spacing.
-        float targetHeight = cellH * 0.90f;
-        float fontSize = targetHeight * 100f / _refLineHeight;
+        // Use a fixed font size, then STRETCH it to fit the cell.
+        // This mimics how old NAPLPS renderers worked — they'd blit a bitmap
+        // font and stretch it to fit the character field dimensions.
+        float fontSize = 100f;
         var font = _fontFamily.CreateFont(fontSize, FontStyle.Regular);
 
-        // Position the text block consistently for ALL characters (shared baseline).
-        // Scale the reference measurements to the current font size.
-        float scale = fontSize / 100f;
-        float scaledLineHeight = _refLineHeight * scale;
-        float scaledTopOffset = _refTopOffset * scale;
+        // Calculate scale factors to stretch the glyph to fit the cell
+        // Leave a small margin (90% fill) for authentic spacing
+        float targetW = cellW * 0.85f;
+        float targetH = cellH * 0.90f;
 
-        // Center the glyph block vertically within the cell
+        float scaleX = targetW / _refCharWidth;
+        float scaleY = targetH / _refLineHeight;
+
+        // Scaled dimensions
+        float scaledLineHeight = _refLineHeight * scaleY;
+        float scaledTopOffset = _refTopOffset * scaleY;
+
+        // Center vertically
         float vertPad = (cellH - scaledLineHeight) / 2f;
 
-        // The DrawText origin Y: we want glyphs' top (at textOriginY + scaledTopOffset)
-        // to land at cellTopY + vertPad.
-        float textOriginY = cellTopY + vertPad - scaledTopOffset;
+        // Position for the glyph's top to land at cellTopY + vertPad
+        // But we need to account for the transform scaling around origin
+        float textOriginY = (cellTopY + vertPad - scaledTopOffset) / scaleY;
+        float textOriginX = cellTopX / scaleX;
+
+        // Create transform that scales from origin (0,0)
+        var transform = Matrix3x2.CreateScale(scaleX, scaleY);
+
+        var drawingOptions = new DrawingOptions
+        {
+            Transform = transform
+        };
 
         var charText = _command.AsciiCharacter.ToString();
 
@@ -103,20 +118,19 @@ public class DrawableAsciiChar : Drawable, IDrawable
                 ctx.DrawLine(debugStrokePen, new PointF(cellTopX, penPoint.Y - 4), new PointF(cellTopX, penPoint.Y + 4));
                 ctx.Draw(debugStrokePen, rect);
 
-                // ASCII code label (optional debug text)
+                // ASCII code label
                 var labelFontSize = MathF.Max(8f, MathF.Min(14f, cellW));
                 var labelFont = _fontFamily.CreateFont(labelFontSize, FontStyle.Regular);
                 var labelText = $"{(int)_command.AsciiCharacter}";
-
                 ctx.DrawText(labelText, labelFont, fgColor, new PointF(cellTopX + 2, cellTopY + 2));
 
-                // Baseline reference line (bottom of glyph block)
+                // Baseline reference line
                 float debugBaseline = cellTopY + vertPad + scaledLineHeight;
                 ctx.DrawLine(debugDashedPen, new PointF(cellTopX, debugBaseline), new PointF(cellTopX + cellW, debugBaseline));
             }
 
-            // Draw at left edge of cell — same textOriginY for all characters (shared baseline)
-            ctx.DrawText(charText, font, fgColor, new PointF(cellTopX, textOriginY));
+            // Draw with stretch transform
+            ctx.DrawText(drawingOptions, charText, font, fgColor, new PointF(textOriginX, textOriginY));
         });
     }
 }
