@@ -237,10 +237,10 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new DrawingOptions(), bgColor, rect);
-
             if (Options.DebugTextDrawing)
             {
+                ctx.Fill(new DrawingOptions(), bgColor, rect);
+
                 var debugStrokePen = Pens.Solid(fgColor, 1f);
                 var debugDashedPen = Pens.Dash(fgColor, 1f);
 

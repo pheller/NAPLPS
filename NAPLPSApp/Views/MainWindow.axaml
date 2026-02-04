@@ -96,7 +96,7 @@
 				</MenuItem>
 			</MenuItem>
 			<MenuItem Header="_Debug">
-				<!--<MenuItem Header="State" i:MenuItem.Icon="fa-solid fa-chart-diagram"/>-->
+				<MenuItem Header="_Text Debug" Command="{Binding ToggleDebugTextDrawingCommand}" IsEnabled="{Binding IsFileLoaded}" ToggleType="CheckBox" IsChecked="{Binding DebugTextDrawing}" i:MenuItem.Icon="fa-solid fa-font"/>
 			</MenuItem>
 			<MenuItem Header="_Help">
 				<MenuItem Header="_Help (github.com)" Command="{Binding HelpCommand}" i:MenuItem.Icon="fa-solid fa-question"/>

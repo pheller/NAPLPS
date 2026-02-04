@@ -47,6 +47,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool isFileLoaded;
 
+    [ObservableProperty]
+    private bool debugTextDrawing = Drawable.Options.DebugTextDrawing;
+
     private string loadedFilePath = string.Empty;
 
     private NaplpsFormat? loadedFile;
@@ -212,6 +215,15 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task ToggleLayers()
     {
         await MessageBoxManager.GetMessageBoxStandard("The Future", "This would've triggered the layers window/pane?").ShowAsync();
+    }
+
+    [RelayCommand]
+    private async Task ToggleDebugTextDrawing()
+    {
+        DebugTextDrawing = !DebugTextDrawing;
+        Drawable.Options.DebugTextDrawing = DebugTextDrawing;
+
+        await RenderToFrame(CurrentFrame - 1);
     }
 
     #endregion

@@ -14,7 +14,7 @@ public class Drawable
 {
     public static class Options
     {
-        public static bool DebugTextDrawing { get; set; } = true;
+        public static bool DebugTextDrawing { get; set; } = false;
     }
 
     private readonly NaplpsCommand _baseCommand;
