@@ -1,5 +1,7 @@
 // Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
+using NAPLPS.Drawing;
+
 namespace NAPLPS.Commands;
 
 public class AsciiCharCommand : NaplpsCommand
@@ -13,11 +15,11 @@ public class AsciiCharCommand : NaplpsCommand
         MovePen(state);
     }
 
-    private static void MovePen(NaplpsState state)
+    private void MovePen(NaplpsState state)
     {
         var pen = state.Pen;
 
-        float multiplier = state.TextSpacing switch
+        float spacingMultiplier = state.TextSpacing switch
         {
             TextSpacing.One => 1.0f,
             TextSpacing.FiveQuarters => 1.25f,
@@ -26,19 +28,22 @@ public class AsciiCharCommand : NaplpsCommand
             _ => 1.0f
         };
 
+        // Get proportional width ratio for this character
+        float widthRatio = DrawableAsciiChar.GetCharWidthRatio(AsciiCharacter);
+
         switch (state.TextPath)
         {
             case TextPath.Right:
-                pen.X += state.CharSize.X * multiplier;
+                pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
                 break;
             case TextPath.Left:
-                pen.X -= state.CharSize.X * multiplier;
+                pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
                 break;
             case TextPath.Up:
-                pen.Y += state.CharSize.Y * multiplier;
+                pen.Y += state.CharSize.Y * spacingMultiplier;
                 break;
             case TextPath.Down:
-                pen.Y -= state.CharSize.Y * multiplier;
+                pen.Y -= state.CharSize.Y * spacingMultiplier;
                 break;
         }
 

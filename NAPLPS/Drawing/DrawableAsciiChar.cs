@@ -19,6 +19,120 @@ public class DrawableAsciiChar : Drawable, IDrawable
     private static readonly float _refTopOffset;
     private static readonly float _refCharWidth;
 
+    // Width ratios for proportional spacing - conservative values to avoid squishing
+    // Range: 0.6 (narrow) to 1.0 (wide) - don't go below 0.6 or glyphs get too thin
+    private static readonly Dictionary<char, float> _charWidthRatios = new()
+    {
+        // Punctuation - narrow but not too narrow
+        [' '] = 0.70f,
+        ['!'] = 0.60f,
+        ['"'] = 0.75f,
+        ['#'] = 0.90f,
+        ['$'] = 0.85f,
+        ['%'] = 1.00f,
+        ['&'] = 0.90f,
+        ['\''] = 0.60f,
+        ['('] = 0.65f,
+        [')'] = 0.65f,
+        ['*'] = 0.75f,
+        ['+'] = 0.80f,
+        [','] = 0.60f,
+        ['-'] = 0.70f,
+        ['.'] = 0.60f,
+        ['/'] = 0.70f,
+
+        // Numbers - uniform width
+        ['0'] = 0.85f,
+        ['1'] = 0.70f,
+        ['2'] = 0.85f,
+        ['3'] = 0.85f,
+        ['4'] = 0.85f,
+        ['5'] = 0.85f,
+        ['6'] = 0.85f,
+        ['7'] = 0.85f,
+        ['8'] = 0.85f,
+        ['9'] = 0.85f,
+
+        // More punctuation
+        [':'] = 0.60f,
+        [';'] = 0.60f,
+        ['<'] = 0.75f,
+        ['='] = 0.80f,
+        ['>'] = 0.75f,
+        ['?'] = 0.75f,
+        ['@'] = 1.00f,
+
+        // Uppercase letters
+        ['A'] = 0.90f,
+        ['B'] = 0.85f,
+        ['C'] = 0.85f,
+        ['D'] = 0.90f,
+        ['E'] = 0.80f,
+        ['F'] = 0.80f,
+        ['G'] = 0.90f,
+        ['H'] = 0.90f,
+        ['I'] = 0.60f,
+        ['J'] = 0.75f,
+        ['K'] = 0.85f,
+        ['L'] = 0.80f,
+        ['M'] = 1.00f,
+        ['N'] = 0.90f,
+        ['O'] = 0.95f,
+        ['P'] = 0.85f,
+        ['Q'] = 0.95f,
+        ['R'] = 0.85f,
+        ['S'] = 0.85f,
+        ['T'] = 0.85f,
+        ['U'] = 0.90f,
+        ['V'] = 0.90f,
+        ['W'] = 1.00f,
+        ['X'] = 0.85f,
+        ['Y'] = 0.85f,
+        ['Z'] = 0.85f,
+
+        // Brackets and symbols
+        ['['] = 0.65f,
+        ['\\'] = 0.70f,
+        [']'] = 0.65f,
+        ['^'] = 0.75f,
+        ['_'] = 0.85f,
+        ['`'] = 0.60f,
+
+        // Lowercase letters
+        ['a'] = 0.80f,
+        ['b'] = 0.80f,
+        ['c'] = 0.75f,
+        ['d'] = 0.80f,
+        ['e'] = 0.80f,
+        ['f'] = 0.65f,
+        ['g'] = 0.80f,
+        ['h'] = 0.80f,
+        ['i'] = 0.60f,
+        ['j'] = 0.60f,
+        ['k'] = 0.75f,
+        ['l'] = 0.60f,
+        ['m'] = 1.00f,
+        ['n'] = 0.80f,
+        ['o'] = 0.80f,
+        ['p'] = 0.80f,
+        ['q'] = 0.80f,
+        ['r'] = 0.70f,
+        ['s'] = 0.75f,
+        ['t'] = 0.65f,
+        ['u'] = 0.80f,
+        ['v'] = 0.75f,
+        ['w'] = 1.00f,
+        ['x'] = 0.75f,
+        ['y'] = 0.75f,
+        ['z'] = 0.75f,
+
+        // More symbols
+        ['{'] = 0.70f,
+        ['|'] = 0.60f,
+        ['}'] = 0.70f,
+        ['~'] = 0.80f,
+    };
+
     static DrawableAsciiChar()
     {
         var assembly = typeof(DrawableAsciiChar).Assembly;
@@ -43,6 +157,20 @@ public class DrawableAsciiChar : Drawable, IDrawable
         _refCharWidth = refWidthBounds.Width;
     }
 
+    /// <summary>
+    /// Gets the width ratio of a character relative to full cell width.
+    /// Used for proportional text spacing.
+    /// </summary>
+    public static float GetCharWidthRatio(char c)
+    {
+        if (_charWidthRatios.TryGetValue(c, out float ratio))
+        {
+            return ratio;
+        }
+        // Fallback to average width for unknown characters
+        return 0.70f;
+    }
+
     public DrawableAsciiChar(AsciiCharCommand command) : base(command)
     {
         _command = command;
@@ -56,7 +184,11 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // Convert character cell size (normalized) to screen pixels
         var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
 
-        float cellW = MathF.Max(1f, MathF.Abs(charSizeX));
+        // Get proportional width for this character
+        float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
+
+        // Apply proportional width to cell
+        float cellW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
         float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
 
         // Cell top-left in screen coords (Y-down)
@@ -106,7 +238,6 @@ public class DrawableAsciiChar : Drawable, IDrawable
         image.Mutate(ctx =>
         {
             ctx.Fill(new DrawingOptions(), bgColor, rect);
-            ctx.Draw(Pens.Solid(bgColor, 1f), rect);
 
             if (Options.DebugTextDrawing)
             {
