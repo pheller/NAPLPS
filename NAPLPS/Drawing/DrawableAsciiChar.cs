@@ -83,6 +83,23 @@ public class DrawableAsciiChar : Drawable, IDrawable
         return _displacementRow8[widthClass] / 8f;
     }
 
+    /// <summary>
+    /// Gets a horizontal stretch boost factor for thin characters.
+    /// These characters have lots of built-in whitespace in the font and need
+    /// extra stretching to fill their cells properly.
+    /// </summary>
+    private static float GetThinCharacterBoost(char c)
+    {
+        return c switch
+        {
+            'i' or 'l' or ':' => 2.0f,   // Very thin - need 2x stretch
+            't' or 'j' or 'f' or 'r' => 1.5f,  // Moderately thin
+            '!' or '\'' or '.' or ',' or ';' => 1.8f,  // Thin punctuation
+            '(' or ')' or '[' or ']' or '|' => 1.6f,  // Brackets/pipe
+            _ => 1.0f  // Normal characters - no boost
+        };
+    }
+
     public DrawableAsciiChar(AsciiCharCommand command) : base(command)
     {
         _command = command;
@@ -122,8 +139,19 @@ public class DrawableAsciiChar : Drawable, IDrawable
         float targetW = cellW;
         float targetH = cellH * 0.90f;
 
-        float scaleX = targetW / _refCharWidth;
+        float baseScaleX = targetW / _refCharWidth;
         float scaleY = targetH / _refLineHeight;
+
+        // For thin characters, apply a horizontal stretch boost to fill the cell better
+        // These characters have lots of built-in whitespace in the font design
+        float boostFactor = GetThinCharacterBoost(_command.AsciiCharacter);
+        float scaleX = baseScaleX * boostFactor;
+
+        // Adjust X position to center the boosted glyph in its cell
+        float baseGlyphWidth = _refCharWidth * baseScaleX;
+        float boostedGlyphWidth = _refCharWidth * scaleX;
+        float extraWidth = boostedGlyphWidth - baseGlyphWidth;
+        float adjustedCellTopX = cellTopX - extraWidth / 2f;
 
         // Scaled dimensions
         float scaledLineHeight = _refLineHeight * scaleY;
@@ -135,7 +163,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // Position for the glyph's top to land at cellTopY + vertPad
         // But we need to account for the transform scaling around origin
         float textOriginY = (cellTopY + vertPad - scaledTopOffset) / scaleY;
-        float textOriginX = cellTopX / scaleX;
+        float textOriginX = adjustedCellTopX / scaleX;
 
         // Create transform that scales from origin (0,0)
         var transform = Matrix3x2.CreateScale(scaleX, scaleY);
