@@ -19,119 +19,29 @@ public class DrawableAsciiChar : Drawable, IDrawable
     private static readonly float _refTopOffset;
     private static readonly float _refCharWidth;
 
-    // Width ratios for proportional spacing - conservative values to avoid squishing
-    // Range: 0.6 (narrow) to 1.0 (wide) - don't go below 0.6 or glyphs get too thin
-    private static readonly Dictionary<char, float> _charWidthRatios = new()
+    // NAPLPS Spec-defined width classes (0-9) for ASCII 0x20-0x7E
+    // From docs/NAPLPS.ASC lines 2227-2245
+    // Class 9 = widest (full character field width), Class 0 = narrowest
+    // Goal: "make the interfont gap between all characters identical"
+    private static readonly byte[] _asciiWidthClass = new byte[95]
     {
-        // Punctuation - narrow but not too narrow
-        [' '] = 0.70f,
-        ['!'] = 0.60f,
-        ['"'] = 0.75f,
-        ['#'] = 0.90f,
-        ['$'] = 0.85f,
-        ['%'] = 1.00f,
-        ['&'] = 0.90f,
-        ['\''] = 0.60f,
-        ['('] = 0.65f,
-        [')'] = 0.65f,
-        ['*'] = 0.75f,
-        ['+'] = 0.80f,
-        [','] = 0.60f,
-        ['-'] = 0.70f,
-        ['.'] = 0.60f,
-        ['/'] = 0.70f,
-
-        // Numbers - uniform width
-        ['0'] = 0.85f,
-        ['1'] = 0.70f,
-        ['2'] = 0.85f,
-        ['3'] = 0.85f,
-        ['4'] = 0.85f,
-        ['5'] = 0.85f,
-        ['6'] = 0.85f,
-        ['7'] = 0.85f,
-        ['8'] = 0.85f,
-        ['9'] = 0.85f,
-
-        // More punctuation
-        [':'] = 0.60f,
-        [';'] = 0.60f,
-        ['<'] = 0.75f,
-        ['='] = 0.80f,
-        ['>'] = 0.75f,
-        ['?'] = 0.75f,
-        ['@'] = 1.00f,
-
-        // Uppercase letters
-        ['A'] = 0.90f,
-        ['B'] = 0.85f,
-        ['C'] = 0.85f,
-        ['D'] = 0.90f,
-        ['E'] = 0.80f,
-        ['F'] = 0.80f,
-        ['G'] = 0.90f,
-        ['H'] = 0.90f,
-        ['I'] = 0.60f,
-        ['J'] = 0.75f,
-        ['K'] = 0.85f,
-        ['L'] = 0.80f,
-        ['M'] = 1.00f,
-        ['N'] = 0.90f,
-        ['O'] = 0.95f,
-        ['P'] = 0.85f,
-        ['Q'] = 0.95f,
-        ['R'] = 0.85f,
-        ['S'] = 0.85f,
-        ['T'] = 0.85f,
-        ['U'] = 0.90f,
-        ['V'] = 0.90f,
-        ['W'] = 1.00f,
-        ['X'] = 0.85f,
-        ['Y'] = 0.85f,
-        ['Z'] = 0.85f,
-
-        // Brackets and symbols
-        ['['] = 0.65f,
-        ['\\'] = 0.70f,
-        [']'] = 0.65f,
-        ['^'] = 0.75f,
-        ['_'] = 0.85f,
-        ['`'] = 0.60f,
-
-        // Lowercase letters
-        ['a'] = 0.80f,
-        ['b'] = 0.80f,
-        ['c'] = 0.75f,
-        ['d'] = 0.80f,
-        ['e'] = 0.80f,
-        ['f'] = 0.65f,
-        ['g'] = 0.80f,
-        ['h'] = 0.80f,
-        ['i'] = 0.60f,
-        ['j'] = 0.60f,
-        ['k'] = 0.75f,
-        ['l'] = 0.60f,
-        ['m'] = 1.00f,
-        ['n'] = 0.80f,
-        ['o'] = 0.80f,
-        ['p'] = 0.80f,
-        ['q'] = 0.80f,
-        ['r'] = 0.70f,
-        ['s'] = 0.75f,
-        ['t'] = 0.65f,
-        ['u'] = 0.80f,
-        ['v'] = 0.75f,
-        ['w'] = 1.00f,
-        ['x'] = 0.75f,
-        ['y'] = 0.75f,
-        ['z'] = 0.75f,
-
-        // More symbols
-        ['{'] = 0.70f,
-        ['|'] = 0.60f,
-        ['}'] = 0.70f,
-        ['~'] = 0.80f,
+        // 0x20-0x2F: space ! " # $ % & ' ( ) * + , - . /
+        9, 0, 4, 6, 9, 9, 9, 0, 1, 1, 9, 9, 3, 5, 0, 9,
+        // 0x30-0x3F: 0 1 2 3 4 5 6 7 8 9 : ; < = > ?
+        5, 1, 5, 5, 5, 5, 5, 5, 5, 5, 0, 3, 5, 8, 5, 8,
+        // 0x40-0x4F: @ A B C D E F G H I J K L M N O
+        9, 5, 5, 5, 5, 5, 5, 8, 5, 2, 5, 5, 5, 9, 5, 9,
+        // 0x50-0x5F: P Q R S T U V W X Y Z [ \ ] ^ _
+        5, 6, 5, 5, 9, 5, 9, 9, 9, 9, 9, 4, 9, 4, 2, 9,
+        // 0x60-0x6F: ` a b c d e f g h i j k l m n o
+        1, 5, 5, 5, 5, 5, 5, 5, 5, 0, 4, 5, 0, 9, 5, 5,
+        // 0x70-0x7E: p q r s t u v w x y z { | } ~
+        5, 5, 5, 5, 2, 5, 9, 9, 9, 5, 5, 5, 0, 5, 9
     };
+
+    // Displacement table row 8 from NAPLPS spec (for text sizes < 12/256)
+    // Maps width class (0-9) to displacement value (2-8)
+    private static readonly int[] _displacementRow8 = { 2, 3, 4, 4, 5, 6, 7, 6, 7, 8 };
 
     static DrawableAsciiChar()
     {
@@ -159,16 +69,18 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
     /// <summary>
     /// Gets the width ratio of a character relative to full cell width.
-    /// Used for proportional text spacing.
+    /// Uses NAPLPS spec-defined width classes and displacement table.
     /// </summary>
     public static float GetCharWidthRatio(char c)
     {
-        if (_charWidthRatios.TryGetValue(c, out float ratio))
+        if (c < 0x20 || c > 0x7E)
         {
-            return ratio;
+            return 1.0f; // Full width for unknown characters
         }
-        // Fallback to average width for unknown characters
-        return 0.70f;
+
+        int widthClass = _asciiWidthClass[c - 0x20];
+        // Convert displacement value (2-8) to ratio (0.25-1.0)
+        return _displacementRow8[widthClass] / 8f;
     }
 
     public DrawableAsciiChar(AsciiCharCommand command) : base(command)
