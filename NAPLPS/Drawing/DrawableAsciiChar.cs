@@ -118,8 +118,8 @@ public class DrawableAsciiChar : Drawable, IDrawable
         var font = _fontFamily.CreateFont(fontSize, FontStyle.Regular);
 
         // Calculate scale factors to stretch the glyph to fit the cell
-        // Leave a small margin (90% fill) for authentic spacing
-        float targetW = cellW * 0.85f;
+        // Full horizontal fill, slight vertical margin for authentic spacing
+        float targetW = cellW;
         float targetH = cellH * 0.90f;
 
         float scaleX = targetW / _refCharWidth;
