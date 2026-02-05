@@ -96,7 +96,7 @@ public class DrawContext : IDisposable
     {
         // TODO: Reset the image??
         Render();
-        Image.SaveAsPng($"{filepath}.png");
+        Image.SaveAsPng(filepath);
     }
 
     private static IDrawable? ConvertToDrawable(NaplpsCommand command)

@@ -37,6 +37,11 @@ public abstract class EqualBaseConverter : IValueConverter
             return intValue == intParameter;
         }
 
+        if (value is uint uintValue && uint.TryParse(parameter.ToString(), out uint uintParameter))
+        {
+            return uintValue == uintParameter;
+        }
+
         if (value is Enum enumValue && Enum.TryParse(value.GetType(), parameter.ToString(), out var enumParameter))
         {
             return enumValue.Equals(enumParameter);

@@ -24,7 +24,16 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool isAnimated;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BaudRateDisplay))]
     private uint baudRate = 2400;
+
+    public string BaudRateDisplay => BaudRate switch
+    {
+        0 => "Fastest",
+        >= 1000000 => $"{BaudRate / 1000000.0:0.#}Mbps",
+        >= 1000 => $"{BaudRate / 1000.0:0.#}Kbps",
+        _ => $"{BaudRate}bps"
+    };
 
     [ObservableProperty]
     private int totalFrames;
@@ -57,6 +66,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private DrawContext? drawContext;
 
     private CancellationTokenSource? renderCancellationToken;
+
+    private readonly SemaphoreSlim renderLock = new(1, 1);
 
     private Window? sequenceWindow;
 
@@ -158,10 +169,17 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        var fileTypes = new FilePickerFileType[]
+        {
+            new("PNG Image") { Patterns = ["*.png"] }
+        };
+
         var options = new FilePickerSaveOptions
         {
             Title = "Export NAPLPS File to PNG",
             DefaultExtension = "png",
+            FileTypeChoices = fileTypes,
+            SuggestedFileName = IOPath.GetFileNameWithoutExtension(loadedFilePath)
         };
 
         var result = await App.MainWindow.StorageProvider.SaveFilePickerAsync(options);
@@ -207,7 +225,11 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             BaudRate = newRate;
 
-            await UpdateCanvas();
+            // Only restart rendering if animation is active
+            if (IsAnimated)
+            {
+                await UpdateCanvas();
+            }
         }
     }
 
@@ -379,11 +401,15 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        // Cancel any ongoing render
         renderCancellationToken?.Cancel();
-        renderCancellationToken = new CancellationTokenSource();
+
+        // Wait for the lock to ensure previous render is complete
+        await renderLock.WaitAsync();
 
         try
         {
+            renderCancellationToken = new CancellationTokenSource();
             await Task.Run(() => drawContext.Render((uint)frameIndex), renderCancellationToken.Token);
         }
         catch (OperationCanceledException)
@@ -396,6 +422,10 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 await MessageBoxManager.GetMessageBoxStandard("Error", $"Failed to render frame: {ex.Message}").ShowAsync();
             }
+        }
+        finally
+        {
+            renderLock.Release();
         }
     }
 
@@ -509,11 +539,16 @@ public partial class MainWindowViewModel : ViewModelBase
         if (loadedFile == null) return;
         if (drawContext == null) return;
 
+        // Cancel any ongoing render
         renderCancellationToken?.Cancel();
-        renderCancellationToken = new CancellationTokenSource();
+
+        // Wait for the lock to ensure previous render is complete
+        await renderLock.WaitAsync();
 
         try
         {
+            renderCancellationToken = new CancellationTokenSource();
+
             if (IsAnimated)
             {
                 uint delayInMilliseconds = (uint)(BaudRate == 0 ? 0 : (loadedFile.Commands.Count * 8 * 1000.0 / BaudRate));
@@ -542,6 +577,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
                 await messageBox.ShowAsync();
             }
+        }
+        finally
+        {
+            renderLock.Release();
         }
     }
 

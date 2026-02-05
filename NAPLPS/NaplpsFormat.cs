@@ -119,6 +119,79 @@ public partial class NaplpsFormat
                     Is7Bit = false;
                 }
 
+                // If we're in macro definition mode, buffer bytes until END
+                if (State.MacroBeingDefined != null)
+                {
+                    // Check for END command (0x85 in C1 set, or via lookup)
+                    var cmdRef = State.InUseTable[opcode];
+                    if (cmdRef?.CommandType == typeof(ControlCommand) &&
+                        cmdRef.Parameters.Count == 1 &&
+                        (NaplpsControlCommands)cmdRef.Parameters[0] == End)
+                    {
+                        // End macro definition
+                        var macroName = State.MacroBeingDefined.Value;
+                        var macroType = State.MacroDefType;
+                        State.Macros[macroName] = [.. State.MacroBuffer];
+                        State.MacroBeingDefined = null;
+                        State.MacroBuffer.Clear();
+
+                        // If DEFP MACRO (type 1), execute the macro immediately
+                        if (macroType == 1 && State.Macros.TryGetValue(macroName, out var macroData))
+                        {
+                            // Execute macro by parsing its bytes
+                            using var macroStream = new MemoryStream(macroData);
+                            using var macroReader = new BinaryReader(macroStream);
+                            var macroCommands = ReadStream(macroReader);
+                            commands.AddRange(macroCommands);
+                        }
+                        continue;
+                    }
+
+                    // Buffer this byte as part of the macro
+                    State.MacroBuffer.Add(opcode);
+                    continue;
+                }
+
+                // If we're in DRCS definition mode, buffer bytes until END
+                if (State.DrcsStartCode != null)
+                {
+                    var cmdRef = State.InUseTable[opcode];
+                    if (cmdRef?.CommandType == typeof(ControlCommand) &&
+                        cmdRef.Parameters.Count == 1 &&
+                        (NaplpsControlCommands)cmdRef.Parameters[0] == End)
+                    {
+                        // End DRCS definition - parse the bitmap data
+                        ParseDrcsData(State.DrcsStartCode.Value, State.DrcsBuffer);
+                        State.DrcsStartCode = null;
+                        State.DrcsBuffer.Clear();
+                        continue;
+                    }
+
+                    // Buffer this byte as part of the DRCS data
+                    State.DrcsBuffer.Add(opcode);
+                    continue;
+                }
+
+                // If we're in texture definition mode, buffer bytes until END
+                if (State.TextureBeingDefined != null)
+                {
+                    var cmdRef = State.InUseTable[opcode];
+                    if (cmdRef?.CommandType == typeof(ControlCommand) &&
+                        cmdRef.Parameters.Count == 1 &&
+                        (NaplpsControlCommands)cmdRef.Parameters[0] == End)
+                    {
+                        // End texture definition - parse the pattern data
+                        ParseTextureData(State.TextureBeingDefined.Value, State.TextureBuffer);
+                        State.TextureBeingDefined = null;
+                        State.TextureBuffer.Clear();
+                        continue;
+                    }
+
+                    // Buffer this byte as part of the texture data
+                    State.TextureBuffer.Add(opcode);
+                    continue;
+                }
+
                 var commandReference = State.InUseTable[opcode];
 
                 if (commandReference == null)
@@ -223,6 +296,151 @@ public partial class NaplpsFormat
                         pen.Y = State.Field.Origin.Y + State.Field.Dimensions.Y - State.CharSize.Y;
                         State.Pen = pen;
                     }
+                    // C1 Control Commands
+                    else if (controlCommand == ReverseVideo)
+                    {
+                        State.IsReverseVideo = true;
+                    }
+                    else if (controlCommand == NormalVideo)
+                    {
+                        State.IsReverseVideo = false;
+                    }
+                    else if (controlCommand == SmallText)
+                    {
+                        State.TextSizeMode = 1;
+                        // Small: half the normal size
+                        State.CharSize = new Vector2(1.0f / 80.0f, 5.0f / 256.0f);
+                    }
+                    else if (controlCommand == MedText)
+                    {
+                        State.TextSizeMode = 2;
+                        // Medium: 3/4 normal size
+                        State.CharSize = new Vector2(1.0f / 53.0f, 5.0f / 170.0f);
+                    }
+                    else if (controlCommand == NormalText)
+                    {
+                        State.TextSizeMode = 0;
+                        // Normal: default size (1/40 x 5/128)
+                        State.CharSize = new Vector2(1.0f / 40.0f, 5.0f / 128.0f);
+                    }
+                    else if (controlCommand == DoubleHeight)
+                    {
+                        State.TextSizeMode = 3;
+                        // Double height: normal width, 2x height
+                        State.CharSize = new Vector2(1.0f / 40.0f, 10.0f / 128.0f);
+                    }
+                    else if (controlCommand == DoubleSize)
+                    {
+                        State.TextSizeMode = 4;
+                        // Double size: 2x width and 2x height
+                        State.CharSize = new Vector2(2.0f / 40.0f, 10.0f / 128.0f);
+                    }
+                    else if (controlCommand == UnderLineStart)
+                    {
+                        State.IsUnderline = true;
+                    }
+                    else if (controlCommand == UnderLineStop)
+                    {
+                        State.IsUnderline = false;
+                    }
+                    else if (controlCommand == BlinkStart)
+                    {
+                        State.IsBlinkMode = true;
+                    }
+                    else if (controlCommand == BlinkStop)
+                    {
+                        State.IsBlinkMode = false;
+                    }
+                    else if (controlCommand == ScrollOn)
+                    {
+                        State.IsScrollMode = true;
+                    }
+                    else if (controlCommand == ScrollOff)
+                    {
+                        State.IsScrollMode = false;
+                    }
+                    else if (controlCommand == WordWrapOn)
+                    {
+                        State.IsWordWrapMode = true;
+                    }
+                    else if (controlCommand == WordWrapOff)
+                    {
+                        State.IsWordWrapMode = false;
+                    }
+                    else if (controlCommand == Protect)
+                    {
+                        State.IsProtectMode = true;
+                    }
+                    else if (controlCommand == Unprotect)
+                    {
+                        State.IsProtectMode = false;
+                    }
+                    // Macro definition commands
+                    else if (controlCommand == DefMacro)
+                    {
+                        // Read macro name from operands
+                        if (additionalParameters.Count > 0)
+                        {
+                            State.MacroBeingDefined = (char)additionalParameters[0];
+                            State.MacroDefType = 0; // Standard macro
+                            State.MacroBuffer.Clear();
+                        }
+                    }
+                    else if (controlCommand == DefPMacro)
+                    {
+                        // Read macro name from operands - execute after definition
+                        if (additionalParameters.Count > 0)
+                        {
+                            State.MacroBeingDefined = (char)additionalParameters[0];
+                            State.MacroDefType = 1; // Execute after definition
+                            State.MacroBuffer.Clear();
+                        }
+                    }
+                    else if (controlCommand == DefTMacro)
+                    {
+                        // Transmit macro - sends content to host when invoked
+                        if (additionalParameters.Count > 0)
+                        {
+                            State.MacroBeingDefined = (char)additionalParameters[0];
+                            State.MacroDefType = 2; // Transmit macro
+                            State.MacroBuffer.Clear();
+                        }
+                    }
+                    else if (controlCommand == SingleShiftTwo)
+                    {
+                        // SS2 invokes a macro - next byte is macro name
+                        if (additionalParameters.Count > 0)
+                        {
+                            var macroName = (char)additionalParameters[0];
+                            if (State.Macros.TryGetValue(macroName, out var macroData))
+                            {
+                                // Execute macro by parsing its bytes
+                                using var macroStream = new MemoryStream(macroData);
+                                using var macroReader = new BinaryReader(macroStream);
+                                var macroCommands = ReadStream(macroReader);
+                                commands.AddRange(macroCommands);
+                            }
+                        }
+                    }
+                    else if (controlCommand == DefDRCS)
+                    {
+                        // Start DRCS definition - first operand is starting character code
+                        if (additionalParameters.Count > 0)
+                        {
+                            State.DrcsStartCode = additionalParameters[0];
+                            State.DrcsBuffer.Clear();
+                        }
+                    }
+                    else if (controlCommand == DefTexture)
+                    {
+                        // Start texture pattern definition
+                        // First operand specifies which mask (A=0, B=1, C=2, D=3)
+                        if (additionalParameters.Count > 0)
+                        {
+                            State.TextureBeingDefined = additionalParameters[0];
+                            State.TextureBuffer.Clear();
+                        }
+                    }
                 }
 
                 var finalCommandParams = commandParameters.Concat([State, opcode, additionalParameters]).ToArray();
@@ -324,4 +542,84 @@ public partial class NaplpsFormat
         TextInterrowSpacing.Two => 2.0f,
         _ => 1.0f
     };
+
+    /// <summary>
+    /// Parses DRCS bitmap data and stores character definitions.
+    /// DRCS format: each character is an 8x10 bitmap (standard),
+    /// encoded as 10 bytes (one byte per row, 8 bits per pixel).
+    /// </summary>
+    private void ParseDrcsData(byte startCode, List<byte> data)
+    {
+        const int charWidth = 8;
+        const int charHeight = 10;
+        const int bytesPerChar = charHeight; // 1 byte per row for 8-pixel width
+
+        var charCode = startCode;
+        var index = 0;
+
+        while (index + bytesPerChar <= data.Count)
+        {
+            // Create bitmap for this character
+            var bitmap = new bool[charHeight, charWidth];
+
+            for (int row = 0; row < charHeight && index < data.Count; row++)
+            {
+                byte rowByte = data[index++];
+                for (int col = 0; col < charWidth; col++)
+                {
+                    // MSB is leftmost pixel
+                    bitmap[row, col] = (rowByte & (0x80 >> col)) != 0;
+                }
+            }
+
+            // Store the character bitmap
+            State.DrcsCharacters[charCode] = bitmap;
+            charCode++;
+        }
+    }
+
+    /// <summary>
+    /// Parses texture pattern data and stores the mask definition.
+    /// Texture patterns are bitmaps used for fill patterns.
+    /// </summary>
+    private void ParseTextureData(byte maskId, List<byte> data)
+    {
+        if (data.Count == 0) return;
+
+        // Determine pattern size from data length
+        // Common sizes are 8x8, 16x16, etc.
+        int size = (int)Math.Sqrt(data.Count * 8);
+        if (size < 1) size = 8;
+
+        var pattern = new bool[size, size];
+        int bitIndex = 0;
+
+        for (int row = 0; row < size && bitIndex / 8 < data.Count; row++)
+        {
+            for (int col = 0; col < size && bitIndex / 8 < data.Count; col++)
+            {
+                int byteIndex = bitIndex / 8;
+                int bitOffset = 7 - (bitIndex % 8);
+                pattern[row, col] = (data[byteIndex] & (1 << bitOffset)) != 0;
+                bitIndex++;
+            }
+        }
+
+        // Store the pattern in the appropriate mask slot
+        switch (maskId)
+        {
+            case 0:
+                State.TextureMaskA = pattern;
+                break;
+            case 1:
+                State.TextureMaskB = pattern;
+                break;
+            case 2:
+                State.TextureMaskC = pattern;
+                break;
+            case 3:
+                State.TextureMaskD = pattern;
+                break;
+        }
+    }
 }

@@ -177,6 +177,107 @@ public class NaplpsState
     [ReadOnly(true)]
     public Vector2 CharSize { get; set; } = new Vector2(1.0f / 40.0f, 5.0f / 128.0f);
 
+    /* C1 Control States */
+
+    /// <summary>Reverse video mode swaps foreground/background for text</summary>
+    [Category("C1 Controls")]
+    [ReadOnly(true)]
+    public bool IsReverseVideo { get; set; } = false;
+
+    /// <summary>Underline mode draws underline under text characters</summary>
+    [Category("C1 Controls")]
+    [ReadOnly(true)]
+    public bool IsUnderline { get; set; } = false;
+
+    /// <summary>Text size mode: 0=normal, 1=small, 2=medium, 3=double height, 4=double size</summary>
+    [Category("C1 Controls")]
+    [ReadOnly(true)]
+    public byte TextSizeMode { get; set; } = 0;
+
+    /// <summary>Scroll mode enables scrolling when text reaches bottom of field</summary>
+    [Category("C1 Controls")]
+    [ReadOnly(true)]
+    public bool IsScrollMode { get; set; } = false;
+
+    /// <summary>Word wrap mode wraps text at word boundaries</summary>
+    [Category("C1 Controls")]
+    [ReadOnly(true)]
+    public bool IsWordWrapMode { get; set; } = false;
+
+    /// <summary>Blink mode causes subsequent text to blink</summary>
+    [Category("C1 Controls")]
+    [ReadOnly(true)]
+    public bool IsBlinkMode { get; set; } = false;
+
+    /// <summary>Protect mode prevents field from being modified</summary>
+    [Category("C1 Controls")]
+    [ReadOnly(true)]
+    public bool IsProtectMode { get; set; } = false;
+
+    /* Macro States */
+
+    /// <summary>Storage for defined macros (keyed by macro name character)</summary>
+    [Browsable(false)]
+    public Dictionary<char, byte[]> Macros { get; set; } = new();
+
+    /// <summary>Currently defining a macro (null if not in macro definition mode)</summary>
+    [Browsable(false)]
+    public char? MacroBeingDefined { get; set; } = null;
+
+    /// <summary>Type of macro being defined: 0=DEF MACRO, 1=DEFP MACRO, 2=DEFT MACRO</summary>
+    [Browsable(false)]
+    public byte MacroDefType { get; set; } = 0;
+
+    /// <summary>Buffer for collecting macro bytes during definition</summary>
+    [Browsable(false)]
+    public List<byte> MacroBuffer { get; set; } = new();
+
+    /* DRCS States */
+
+    /// <summary>Storage for DRCS character bitmaps (keyed by character code)</summary>
+    [Browsable(false)]
+    public Dictionary<byte, bool[,]> DrcsCharacters { get; set; } = new();
+
+    /// <summary>Currently defining DRCS characters (null if not in DRCS definition mode)</summary>
+    [Browsable(false)]
+    public byte? DrcsStartCode { get; set; } = null;
+
+    /// <summary>Buffer for collecting DRCS bitmap data during definition</summary>
+    [Browsable(false)]
+    public List<byte> DrcsBuffer { get; set; } = new();
+
+    /* Texture Pattern States */
+
+    /// <summary>Programmable texture mask A (default: vertical hatching)</summary>
+    [Browsable(false)]
+    public bool[,]? TextureMaskA { get; set; } = null;
+
+    /// <summary>Programmable texture mask B (default: horizontal hatching)</summary>
+    [Browsable(false)]
+    public bool[,]? TextureMaskB { get; set; } = null;
+
+    /// <summary>Programmable texture mask C (default: cross hatching)</summary>
+    [Browsable(false)]
+    public bool[,]? TextureMaskC { get; set; } = null;
+
+    /// <summary>Programmable texture mask D (default: solid)</summary>
+    [Browsable(false)]
+    public bool[,]? TextureMaskD { get; set; } = null;
+
+    /// <summary>Currently defining texture pattern (null if not in texture definition mode)</summary>
+    [Browsable(false)]
+    public byte? TextureBeingDefined { get; set; } = null;
+
+    /// <summary>Buffer for collecting texture pattern data during definition</summary>
+    [Browsable(false)]
+    public List<byte> TextureBuffer { get; set; } = new();
+
+    /* Blink Animation States */
+
+    /// <summary>List of active blink processes</summary>
+    [Browsable(false)]
+    public List<BlinkProcess> BlinkProcesses { get; set; } = new();
+
     /* Color States */
 
     [Category("Color")]

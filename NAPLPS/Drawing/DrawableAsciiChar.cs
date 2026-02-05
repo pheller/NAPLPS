@@ -151,6 +151,12 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         var (fgColor, bgColor) = GetISColorFromState(state);
 
+        // Reverse video: swap foreground and background colors
+        if (state.IsReverseVideo)
+        {
+            (fgColor, bgColor) = (bgColor, fgColor);
+        }
+
         // Use a fixed font size, then STRETCH it to fit the cell.
         // This mimics how old NAPLPS renderers worked — they'd blit a bitmap
         // font and stretch it to fit the character field dimensions.
@@ -240,6 +246,15 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
             // Draw with stretch transform
             ctx.DrawText(drawingOptions, charText, font, fgColor, new PointF(textOriginX, textOriginY));
+
+            // Underline: draw line at bottom of character field
+            if (state.IsUnderline)
+            {
+                float underlineY = penPoint.Y - 1; // Just above the pen position (bottom of cell)
+                float underlineThickness = MathF.Max(1f, cellH * 0.05f);
+                var underlinePen = Pens.Solid(fgColor, underlineThickness);
+                ctx.DrawLine(underlinePen, new PointF(cellTopX, underlineY), new PointF(cellTopX + cellW, underlineY));
+            }
         });
     }
 }
