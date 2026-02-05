@@ -202,9 +202,22 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         image.Mutate(ctx =>
         {
+            // In color mode 2, fill character field with background color
+            // (modes 0 and 1 only draw foreground pixels, no background fill)
+            if (state.ColorMode == 2)
+            {
+                // Extend width by 1px to avoid gaps between adjacent characters
+                var bgRect = new RectangleF(rect.X, rect.Y, rect.Width + 1, rect.Height);
+
+                ctx.Fill(new DrawingOptions(), bgColor, bgRect);
+            }
+
             if (Options.DebugTextDrawing)
             {
-                ctx.Fill(new DrawingOptions(), bgColor, rect);
+                if (state.ColorMode != 2)
+                {
+                    ctx.Fill(new DrawingOptions(), bgColor, rect);
+                }
 
                 var debugStrokePen = Pens.Solid(fgColor, 1f);
                 var debugDashedPen = Pens.Dash(fgColor, 1f);
