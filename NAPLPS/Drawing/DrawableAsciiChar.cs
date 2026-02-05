@@ -92,12 +92,35 @@ public class DrawableAsciiChar : Drawable, IDrawable
     {
         return c switch
         {
-            'i' or 'l' or ':' => 2.0f,   // Very thin - need 2x stretch
-            't' or 'j' or 'f' or 'r' => 1.5f,  // Moderately thin
-            '!' or '\'' or '.' or ',' or ';' => 1.8f,  // Thin punctuation
+            'i' or 'l' or ':' or '.' or '\'' => 4.0f,   // Very thin - need 2x stretch
+            '1' or 'j' => 2.0f,  // Moderately thin
+            't' or 'I' or '!' or '.' or ',' or ';' => 1.8f,  // Thin punctuation
             '(' or ')' or '[' or ']' or '|' => 1.6f,  // Brackets/pipe
-            _ => 1.0f  // Normal characters - no boost
+            'f' => 1.2f,
+            'w' or 'm' or 'x' or 'M' or 'T' or '@' or '/' => 0.8f, // Too big
+            'v' => 0.6f, // Really big!
+            _ => 1.0f,  // Normal characters - no boost
         };
+    }
+
+    private static void GetCharXBackoff(ref float offsetX, char character)
+    {
+        switch (character)
+        {
+            case 't':
+            case '1':
+            case ',':
+            {
+                offsetX -= 10;
+            }
+            break;
+
+            case 'I':
+            {
+                offsetX -= 8;
+            }
+            break;
+        }
     }
 
     public DrawableAsciiChar(AsciiCharCommand command) : base(command)
@@ -164,6 +187,8 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // But we need to account for the transform scaling around origin
         float textOriginY = (cellTopY + vertPad - scaledTopOffset) / scaleY;
         float textOriginX = adjustedCellTopX / scaleX;
+
+        GetCharXBackoff(ref textOriginX, _command.AsciiCharacter);
 
         // Create transform that scales from origin (0,0)
         var transform = Matrix3x2.CreateScale(scaleX, scaleY);
