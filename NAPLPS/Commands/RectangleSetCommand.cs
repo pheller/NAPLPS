@@ -4,6 +4,8 @@ namespace NAPLPS.Commands;
 
 public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
 {
+    public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValue;
+
     public Vector3 StartPoint { get; }
 
     public Vector3 Dimensions { get; }

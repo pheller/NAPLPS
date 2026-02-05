@@ -30,8 +30,9 @@ public class DrawableArc : Drawable, IDrawable
             var circleDiameter = CalculateDistance(midPoint, startPoint);
             if (circleDiameter == 0)
             {
-                // TODO: Fix!
-                circleDiameter = 1;
+                // Per NAPLPS spec: if diameter is zero, use smallest value possible
+                // within the current domain (typically 1 pixel)
+                circleDiameter = Math.Max(1, GetPenWidth(size));
             }
 
             float circleRadius = (float)(circleDiameter * 0.5f);

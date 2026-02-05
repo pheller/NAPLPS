@@ -56,7 +56,15 @@ public class SelectColorCommand : NaplpsCommand
             }
             else
             {
-                throw new NotImplementedException();
+                // 3 or 4 byte single values - extract from more bytes
+                // Use the same bit extraction pattern but with more precision
+                int totalBits = State.SingleByteValue * 6;
+                byte colorIndex = 0;
+                for (int i = 0; i < Math.Min(State.SingleByteValue, Operands.Count); i++)
+                {
+                    colorIndex = (byte)((colorIndex << 4) | (Operands[i] & 0x0F));
+                }
+                State.ColorMapForeground = colorIndex;
             }
         }
 
@@ -89,7 +97,22 @@ public class SelectColorCommand : NaplpsCommand
             }
             else
             {
-                throw new NotImplementedException();
+                // 3 or 4 byte single values - extract palette indices
+                byte fgIndex = 0;
+                byte bgIndex = 0;
+                int bytesPerValue = State.SingleByteValue;
+
+                for (int i = 0; i < Math.Min(bytesPerValue, Operands.Count); i++)
+                {
+                    fgIndex = (byte)((fgIndex << 4) | (Operands[i] & 0x0F));
+                }
+                for (int i = bytesPerValue; i < Math.Min(bytesPerValue * 2, Operands.Count); i++)
+                {
+                    bgIndex = (byte)((bgIndex << 4) | (Operands[i] & 0x0F));
+                }
+
+                State.ColorMapForeground = fgIndex;
+                State.ColorMapBackground = bgIndex;
             }
         }
     }

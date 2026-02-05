@@ -34,7 +34,8 @@ public class SetColorCommand : NaplpsCommand
         }
         else
         {
-            throw new NotImplementedException();
+            // Unknown color mode combination - treat as transparent
+            State.IsTransparent = true;
         }
     }
 

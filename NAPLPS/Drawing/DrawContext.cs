@@ -134,14 +134,20 @@ public class DrawContext : IDisposable
                 return new DrawableLineSet((LineCommand)command);
             }
 
+            case LineAbsoluteCommand:
+            case LineRelativeCommand:
             case LineCommand lineCommand:
             {
-                return new DrawableLine(lineCommand);
+                return new DrawableLine((LineCommand)command);
             }
 
-            case ArcSetFilledCommand arcCommand:
+            // Arc commands - all variants
+            case ArcSetFilledCommand:
+            case ArcSetOutlinedCommand:
+            case ArcFilledCommand:
+            case ArcOutlinedCommand:
             {
-                return new DrawableArc(arcCommand);
+                return new DrawableArc((ArcCommand)command);
             }
 
             case ResetCommand resetCommand:
@@ -156,8 +162,23 @@ public class DrawContext : IDisposable
 
             case PointCommand pointCommand:
             {
-                // NOOP
                 return new DrawablePoint(pointCommand);
+            }
+
+            // Incremental commands
+            case IncrementalPointCommand incPointCommand:
+            {
+                return new DrawableIncrementalPoint(incPointCommand);
+            }
+
+            case IncrementalLineCommand incLineCommand:
+            {
+                return new DrawableIncrementalLine(incLineCommand);
+            }
+
+            case IncrementalPolygonFilledCommand incPolyCommand:
+            {
+                return new DrawableIncrementalPolygonFilled(incPolyCommand);
             }
 
             default:

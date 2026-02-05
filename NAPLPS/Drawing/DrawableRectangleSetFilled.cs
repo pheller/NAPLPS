@@ -17,7 +17,7 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
-        if (_command.StartPoint == Vector3.Zero)
+        if (!_command.IsValid || _command.Vertices.Count < 2)
         {
             return;
         }

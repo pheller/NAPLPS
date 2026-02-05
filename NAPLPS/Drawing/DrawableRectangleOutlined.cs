@@ -2,7 +2,7 @@
 
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using Rectangle = SixLabors.ImageSharp.Rectangle;
+using PointF = SixLabors.ImageSharp.PointF;
 
 namespace NAPLPS.Drawing;
 
@@ -29,7 +29,7 @@ public class DrawableRectangleOutlined : Drawable, IDrawable
         );
 
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
-        var rect = new Rectangle(x1, y1, x2, y2);
+        var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
 
         image.Mutate(x => x.Draw(pen, rect));
     }

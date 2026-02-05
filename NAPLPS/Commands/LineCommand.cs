@@ -1,7 +1,5 @@
 // Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
-using System.Diagnostics;
-
 namespace NAPLPS.Commands;
 
 public abstract class LineCommand : GeometricDrawingCommandBase
@@ -14,7 +12,7 @@ public abstract class LineCommand : GeometricDrawingCommandBase
 
         if (verticies.Count == 0 || operands.Count == 0)
         {
-            Debugger.Break();
+            // Debugger.Break();
 
             return;
         }

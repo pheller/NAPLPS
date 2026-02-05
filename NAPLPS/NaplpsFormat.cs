@@ -218,7 +218,7 @@ public partial class NaplpsFormat
                 if (commandReference.CommandType == typeof(NumericalDataCommand))
                 {
                     // Should never get here??
-                    Debugger.Break();
+                    // Debugger.Break();
 
                     continue;
                 }
@@ -609,17 +609,17 @@ public partial class NaplpsFormat
         switch (maskId)
         {
             case 0:
-                State.TextureMaskA = pattern;
-                break;
+            State.TextureMaskA = pattern;
+            break;
             case 1:
-                State.TextureMaskB = pattern;
-                break;
+            State.TextureMaskB = pattern;
+            break;
             case 2:
-                State.TextureMaskC = pattern;
-                break;
+            State.TextureMaskC = pattern;
+            break;
             case 3:
-                State.TextureMaskD = pattern;
-                break;
+            State.TextureMaskD = pattern;
+            break;
         }
     }
 }
