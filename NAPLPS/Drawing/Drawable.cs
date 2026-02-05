@@ -160,35 +160,40 @@ public class Drawable
         }
     }
 
-    internal (NaplpsColor, NaplpsColor) GetNaplpsColorFromState()
+    internal (NaplpsColor, NaplpsColor) GetNaplpsColorFromState(NaplpsState? state)
     {
-        var fgColor = _state.ColorMode == 0 ? _state.Foreground : _state.ColorMap[_state.ColorMapForeground];
-        var bgColor = _state.ColorMode == 0 ? _state.Background : _state.ColorMap[_state.ColorMapBackground];
+        if (state == null)
+        {
+            state = _state;
+        }
+
+        var fgColor = state.ColorMode == 0 ? state.Foreground : state.ColorMap[state.ColorMapForeground];
+        var bgColor = state.ColorMode == 0 ? state.Background : state.ColorMap[state.ColorMapBackground];
 
         return (fgColor, bgColor);
     }
 
-    internal (Color, Color) GetColorFromState()
+    internal (Color, Color) GetColorFromState(NaplpsState? state)
     {
-        var (fgColor, bgColor) = GetNaplpsColorFromState();
+        var (fgColor, bgColor) = GetNaplpsColorFromState(state);
 
         return (fgColor.ToColor(), bgColor.ToColor());
     }
 
-    internal (ISColor, ISColor) GetISColorFromState()
+    internal (ISColor, ISColor) GetISColorFromState(NaplpsState? state)
     {
-        var (fgColor, bgColor) = GetColorFromState();
+        var (fgColor, bgColor) = GetColorFromState(state);
 
         return (fgColor.ToISColor(), bgColor.ToISColor());
     }
 
-    internal (SolidBrush, SolidPen) GetBrushAndPenFromState()
+    internal (SolidBrush, SolidPen) GetBrushAndPenFromState(NaplpsState? state)
     {
-        var (fgColor, bgColor) = GetISColorFromState();
+        var (fgColor, bgColor) = GetISColorFromState(state);
 
         return (
             Brushes.Solid(bgColor),
-            Pens.Solid(fgColor, _state.LogicalPel.X == 0 ? 1 : _state.LogicalPel.X)
+            Pens.Solid(fgColor, state.LogicalPel.X == 0 ? 1 : state.LogicalPel.X)
         );
     }
 }

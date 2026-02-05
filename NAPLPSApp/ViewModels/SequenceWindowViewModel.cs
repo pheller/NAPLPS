@@ -128,7 +128,11 @@ public partial class SequenceWindowViewModel : ViewModelBase
         CurrentSequence = loadedFile.Commands[SelectedIndex];
 
         var command = CurrentSequence.Command;
-        var state = CurrentSequence.State;
+        // Get the state AFTER this command by looking at the next sequence's state
+        // (the current sequence's state is from BEFORE the command ran)
+        var state = SelectedIndex + 1 < loadedFile.Commands.Count
+            ? loadedFile.Commands[SelectedIndex + 1].State
+            : CurrentSequence.State;
 
         OperandsDetails = command.Operands.Any() ? string.Join(" ", command.Operands.Select(operand => $"{operand:X2}")) + " " : string.Empty;
         ExtraDetails = string.Empty;

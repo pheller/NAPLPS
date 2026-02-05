@@ -149,7 +149,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         var rect = new RectangleF(cellTopX, cellTopY, cellW, cellH);
 
-        var (fgColor, bgColor) = GetISColorFromState();
+        var (fgColor, bgColor) = GetISColorFromState(state);
 
         // Use a fixed font size, then STRETCH it to fit the cell.
         // This mimics how old NAPLPS renderers worked — they'd blit a bitmap
