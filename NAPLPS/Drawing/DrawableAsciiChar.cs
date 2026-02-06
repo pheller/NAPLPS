@@ -97,7 +97,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
             't' or 'I' or '!' or '.' or ',' or ';' => 1.8f,  // Thin punctuation
             '(' or ')' or '[' or ']' or '|' => 1.6f,  // Brackets/pipe
             'f' => 1.2f,
-            'w' or 'm' or 'x' or 'M' or 'T' or '@' or '/' => 0.8f, // Too big
+            'w' or 'W' or 'm' or 'x' or 'M' or 'T' or '@' or '/' => 0.8f, // Too big
             'v' => 0.6f, // Really big!
             _ => 1.0f,  // Normal characters - no boost
         };

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
@@ -20,24 +20,28 @@ public class DrawableArc : Drawable, IDrawable
     {
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
 
-        var startPoint = ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
-        var midPoint = ConvertNormalizedToPoint(size, _command.IntermediatePointDisplacement.X, _command.IntermediatePointDisplacement.Y);
-        var endPoint = ConvertNormalizedToPoint(size, _command.EndPointDisplacement.X, _command.EndPointDisplacement.Y);
+        // Use floating point for precision - don't convert to integer Point yet
+        var (startX, startY) = ConvertNormalizedToScreenF(size, _command.StartPoint.X, _command.StartPoint.Y);
+        var (midX, midY) = ConvertNormalizedToScreenF(size, _command.IntermediatePointDisplacement.X, _command.IntermediatePointDisplacement.Y);
+        var (endX, endY) = ConvertNormalizedToScreenF(size, _command.EndPointDisplacement.X, _command.EndPointDisplacement.Y);
 
-        if (startPoint == endPoint)
+        // Check if start and end are the same (circle) using original normalized coords
+        // to avoid precision loss from screen conversion
+        bool isCircle = Math.Abs(_command.StartPoint.X - _command.EndPointDisplacement.X) < 0.0001f &&
+                        Math.Abs(_command.StartPoint.Y - _command.EndPointDisplacement.Y) < 0.0001f;
+
+        if (isCircle)
         {
-            // circle
-            var circleDiameter = CalculateDistance(midPoint, startPoint);
-            if (circleDiameter == 0)
+            // Circle - the diameter is the distance from start to mid point
+            var circleDiameter = CalculateDistanceF(startX, startY, midX, midY);
+            if (circleDiameter < 1)
             {
-                // Per NAPLPS spec: if diameter is zero, use smallest value possible
-                // within the current domain (typically 1 pixel)
                 circleDiameter = Math.Max(1, GetPenWidth(size));
             }
 
-            float circleRadius = (float)(circleDiameter * 0.5f);
-            float centerX = (startPoint.X + midPoint.X) * 0.5f;
-            float centerY = (startPoint.Y + midPoint.Y) * 0.5f;
+            float circleRadius = circleDiameter * 0.5f;
+            float centerX = (startX + midX) * 0.5f;
+            float centerY = (startY + midY) * 0.5f;
 
             var circle = new EllipsePolygon(new PointF(centerX, centerY), circleRadius);
 
@@ -56,111 +60,134 @@ public class DrawableArc : Drawable, IDrawable
         }
         else
         {
-            // Calculate circle properties that approximately fits the points
-            var center = CalculateCircleCenter(startPoint, midPoint, endPoint);
+            // Arc - calculate circle center from 3 points
+            var center = CalculateCircleCenterF(startX, startY, midX, midY, endX, endY);
 
-            var circleDiameter = (float)CalculateDistance(midPoint, startPoint);
-            var circleRadius = circleDiameter / 2;
+            if (center == PointF.Empty)
+            {
+                // Collinear points - draw a line instead
+                image.Mutate(x => x.DrawLine(pen, new PointF(startX, startY), new PointF(endX, endY)));
+                return;
+            }
 
-            // Create size based on radius
-            SizeF circleSize = new SizeF(2 * circleRadius, 2 * circleRadius);
+            // Calculate radius from center to any point (use start)
+            float radius = CalculateDistanceF(center.X, center.Y, startX, startY);
 
-            // Calculate angles
-            float startAngle = AngleFromCenter(center, startPoint);
-            float endAngle = AngleFromCenter(center, endPoint);
+            if (radius < 1)
+            {
+                radius = 1;
+            }
 
-            // Sweep direction and large arc
-            bool sweepDirection = endAngle < startAngle;
-            float angleDifference = endAngle - startAngle;
-            if (angleDifference < 0) angleDifference += 360;
-            bool isLargeArc = angleDifference > 180;
+            SizeF arcSize = new SizeF(radius * 2, radius * 2);
 
-            // Assuming rotationAngle is 0 for simplicity, more complex for ellipse
-            float rotationAngle = 0;
+            // Calculate angles from center
+            float startAngle = (float)(Math.Atan2(startY - center.Y, startX - center.X) * (180 / Math.PI));
+            float midAngle = (float)(Math.Atan2(midY - center.Y, midX - center.X) * (180 / Math.PI));
+            float endAngle = (float)(Math.Atan2(endY - center.Y, endX - center.X) * (180 / Math.PI));
 
-            var spline = new ArcLineSegment(new(startPoint.X, startPoint.Y), new(endPoint.X, endPoint.Y), circleSize, rotationAngle, isLargeArc, sweepDirection);
+            // Determine sweep direction based on whether mid point is in the arc
+            // The mid point should be between start and end on the arc
+            bool sweepClockwise = IsClockwise(startAngle, midAngle, endAngle);
 
-            image.Mutate(x => x.DrawPolygon(pen, spline.Flatten().ToArray()));
+            // Determine if it's a large arc (> 180 degrees)
+            float angleDiff = endAngle - startAngle;
+            if (angleDiff < 0) angleDiff += 360;
+            if (angleDiff > 360) angleDiff -= 360;
+
+            bool isLargeArc = angleDiff > 180;
+
+            // Adjust based on sweep direction
+            if (!sweepClockwise)
+            {
+                isLargeArc = !isLargeArc;
+            }
+
+            try
+            {
+                var arcSegment = new ArcLineSegment(
+                    new PointF(startX, startY),
+                    new PointF(endX, endY),
+                    arcSize,
+                    0, // rotation angle
+                    isLargeArc,
+                    sweepClockwise
+                );
+
+                var arcPoints = arcSegment.Flatten().ToArray();
+
+                if (arcPoints.Length >= 2)
+                {
+                    image.Mutate(x =>
+                    {
+                        if (_command.ShouldFill)
+                        {
+                            // For filled arc, create a polygon with the arc and chord
+                            var fillPoints = new List<PointF>(arcPoints);
+                            fillPoints.Add(new PointF(startX, startY)); // Close the shape
+                            x.FillPolygon(brush, fillPoints.ToArray());
+                        }
+
+                        // Draw the arc outline (not the chord)
+                        x.DrawLine(pen, arcPoints);
+                    });
+                }
+            }
+            catch
+            {
+                // Fallback: draw line if arc construction fails
+                image.Mutate(x => x.DrawLine(pen, new PointF(startX, startY), new PointF(endX, endY)));
+            }
         }
-
-        /* old attempt */
-        //var startPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X, _command.StartPoint.Y);
-        //var midPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.StartPoint.X + _command.IntermediatePointDisplacement.X, _command.StartPoint.Y + _command.IntermediatePointDisplacement.Y);
-        //var endPoint = NaplpsUtils.ConvertNormalizedToPoint(size, _command.EndPointDisplacement.X, _command.EndPointDisplacement.Y);
-
-        //var fgcolor = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        //var bgcolor = state.ColorMode == 0 ? state.Background.ToColor() : state.ColorMap[state.ColorMapBackground].ToColor();
-
-        //if (startPoint == endPoint)
-        //{
-        //    // circle
-        //    var circleDiameter = NaplpsUtils.CalculateDistance(midPoint, startPoint);
-        //    var circleRadius = circleDiameter / 2;
-
-        //    var circle = new EllipsePolygon(new PointF(startPoint.X, startPoint.Y), (float)circleRadius);
-
-        //    var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
-        //    var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));
-
-        //    image.Mutate(x => x.Fill(brush, circle).Draw(pen, circle));
-        //}
-        //else
-        //{
-        //    // Calculate circle properties that approximately fits the points
-        //    System.Drawing.Point center = CalculateCircleCenter(startPoint, midPoint, endPoint);
-
-        //    var circleDiameter = (float)NaplpsUtils.CalculateDistance(midPoint, startPoint);
-        //    var circleRadius = circleDiameter / 2;
-
-        //    // Create size based on radius
-        //    SizeF circleSize = new SizeF(2 * circleRadius, 2 * circleRadius);
-
-        //    // Calculate angles
-        //    float startAngle = AngleFromCenter(new PointF(center.X, center.Y), new PointF(startPoint.X, startPoint.Y));
-        //    float endAngle = AngleFromCenter(new PointF(center.X, center.Y), new PointF(endPoint.X, endPoint.Y));
-
-        //    // Sweep direction and large arc
-        //    bool sweepDirection = (endAngle > startAngle);
-        //    float angleDifference = endAngle - startAngle;
-        //    if (angleDifference < 0) angleDifference += 360;
-        //    bool isLargeArc = angleDifference > 180;
-
-        //    // Assuming rotationAngle is 0 for simplicity, more complex for ellipse
-        //    float rotationAngle = 0;
-
-        //    var spline = new ArcLineSegment(new PointF(startPoint.X, startPoint.Y), new PointF(endPoint.X, endPoint.Y), circleSize, rotationAngle, isLargeArc, sweepDirection);
-
-        //    var pen = Pens.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A), 1f);
-        //    var brush = Brushes.Solid(Color.FromRgba(fgcolor.R, fgcolor.G, fgcolor.B, fgcolor.A));
-
-        //    image.Mutate(x => x.DrawPolygon(pen, spline.Flatten().ToArray()));
-        //}
-
-        // Debugger.Break();
-
-        //image.Mutate(x => x.Draw(pen, lines));
     }
 
-    private static float AngleFromCenter(PointF center, Point point)
+    private static (float, float) ConvertNormalizedToScreenF(Size size, float x, float y)
     {
-        return (float)(Math.Atan2(point.Y - center.Y, point.X - center.X) * (180 / Math.PI));
+        float screenX = x * size.Width;
+        float screenY = size.Height - (y / 0.75f * size.Height);
+        return (screenX, screenY);
     }
 
-    private static PointF CalculateCircleCenter(Point A, Point B, Point C)
+    private static float CalculateDistanceF(float x1, float y1, float x2, float y2)
     {
-        // Similar calculation as previously, assuming non-collinear points
-        int D = 2 * (A.X * (B.Y - C.Y) + B.X * (C.Y - A.Y) + C.X * (A.Y - B.Y));
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        return MathF.Sqrt(dx * dx + dy * dy);
+    }
 
-        if (D == 0)
+    private static bool IsClockwise(float startAngle, float midAngle, float endAngle)
+    {
+        // Normalize angles to 0-360
+        startAngle = NormalizeAngle(startAngle);
+        midAngle = NormalizeAngle(midAngle);
+        endAngle = NormalizeAngle(endAngle);
+
+        // Check if going from start to mid to end is clockwise
+        float startToMid = NormalizeAngle(midAngle - startAngle);
+        float startToEnd = NormalizeAngle(endAngle - startAngle);
+
+        // If mid is between start and end going clockwise, then clockwise sweep
+        return startToMid < startToEnd;
+    }
+
+    private static float NormalizeAngle(float angle)
+    {
+        while (angle < 0) angle += 360;
+        while (angle >= 360) angle -= 360;
+        return angle;
+    }
+
+    private static PointF CalculateCircleCenterF(float ax, float ay, float bx, float by, float cx, float cy)
+    {
+        float d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+
+        if (Math.Abs(d) < 0.0001f)
         {
-            return PointF.Empty;
+            return PointF.Empty; // Collinear points
         }
 
-        PointF center = new(
-            ((A.X * A.X + A.Y * A.Y) * (B.Y - C.Y) + (B.X * B.X + B.Y * B.Y) * (C.Y - A.Y) + (C.X * C.X + C.Y * C.Y) * (A.Y - B.Y)) / D,
-            ((A.X * A.X + A.Y * A.Y) * (C.X - B.X) + (B.X * B.X + B.Y * B.Y) * (A.X - C.X) + (C.X * C.X + C.Y * C.Y) * (B.X - A.X)) / D
-        );
+        float ux = ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) * (cy - ay) + (cx * cx + cy * cy) * (ay - by)) / d;
+        float uy = ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) * (ax - cx) + (cx * cx + cy * cy) * (bx - ax)) / d;
 
-        return center;
+        return new PointF(ux, uy);
     }
 }
