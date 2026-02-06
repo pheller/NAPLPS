@@ -115,6 +115,10 @@
 
 				<i:Icon Value="fa-solid fa-text-width" Margin="0,0,5,0" IsVisible="{Binding IsFileLoaded}" />
 				<TextBlock Text="{Binding BitWidth}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}" />
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsFileLoaded}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-microchip" Margin="0,0,5,0" IsVisible="{Binding IsFileLoaded}" />
+				<TextBlock Text="{Binding FileSystemType}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}" />
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 				<i:Icon Value="fa-solid fa-gauge" Margin="0,0,5,0" />

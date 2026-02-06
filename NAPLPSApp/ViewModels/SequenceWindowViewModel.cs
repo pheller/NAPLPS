@@ -223,6 +223,23 @@ public partial class SequenceWindowViewModel : ViewModelBase
             avaPlot.Plot.Add.Marker(point);
             avaPlot.Plot.Add.Marker(size);
         }
+        else if (command is ControlCommand controlCommand &&
+                 (controlCommand.Command == NaplpsControlCommands.Repeat ||
+                  controlCommand.Command == NaplpsControlCommands.RepeatToEOL))
+        {
+            if (controlCommand.Command == NaplpsControlCommands.Repeat && command.Operands.Count > 0)
+            {
+                var countByte = command.Operands[0];
+                var repeatCount = countByte >= 0xC0 ? countByte - 0x40 : countByte;
+                ExtraDetails = $"Repeat Count: {repeatCount} (0x{countByte:X2})";
+            }
+            else if (controlCommand.Command == NaplpsControlCommands.RepeatToEOL)
+            {
+                var fieldEndX = state.Field.Origin.X + state.Field.Dimensions.X;
+                var charsToEnd = Math.Max(0, (int)((fieldEndX - state.Pen.X) / state.CharSize.X));
+                ExtraDetails = $"Repeat to EOL: ~{charsToEnd} chars";
+            }
+        }
         else if (command is GeometricDrawingCommandBase baseDrawCommand)
         {
             ExtraDetails = "Draw Point(s):\n";

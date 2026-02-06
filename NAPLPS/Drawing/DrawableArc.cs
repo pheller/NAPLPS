@@ -140,12 +140,7 @@ public class DrawableArc : Drawable, IDrawable
         }
     }
 
-    private static (float, float) ConvertNormalizedToScreenF(Size size, float x, float y)
-    {
-        float screenX = x * size.Width;
-        float screenY = size.Height - (y / 0.75f * size.Height);
-        return (screenX, screenY);
-    }
+    // Uses centralized NaplpsUtils.ConvertNormalizedToScreenF
 
     private static float CalculateDistanceF(float x1, float y1, float x2, float y2)
     {

@@ -54,6 +54,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string bitWidth = "7-Bit";
 
     [ObservableProperty]
+    private string fileSystemType = nameof(NaplpsSystemType.NAPLPS);
+
+    [ObservableProperty]
     private bool isFileLoaded;
 
     [ObservableProperty]
@@ -450,6 +453,7 @@ public partial class MainWindowViewModel : ViewModelBase
         TitleBar = $"{FileName} - {DEFAULT_APP_NAME} [{Program.Version}]";
 
         BitWidth = loadedFile.Is7Bit ? "7-Bit" : "8-Bit";
+            FileSystemType = loadedFile.SystemType.ToString();
 
         await UpdateCanvas();
     }
@@ -493,6 +497,7 @@ public partial class MainWindowViewModel : ViewModelBase
             TitleBar = $"{FileName} - {DEFAULT_APP_NAME} [{Program.Version}]";
 
             BitWidth = loadedFile.Is7Bit ? "7-Bit" : "8-Bit";
+            FileSystemType = loadedFile.SystemType.ToString();
 
             await UpdateCanvas();
         }

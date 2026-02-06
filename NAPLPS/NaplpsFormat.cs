@@ -4,6 +4,18 @@ using System.Diagnostics;
 
 namespace NAPLPS;
 
+public enum NaplpsSystemType
+{
+    /// <summary>Standard NAPLPS (version 709) with default color map</summary>
+    NAPLPS,
+
+    /// <summary>Original Telidon format (version 699) - files starting with 0x0E (Shift-Out)</summary>
+    Telidon,
+
+    /// <summary>Prodigy-style files (8-bit, start with A1 C8 domain command)</summary>
+    Prodigy
+}
+
 public partial class NaplpsFormat
 {
     public bool IsErrored => Errors.Count > 0;
@@ -13,6 +25,9 @@ public partial class NaplpsFormat
     public bool Is7Bit { get; private set; } = true;
 
     public bool IsValid { get; private set; }
+
+    /// <summary>Detected system type based on file header patterns</summary>
+    public NaplpsSystemType SystemType { get; private set; } = NaplpsSystemType.NAPLPS;
 
     /// <summary>If we are streaming, we'll assume there is no end and wait indefinately until more data comes in</summary>
     public bool IsStreaming { get; private set; } = false;
@@ -35,6 +50,10 @@ public partial class NaplpsFormat
     {
         State = state;
 
+        // Detect system type from header before parsing
+        SystemType = DetectSystemType(reader);
+        ApplySystemDefaults();
+
         Commands = ReadStream(reader);
 
         IsValid = true;
@@ -43,6 +62,67 @@ public partial class NaplpsFormat
     private NaplpsFormat(NaplpsState state)
     {
         State = state;
+    }
+
+    /// <summary>
+    /// Detects the NAPLPS system type based on file header patterns.
+    /// - Telidon (699): First byte is 0x0E (Shift-Out) - original 1978 hardware format
+    /// - Prodigy: First two bytes are A1 C8 (Domain command in 8-bit mode)
+    /// - Standard NAPLPS (709): Everything else
+    /// </summary>
+    private static NaplpsSystemType DetectSystemType(BinaryReader reader)
+    {
+        if (reader.BaseStream.Length < 1)
+        {
+            return NaplpsSystemType.NAPLPS;
+        }
+
+        var position = reader.BaseStream.Position;
+        var firstByte = reader.ReadByte();
+
+        // Telidon (version 699): starts with 0x0E (Shift-Out command)
+        // Original format from 1978 Telidon hardware
+        if (firstByte == 0x0E)
+        {
+            reader.BaseStream.Position = position;
+            return NaplpsSystemType.Telidon;
+        }
+
+        // Need second byte for Prodigy detection
+        if (reader.BaseStream.Length < 2)
+        {
+            reader.BaseStream.Position = position;
+            return NaplpsSystemType.NAPLPS;
+        }
+
+        var secondByte = reader.ReadByte();
+        reader.BaseStream.Position = position; // Reset to start
+
+        // Prodigy-style: starts with A1 C8 (Domain command with specific operand)
+        if (firstByte == 0xA1 && secondByte == 0xC8)
+        {
+            return NaplpsSystemType.Prodigy;
+        }
+
+        return NaplpsSystemType.NAPLPS;
+    }
+
+    /// <summary>
+    /// Applies system-specific defaults (color maps, etc.) based on detected system type.
+    /// </summary>
+    private void ApplySystemDefaults()
+    {
+        switch (SystemType)
+        {
+            case NaplpsSystemType.Prodigy:
+                State.ColorMap = new Dictionary<byte, NaplpsColor>(NaplpsState.ColorMapProdigyDefaults);
+                break;
+
+            case NaplpsSystemType.NAPLPS:
+            default:
+                // Default color map is already set in NaplpsState
+                break;
+        }
     }
 
     public static NaplpsFormat FromFile(string fullpath)
@@ -156,9 +236,8 @@ public partial class NaplpsFormat
                 if (State.DrcsStartCode != null)
                 {
                     var cmdRef = State.InUseTable[opcode];
-                    if (cmdRef?.CommandType == typeof(ControlCommand) &&
-                        cmdRef.Parameters.Count == 1 &&
-                        (NaplpsControlCommands)cmdRef.Parameters[0] == End)
+
+                    if (cmdRef?.CommandType == typeof(ControlCommand) && cmdRef.Parameters.Count == 1 && (NaplpsControlCommands)cmdRef.Parameters[0] == End)
                     {
                         // End DRCS definition - parse the bitmap data
                         ParseDrcsData(State.DrcsStartCode.Value, State.DrcsBuffer);
@@ -169,6 +248,7 @@ public partial class NaplpsFormat
 
                     // Buffer this byte as part of the DRCS data
                     State.DrcsBuffer.Add(opcode);
+
                     continue;
                 }
 
@@ -176,19 +256,20 @@ public partial class NaplpsFormat
                 if (State.TextureBeingDefined != null)
                 {
                     var cmdRef = State.InUseTable[opcode];
-                    if (cmdRef?.CommandType == typeof(ControlCommand) &&
-                        cmdRef.Parameters.Count == 1 &&
-                        (NaplpsControlCommands)cmdRef.Parameters[0] == End)
+
+                    if (cmdRef?.CommandType == typeof(ControlCommand) && cmdRef.Parameters.Count == 1 && (NaplpsControlCommands)cmdRef.Parameters[0] == End)
                     {
                         // End texture definition - parse the pattern data
                         ParseTextureData(State.TextureBeingDefined.Value, State.TextureBuffer);
                         State.TextureBeingDefined = null;
                         State.TextureBuffer.Clear();
+
                         continue;
                     }
 
                     // Buffer this byte as part of the texture data
                     State.TextureBuffer.Add(opcode);
+
                     continue;
                 }
 
@@ -441,6 +522,17 @@ public partial class NaplpsFormat
                             State.TextureBuffer.Clear();
                         }
                     }
+                    else if (controlCommand == Repeat)
+                    {
+                        // Repeat command: read the count byte and store it in operands
+                        // Actual repetition happens at render time
+                        if (!reader.IsEOF())
+                        {
+                            var countByte = reader.ReadByte();
+                            additionalParameters.Add(countByte);
+                        }
+                    }
+                    // RepeatToEOL doesn't need special handling here - count is calculated at render time
                 }
 
                 var finalCommandParams = commandParameters.Concat([State, opcode, additionalParameters]).ToArray();
@@ -609,16 +701,27 @@ public partial class NaplpsFormat
         switch (maskId)
         {
             case 0:
-            State.TextureMaskA = pattern;
+            {
+                State.TextureMaskA = pattern;
+            }
             break;
+
             case 1:
-            State.TextureMaskB = pattern;
+            {
+                State.TextureMaskB = pattern;
+            }
             break;
+
             case 2:
-            State.TextureMaskC = pattern;
+            {
+                State.TextureMaskC = pattern;
+            }
             break;
+
             case 3:
-            State.TextureMaskD = pattern;
+            {
+                State.TextureMaskD = pattern;
+            }
             break;
         }
     }

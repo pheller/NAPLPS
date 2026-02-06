@@ -6,6 +6,8 @@ namespace NAPLPS;
 
 public static class NaplpsUtils
 {
+    private const float NAPLPS_DISPLAY_RATIO = 0.80f;
+
     public static double CalculateDistance(Point p1, Point p2)
     {
         int dx = p2.X - p1.X;  // Difference in X coordinates
@@ -32,7 +34,7 @@ public static class NaplpsUtils
 
     public static (int, int) ConvertNormalizedToScreenScale(Size size, double normalizedX, double normalizedY)
     {
-        var shrunkY = normalizedY / 0.75;
+        var shrunkY = normalizedY / NAPLPS_DISPLAY_RATIO;
 
         int actualX = (int)(normalizedX * size.Width);
         int actualY = (int)(shrunkY * size.Height);
@@ -60,6 +62,27 @@ public static class NaplpsUtils
         return (convertedX, convertedY);
     }
 
+    /// <summary>
+    /// Float version of coordinate conversion for higher precision (used by arcs, etc.)
+    /// Converts NAPLPS normalized coords to screen coords with Y-flip.
+    /// </summary>
+    public static (float, float) ConvertNormalizedToScreenF(Size size, float normalizedX, float normalizedY)
+    {
+        float screenX = normalizedX * size.Width;
+        float screenY = size.Height - (normalizedY / NAPLPS_DISPLAY_RATIO * size.Height);
+        return (screenX, screenY);
+    }
+
+    /// <summary>
+    /// Reverse conversion: screen coords back to NAPLPS normalized coords.
+    /// </summary>
+    public static (float, float) ConvertScreenToNormalizedF(Size size, float screenX, float screenY)
+    {
+        float normX = screenX / size.Width;
+        float normY = (size.Height - screenY) / size.Height * NAPLPS_DISPLAY_RATIO;
+        return (normX, normY);
+    }
+
     public static (int, int, int, int) ConvertNormalizedDimensionsToPixels(Size size, double normalizedX, double normalizedY, double normalizedWidth, double normalizedHeight)
     {
         // Adjust for negative dimensions
@@ -77,10 +100,10 @@ public static class NaplpsUtils
 
         // Clamp the normalized coordinates to their valid ranges
         normalizedX = Math.Clamp(normalizedX, 0, 1);
-        normalizedY = Math.Clamp(normalizedY, 0, 0.75);
+        normalizedY = Math.Clamp(normalizedY, 0, NAPLPS_DISPLAY_RATIO);
 
         // Adjust normalizedY by shrinking it to the 0-1 range
-        var shrunkY = normalizedY / 0.75;
+        var shrunkY = normalizedY / NAPLPS_DISPLAY_RATIO;
 
         // Convert normalized starting point to pixels
         int startX = (int)(normalizedX * size.Width);

@@ -8,6 +8,9 @@ public class DrawContext : IDisposable
 
     private readonly MemoryStream memoryStream = new();
 
+    // Track last displayed character for Repeat command
+    private AsciiCharCommand? _lastDisplayedChar;
+
     public NaplpsFormat NAPLPS { get; }
 
     public Size Size { get; }
@@ -34,6 +37,7 @@ public class DrawContext : IDisposable
     public void Render(uint sequenceNumber = uint.MaxValue)
     {
         CurrentIndex = 0;
+        _lastDisplayedChar = null;
 
         foreach (var sequence in NAPLPS.Commands)
         {
@@ -41,7 +45,21 @@ public class DrawContext : IDisposable
 
             var drawable = ConvertToDrawable(command);
 
-            drawable?.Draw(Image, state, Size);
+            // Track last displayed character for Repeat
+            if (command is AsciiCharCommand asciiChar)
+            {
+                _lastDisplayedChar = asciiChar;
+            }
+
+            // Handle Repeat specially
+            if (drawable is DrawableRepeat repeatDrawable)
+            {
+                RenderRepeat(repeatDrawable, state);
+            }
+            else
+            {
+                drawable?.Draw(Image, state, Size);
+            }
 
             if (CurrentIndex == sequenceNumber)
             {
@@ -62,6 +80,7 @@ public class DrawContext : IDisposable
     public async Task RenderAsync(CancellationToken cancellationToken, uint delay)
     {
         CurrentIndex = 0;
+        _lastDisplayedChar = null;
 
         foreach (var sequence in NAPLPS.Commands)
         {
@@ -74,7 +93,21 @@ public class DrawContext : IDisposable
 
             var drawable = ConvertToDrawable(command);
 
-            drawable?.Draw(Image, state, Size);
+            // Track last displayed character for Repeat
+            if (command is AsciiCharCommand asciiChar)
+            {
+                _lastDisplayedChar = asciiChar;
+            }
+
+            // Handle Repeat specially
+            if (drawable is DrawableRepeat repeatDrawable)
+            {
+                RenderRepeat(repeatDrawable, state);
+            }
+            else
+            {
+                drawable?.Draw(Image, state, Size);
+            }
 
             OnImageUpdated?.Invoke();
 
@@ -90,6 +123,63 @@ public class DrawContext : IDisposable
         {
             CurrentIndex = TotalFrames;
         }
+    }
+
+    private void RenderRepeat(DrawableRepeat repeatDrawable, NaplpsState state)
+    {
+        if (_lastDisplayedChar == null)
+        {
+            return;
+        }
+
+        var repeatCount = repeatDrawable.GetRepeatCount(state);
+        var charToRepeat = _lastDisplayedChar.AsciiCharacter;
+
+        // Create a temporary drawable for the character and draw it N times
+        // We need to use the current state's pen position and advance it each time
+        for (int i = 0; i < repeatCount; i++)
+        {
+            // Create a drawable for the repeated character using current pen position
+            var charDrawable = new DrawableAsciiChar(_lastDisplayedChar);
+            charDrawable.Draw(Image, state, Size);
+
+            // Advance pen position (same logic as AsciiCharCommand.MovePen)
+            AdvancePenForCharacter(state, charToRepeat);
+        }
+    }
+
+    private static void AdvancePenForCharacter(NaplpsState state, char character)
+    {
+        var pen = state.Pen;
+
+        float spacingMultiplier = state.TextSpacing switch
+        {
+            TextSpacing.One => 1.0f,
+            TextSpacing.FiveQuarters => 1.25f,
+            TextSpacing.ThreeHalves => 1.5f,
+            TextSpacing.Proportional => 1.0f,
+            _ => 1.0f
+        };
+
+        float widthRatio = DrawableAsciiChar.GetCharWidthRatio(character);
+
+        switch (state.TextPath)
+        {
+            case TextPath.Right:
+                pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
+                break;
+            case TextPath.Left:
+                pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
+                break;
+            case TextPath.Up:
+                pen.Y += state.CharSize.Y * spacingMultiplier;
+                break;
+            case TextPath.Down:
+                pen.Y -= state.CharSize.Y * spacingMultiplier;
+                break;
+        }
+
+        state.Pen = pen;
     }
 
     public void SaveAsPng(string filepath)
@@ -179,6 +269,13 @@ public class DrawContext : IDisposable
             case IncrementalPolygonFilledCommand incPolyCommand:
             {
                 return new DrawableIncrementalPolygonFilled(incPolyCommand);
+            }
+
+            case ControlCommand controlCommand when
+                controlCommand.Command == NaplpsControlCommands.Repeat ||
+                controlCommand.Command == NaplpsControlCommands.RepeatToEOL:
+            {
+                return new DrawableRepeat(controlCommand);
             }
 
             default:

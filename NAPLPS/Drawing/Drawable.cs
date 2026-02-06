@@ -32,15 +32,13 @@ public class Drawable
         var logicalPel = drawingCommand.LogicalPel;
         var (pelX, pelY) = ConvertNormalizedToScreenScale(size, logicalPel.X, logicalPel.Y);
 
-        return new System.Drawing.Point(
-            Math.Max(1, Math.Abs(pelX)),
-            Math.Max(1, Math.Abs(pelY))
-        );
+        return new System.Drawing.Point(Math.Max(1, Math.Abs(pelX)), Math.Max(1, Math.Abs(pelY)));
     }
 
     public float GetPenWidth(Size size)
     {
         var scaledLogicalPel = GetScaledLogicalPel(size);
+
         return Math.Max(scaledLogicalPel.X, scaledLogicalPel.Y);
     }
 
@@ -67,16 +65,24 @@ public class Drawable
         switch (lineTexture)
         {
             case NaplpsTexture.LineTextures.Dotted:
-            return Pens.Dot(color, penWidth);
+            {
+                return Pens.Dot(color, penWidth);
+            }
 
             case NaplpsTexture.LineTextures.DottedDashed:
-            return Pens.DashDot(color, penWidth);
+            {
+                return Pens.DashDot(color, penWidth);
+            }
 
             case NaplpsTexture.LineTextures.Dashed:
-            return Pens.Dash(color, penWidth);
+            {
+                return Pens.Dash(color, penWidth);
+            }
 
             default:
-            return Pens.Solid(color, penWidth);
+            {
+                return Pens.Solid(color, penWidth);
+            }
         }
     }
 
@@ -107,11 +113,7 @@ public class Drawable
                     pattern[0, i] = i >= pattern.Length / 2;
                 }
 
-                return new PatternBrush(
-                    fgColorImageSharp,
-                    bgColorImageSharp,
-                    pattern
-                );
+                return new PatternBrush(fgColorImageSharp, bgColorImageSharp, pattern);
             }
 
             case TexturePatterns.MaskB:
@@ -124,11 +126,7 @@ public class Drawable
                     pattern[i, 0] = i >= pattern.Length / 2;
                 }
 
-                return new PatternBrush(
-                    fgColorImageSharp,
-                    bgColorImageSharp,
-                    pattern
-                );
+                return new PatternBrush(fgColorImageSharp, bgColorImageSharp, pattern);
             }
 
             case TexturePatterns.MaskC:
@@ -146,11 +144,7 @@ public class Drawable
                     }
                 }
 
-                return new PatternBrush(
-                    fgColorImageSharp,
-                    bgColorImageSharp,
-                    pattern
-                );
+                return new PatternBrush(fgColorImageSharp, bgColorImageSharp, pattern);
             }
 
             default:
@@ -191,9 +185,6 @@ public class Drawable
     {
         var (fgColor, bgColor) = GetISColorFromState(state);
 
-        return (
-            Brushes.Solid(bgColor),
-            Pens.Solid(fgColor, state.LogicalPel.X == 0 ? 1 : state.LogicalPel.X)
-        );
+        return (Brushes.Solid(bgColor), Pens.Solid(fgColor, state.LogicalPel.X == 0 ? 1 : state.LogicalPel.X));
     }
 }

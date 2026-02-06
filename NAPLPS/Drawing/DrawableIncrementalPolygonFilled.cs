@@ -107,14 +107,9 @@ public class DrawableIncrementalPolygonFilled : Drawable, IDrawable
         });
 
         // Update pen position
-        var (normX, normY) = ConvertPointToNormalized(size, (int)currentX, (int)currentY);
+        var (normX, normY) = ConvertScreenToNormalizedF(size, currentX, currentY);
         state.Pen = new Vector3(normX, normY, 0);
     }
 
-    private static (float, float) ConvertPointToNormalized(Size size, int x, int y)
-    {
-        float normX = (float)x / size.Width;
-        float normY = (size.Height - y) / size.Height * 0.75f;
-        return (normX, normY);
-    }
+    // Uses centralized NaplpsUtils.ConvertScreenToNormalizedF
 }

@@ -2,7 +2,7 @@
 
 namespace NAPLPS.Commands;
 
-internal class ControlCommand : NaplpsCommand
+public class ControlCommand : NaplpsCommand
 {
     public const byte EscapeC0Set = 0x21;
     public const byte EscapeC1Set = 0x22;
