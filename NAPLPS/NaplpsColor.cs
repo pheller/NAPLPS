@@ -42,6 +42,20 @@ public struct NaplpsColor
         return new NaplpsColor((byte)green, (byte)red, (byte)blue);
     }
 
+    /// <summary>
+    /// Linearly interpolates between two NaplpsColors.
+    /// t=0 returns 'a', t=1 returns 'b'.
+    /// </summary>
+    public static NaplpsColor Lerp(NaplpsColor a, NaplpsColor b, float t)
+    {
+        t = Math.Clamp(t, 0f, 1f);
+        return new NaplpsColor(
+            (byte)(a.Green + (b.Green - a.Green) * t),
+            (byte)(a.Red + (b.Red - a.Red) * t),
+            (byte)(a.Blue + (b.Blue - a.Blue) * t)
+        );
+    }
+
     public override string ToString()
     {
         return $"<{Green},{Red},{Blue}>";

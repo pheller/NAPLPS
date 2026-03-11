@@ -17,6 +17,14 @@ public class Drawable
         public static bool DebugTextDrawing { get; set; } = false;
     }
 
+    /// <summary>
+    /// When set, color resolution uses this palette instead of the per-command state's ColorMap.
+    /// This enables palette animation (blink, palette cycling) — modifications to LivePalette
+    /// are immediately visible on re-render without changing historical state snapshots.
+    /// Rendering is single-threaded, so a static property is safe here.
+    /// </summary>
+    public static Dictionary<byte, NaplpsColor>? LivePalette { get; set; }
+
     private readonly NaplpsCommand _baseCommand;
     private readonly NaplpsState _state;
 
@@ -50,7 +58,7 @@ public class Drawable
 
         var brush = GetFillBrush(size, fgColor, bgColor);
 
-        var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
+        var penColor = fgColor;
         var penWidth = GetPenWidth(size);
         var pen = GetTexturedPen(penColor.ToISColor(), penWidth);
 
@@ -161,8 +169,12 @@ public class Drawable
             state = _state;
         }
 
-        var fgColor = state.ColorMode == 0 ? state.Foreground : state.ColorMap[state.ColorMapForeground];
-        var bgColor = state.ColorMode == 0 ? state.Background : state.ColorMap[state.ColorMapBackground];
+        // Use LivePalette for color lookups when available (enables palette animation).
+        // The color index comes from historical state, but the actual color value
+        // comes from the live palette — this is how real NAPLPS terminals work (CLUT swap).
+        var palette = LivePalette ?? state.ColorMap;
+        var fgColor = state.ColorMode == 0 ? state.Foreground : palette[state.ColorMapForeground];
+        var bgColor = state.ColorMode == 0 ? state.Background : palette[state.ColorMapBackground];
 
         return (fgColor, bgColor);
     }

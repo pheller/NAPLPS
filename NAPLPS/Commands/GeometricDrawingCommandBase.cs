@@ -38,8 +38,10 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
 
     public (Color, Color) GetColors(NaplpsState state)
     {
-        NaplpsColor fgColor = ColorMode == 0 ? Foreground : state.ColorMap[ColorMapForeground];
-        NaplpsColor bgColor = ColorMode == 0 ? Background : state.ColorMap[ColorMapBackground];
+        // Use LivePalette when available for palette animation support
+        var palette = Drawing.Drawable.LivePalette ?? state.ColorMap;
+        NaplpsColor fgColor = ColorMode == 0 ? Foreground : palette[ColorMapForeground];
+        NaplpsColor bgColor = ColorMode == 0 ? Background : palette[ColorMapBackground];
 
         return (fgColor.ToColor(), bgColor.ToColor());
     }

@@ -118,6 +118,12 @@ public partial class NaplpsFormat
                 State.ColorMap = new Dictionary<byte, NaplpsColor>(NaplpsState.ColorMapProdigyDefaults);
                 break;
 
+            case NaplpsSystemType.Telidon:
+                // Telidon v699: higher default coordinate precision, restricted PDI set
+                State.MultiByteValue = 4;
+                NaplpsState.TelidonPDISet.CopyTo(State.InUseTable, NaplpsState.GRight);
+                break;
+
             case NaplpsSystemType.NAPLPS:
             default:
                 // Default color map is already set in NaplpsState
@@ -161,11 +167,103 @@ public partial class NaplpsFormat
         file.Close();
     }
 
-    private void AddCommand(byte command, NaplpsOperands? operands = null)
+    /// <summary>
+    /// Adds a PDI command to the end of the command list.
+    /// Looks up the command type from the InUseTable, clones state, instantiates via reflection.
+    /// </summary>
+    public void AddCommand(byte opcode, NaplpsOperands? operands = null)
     {
-        // var newCommand = NaplpsCommand.Factory(State, command, operands);
+        operands ??= [];
 
-        // Commands.Add(new NaplpsSequence(newCommand.State.Clone(), newCommand));
+        var commandReference = State.InUseTable[opcode];
+
+        if (commandReference == null)
+        {
+            return;
+        }
+
+        var currentState = State.Clone();
+        var commandType = commandReference.CommandType ?? typeof(NaplpsCommand);
+        var commandParameters = commandReference.Parameters;
+
+        var finalCommandParams = commandParameters.Concat([State, opcode, operands]).ToArray();
+
+        if (Activator.CreateInstance(commandType, finalCommandParams) is NaplpsCommand command)
+        {
+            Commands.Add(new NaplpsSequence(currentState, command));
+        }
+    }
+
+    /// <summary>
+    /// Inserts a PDI command at the specified index.
+    /// </summary>
+    public void InsertCommand(int index, byte opcode, NaplpsOperands? operands = null)
+    {
+        operands ??= [];
+
+        var commandReference = State.InUseTable[opcode];
+
+        if (commandReference == null)
+        {
+            return;
+        }
+
+        var currentState = State.Clone();
+        var commandType = commandReference.CommandType ?? typeof(NaplpsCommand);
+        var commandParameters = commandReference.Parameters;
+
+        var finalCommandParams = commandParameters.Concat([State, opcode, operands]).ToArray();
+
+        if (Activator.CreateInstance(commandType, finalCommandParams) is NaplpsCommand command)
+        {
+            Commands.Insert(index, new NaplpsSequence(currentState, command));
+        }
+    }
+
+    /// <summary>
+    /// Removes the command at the specified index.
+    /// </summary>
+    public void RemoveCommand(int index)
+    {
+        if (index >= 0 && index < Commands.Count)
+        {
+            Commands.RemoveAt(index);
+        }
+    }
+
+    /// <summary>
+    /// Creates a NaplpsFormat from raw bytes by parsing them through the standard pipeline.
+    /// Useful for re-parsing after edits (undo/redo) to rebuild the state chain.
+    /// </summary>
+    public static NaplpsFormat FromBytes(byte[] data)
+    {
+        using var stream = new MemoryStream(data);
+        using var reader = new BinaryReader(stream);
+
+        return new NaplpsFormat(reader);
+    }
+
+    /// <summary>
+    /// Serializes all commands to a byte array.
+    /// </summary>
+    public byte[] ToBytes()
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+
+        foreach (var command in Commands)
+        {
+            writer.Write(command.Command.OpCode);
+
+            foreach (var operand in command.Command.Operands)
+            {
+                writer.Write(operand);
+            }
+        }
+
+        writer.Flush();
+
+        return stream.ToArray();
     }
 
     private void AddControlCommand(NaplpsControlCommands command, NaplpsOperands? operands = null)
@@ -338,7 +436,19 @@ public partial class NaplpsFormat
                     {
                         // Move pen down one interrow spacing (NAPLPS Y-up, so subtract)
                         var pen = State.Pen;
-                        pen.Y -= State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
+                        var newY = pen.Y - State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
+
+                        if (State.IsScrollMode && newY < State.Field.Origin.Y)
+                        {
+                            // Scroll: clamp pen to bottom of field and flag scroll event
+                            pen.Y = State.Field.Origin.Y;
+                            State.ScrollEventOccurred = true;
+                        }
+                        else
+                        {
+                            pen.Y = newY;
+                            State.ScrollEventOccurred = false;
+                        }
                         State.Pen = pen;
                     }
                     else if (controlCommand == ActivePositionUp)

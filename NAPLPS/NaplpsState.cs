@@ -199,6 +199,11 @@ public class NaplpsState
     [ReadOnly(true)]
     public bool IsScrollMode { get; set; } = false;
 
+    /// <summary>Set to true when an APD in scroll mode would move pen below field origin</summary>
+    [Browsable(false)]
+    [JsonIgnore]
+    public bool ScrollEventOccurred { get; set; } = false;
+
     /// <summary>Word wrap mode wraps text at word boundaries</summary>
     [Category("C1 Controls")]
     [ReadOnly(true)]
@@ -742,6 +747,117 @@ public class NaplpsState
         new NCR(typeof(SelectColorCommand)),
         new NCR(typeof(BlinkCommand)),
 
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+        new NCR(typeof(NumericalDataCommand)),
+    ];
+
+    /// <summary>
+    /// Telidon v699 PDI set. Same as GeneralPDISet but with Incremental commands
+    /// and Blink replaced with NaplpsCommand (no-op) — these didn't exist in the
+    /// original 1978 Telidon specification.
+    /// </summary>
+    public static readonly NCR[] TelidonPDISet =
+    [
+        new NCR(typeof(ResetCommand)),          // 0x20/0xA0
+        new NCR(typeof(DomainCommand)),         // 0x21/0xA1
+        new NCR(typeof(TextCommand)),           // 0x22/0xA2
+        new NCR(typeof(TextureCommand)),        // 0x23/0xA3
+        new NCR(typeof(PointSetAbsoluteCommand)),
+        new NCR(typeof(PointSetRelativeCommand)),
+        new NCR(typeof(PointAbsoluteCommand)),
+        new NCR(typeof(PointRelativeCommand)),
+        new NCR(typeof(LineAbsoluteCommand)),
+        new NCR(typeof(LineRelativeCommand)),
+        new NCR(typeof(LineSetAbsoluteCommand)),
+        new NCR(typeof(LineSetRelativeCommand)),
+        new NCR(typeof(ArcOutlinedCommand)),
+        new NCR(typeof(ArcFilledCommand)),
+        new NCR(typeof(ArcSetOutlinedCommand)),
+        new NCR(typeof(ArcSetFilledCommand)),
+
+        new NCR(typeof(RectangleOutlinedCommand)),
+        new NCR(typeof(RectangleFilledCommand)),
+        new NCR(typeof(RectangleSetOutlinedCommand)),
+        new NCR(typeof(RectangleSetFilledCommand)),
+        new NCR(typeof(PolygonOutlinedCommand)),
+        new NCR(typeof(PolygonFilledCommand)),
+        new NCR(typeof(PolygonSetOutlinedCommand)),
+        new NCR(typeof(PolygonSetFilledCommand)),
+        new NCR(typeof(IncrementalFieldCommand)),
+        new NCR(typeof(NaplpsCommand)),         // Telidon: no IncrementalPoint
+        new NCR(typeof(NaplpsCommand)),         // Telidon: no IncrementalLine
+        new NCR(typeof(NaplpsCommand)),         // Telidon: no IncrementalPolygonFilled
+        new NCR(typeof(SetColorCommand)),
+        new NCR(typeof(WaitCommand)),
+        new NCR(typeof(SelectColorCommand)),
+        new NCR(typeof(NaplpsCommand)),         // Telidon: no Blink
+
+        // Remainder: NumericalDataCommand (same as GeneralPDISet)
         new NCR(typeof(NumericalDataCommand)),
         new NCR(typeof(NumericalDataCommand)),
         new NCR(typeof(NumericalDataCommand)),

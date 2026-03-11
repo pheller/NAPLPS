@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSTests.Commands;
 
@@ -8,37 +8,40 @@ public class ArcSetFilledCommandTests
     [TestMethod]
     public void Default()
     {
-        //var arcSetFilledCommand = new ArcSetFilledCommand(new(), []);
+        var arcSetFilledCommand = new ArcSetFilledCommand(new(), 0xAF, new NaplpsOperands([]));
 
-        //Assert.AreEqual(false, arcSetFilledCommand.IsValid);
+        Assert.IsFalse(arcSetFilledCommand.IsValid);
 
-        //Assert.AreEqual(true, arcSetFilledCommand.ShouldFill);
+        Assert.IsTrue(arcSetFilledCommand.ShouldFill);
     }
 
     /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n160/mode/1up?view=theater</summary>
     [TestMethod]
     public void ByteMagazineMarch1983Page159()
     {
-        //var arcSetFilledCommand = new ArcSetFilledCommand(new(), [
-        //    0x41, 0x77, 0x50,
-        //    0x47, 0x47, 0x64,
-        //    0x47, 0x47, 0x54,
-        //]);
+        var arcSetFilledCommand = new ArcSetFilledCommand(new(), 0xAF, new NaplpsOperands([
+            0x41, 0x77, 0x50,
+            0x47, 0x47, 0x64,
+            0x47, 0x47, 0x54,
+        ]));
 
-        //Assert.AreEqual(true, arcSetFilledCommand.IsValid);
+        Assert.IsTrue(arcSetFilledCommand.IsValid);
 
-        //Assert.AreEqual(true, arcSetFilledCommand.ShouldFill);
+        Assert.IsTrue(arcSetFilledCommand.ShouldFill);
 
-        //Assert.AreEqual(.1953125f, arcSetFilledCommand.StartPoint.X);
-        //Assert.AreEqual(.46875f, arcSetFilledCommand.StartPoint.Y);
-        //Assert.AreEqual(0, arcSetFilledCommand.StartPoint.Z);
+        // StartPoint = Vertex[0]
+        Assert.AreEqual(.1953125f, arcSetFilledCommand.StartPoint.X);
+        Assert.AreEqual(.46875f, arcSetFilledCommand.StartPoint.Y);
+        Assert.AreEqual(0f, arcSetFilledCommand.StartPoint.Z);
 
-        //Assert.AreEqual(.015625f, arcSetFilledCommand.IntermediatePointDisplacement.X);
-        //Assert.AreEqual(-.015625f, arcSetFilledCommand.IntermediatePointDisplacement.Y);
-        //Assert.AreEqual(0, arcSetFilledCommand.IntermediatePointDisplacement.Z);
+        // IntermediatePointDisplacement = StartPoint + Vertex[1] (accumulated position)
+        Assert.AreEqual(.2109375f, arcSetFilledCommand.IntermediatePointDisplacement.X);
+        Assert.AreEqual(.453125f, arcSetFilledCommand.IntermediatePointDisplacement.Y);
+        Assert.AreEqual(0f, arcSetFilledCommand.IntermediatePointDisplacement.Z);
 
-        //Assert.AreEqual(.0078125f, arcSetFilledCommand.EndPointDisplacement.X);
-        //Assert.AreEqual(-.015625f, arcSetFilledCommand.EndPointDisplacement.Y);
-        //Assert.AreEqual(0, arcSetFilledCommand.EndPointDisplacement.Z);
+        // EndPointDisplacement = IntermediatePointDisplacement + Vertex[2] (accumulated position)
+        Assert.AreEqual(.21875f, arcSetFilledCommand.EndPointDisplacement.X);
+        Assert.AreEqual(.4375f, arcSetFilledCommand.EndPointDisplacement.Y);
+        Assert.AreEqual(0f, arcSetFilledCommand.EndPointDisplacement.Z);
     }
 }

@@ -98,8 +98,8 @@ public class DrawableAsciiChar : Drawable, IDrawable
             '(' or ')' or '[' or ']' or '|' => 1.6f,  // Brackets/pipe
             'j' => 1.4f,
             'f' => 1.2f,
-            'w' or 'W' or 'X' or 'Y' or 'G' or 'm' or 'x' or 'M' or 'T' or '@' or '/' => 0.8f, // Too big
-            'v' => 0.6f, // Really big!
+            'w' or 'W' or 'X' or 'Y' or 'G' or 'm' or 'x' or 'M' or 'T' or '@' or '/' or '&' => 0.8f, // Too big
+            'v' or 'V' => 0.6f, // Really big!
             _ => 1.0f,  // Normal characters - no boost
         };
     }

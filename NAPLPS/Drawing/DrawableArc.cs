@@ -3,7 +3,6 @@
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 using PointF = SixLabors.ImageSharp.PointF;
-using SizeF = SixLabors.ImageSharp.SizeF;
 
 namespace NAPLPS.Drawing;
 
@@ -78,64 +77,48 @@ public class DrawableArc : Drawable, IDrawable
                 radius = 1;
             }
 
-            SizeF arcSize = new SizeF(radius * 2, radius * 2);
+            // Direct arc point generation using Atan2 — avoids fragile ArcLineSegment flags
+            float startAngle = MathF.Atan2(startY - center.Y, startX - center.X);
+            float midAngle = MathF.Atan2(midY - center.Y, midX - center.X);
+            float endAngle = MathF.Atan2(endY - center.Y, endX - center.X);
 
-            // Calculate angles from center
-            float startAngle = (float)(Math.Atan2(startY - center.Y, startX - center.X) * (180 / Math.PI));
-            float midAngle = (float)(Math.Atan2(midY - center.Y, midX - center.X) * (180 / Math.PI));
-            float endAngle = (float)(Math.Atan2(endY - center.Y, endX - center.X) * (180 / Math.PI));
+            // Determine sweep direction: normalize angle diffs to [0, 2π)
+            float startToMid = NormRadians(midAngle - startAngle);
+            float startToEnd = NormRadians(endAngle - startAngle);
 
-            // Determine sweep direction based on whether mid point is in the arc
-            // The mid point should be between start and end on the arc
-            bool sweepClockwise = IsClockwise(startAngle, midAngle, endAngle);
+            // If mid point falls within [start, end) going CCW, sweep CCW; otherwise sweep CW
+            float sweepAngle = (startToMid <= startToEnd)
+                ? startToEnd                        // CCW sweep includes mid
+                : startToEnd - 2f * MathF.PI;       // CW sweep includes mid
 
-            // Determine if it's a large arc (> 180 degrees)
-            float angleDiff = endAngle - startAngle;
-            if (angleDiff < 0) angleDiff += 360;
-            if (angleDiff > 360) angleDiff -= 360;
-
-            bool isLargeArc = angleDiff > 180;
-
-            // Adjust based on sweep direction
-            if (!sweepClockwise)
+            // Generate arc points
+            int steps = Math.Max(32, (int)(MathF.Abs(sweepAngle) * radius));
+            var arcPoints = new PointF[steps + 1];
+            for (int i = 0; i <= steps; i++)
             {
-                isLargeArc = !isLargeArc;
+                float t = (float)i / steps;
+                float a = startAngle + sweepAngle * t;
+                arcPoints[i] = new PointF(
+                    center.X + radius * MathF.Cos(a),
+                    center.Y + radius * MathF.Sin(a));
             }
 
-            try
+            if (arcPoints.Length >= 2)
             {
-                var arcSegment = new ArcLineSegment(
-                    new PointF(startX, startY),
-                    new PointF(endX, endY),
-                    arcSize,
-                    0, // rotation angle
-                    isLargeArc,
-                    sweepClockwise
-                );
-
-                var arcPoints = arcSegment.Flatten().ToArray();
-
-                if (arcPoints.Length >= 2)
+                image.Mutate(x =>
                 {
-                    image.Mutate(x =>
+                    if (_command.ShouldFill)
                     {
-                        if (_command.ShouldFill)
-                        {
-                            // For filled arc, create a polygon with the arc and chord
-                            var fillPoints = new List<PointF>(arcPoints);
-                            fillPoints.Add(new PointF(startX, startY)); // Close the shape
-                            x.FillPolygon(brush, fillPoints.ToArray());
-                        }
+                        var fillPoints = new List<PointF>(arcPoints);
+                        fillPoints.Add(new PointF(startX, startY));
+                        x.FillPolygon(brush, fillPoints.ToArray());
+                    }
 
-                        // Draw the arc outline (not the chord)
+                    if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+                    {
                         x.DrawLine(pen, arcPoints);
-                    });
-                }
-            }
-            catch
-            {
-                // Fallback: draw line if arc construction fails
-                image.Mutate(x => x.DrawLine(pen, new PointF(startX, startY), new PointF(endX, endY)));
+                    }
+                });
             }
         }
     }
@@ -149,25 +132,12 @@ public class DrawableArc : Drawable, IDrawable
         return MathF.Sqrt(dx * dx + dy * dy);
     }
 
-    private static bool IsClockwise(float startAngle, float midAngle, float endAngle)
+    /// <summary>Normalize an angle in radians to [0, 2π).</summary>
+    private static float NormRadians(float angle)
     {
-        // Normalize angles to 0-360
-        startAngle = NormalizeAngle(startAngle);
-        midAngle = NormalizeAngle(midAngle);
-        endAngle = NormalizeAngle(endAngle);
-
-        // Check if going from start to mid to end is clockwise
-        float startToMid = NormalizeAngle(midAngle - startAngle);
-        float startToEnd = NormalizeAngle(endAngle - startAngle);
-
-        // If mid is between start and end going clockwise, then clockwise sweep
-        return startToMid < startToEnd;
-    }
-
-    private static float NormalizeAngle(float angle)
-    {
-        while (angle < 0) angle += 360;
-        while (angle >= 360) angle -= 360;
+        const float twoPi = 2f * MathF.PI;
+        angle %= twoPi;
+        if (angle < 0) angle += twoPi;
         return angle;
     }
 

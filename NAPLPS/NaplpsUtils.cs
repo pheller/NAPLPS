@@ -157,6 +157,44 @@ public static class NaplpsUtils
         return fraction;
     }
 
+    /// <summary>
+    /// Reverse of ConvertBitsToFraction. Given a float in [-1, 1), produce the bit list
+    /// that ConvertBitsToFraction would decode back to that float.
+    /// bit[0] = sign (true if negative), bits[1..N] = binary fraction of the absolute value.
+    /// Negative values use -1 + fraction representation (matching the decoder).
+    /// </summary>
+    public static List<bool> ConvertFractionToBits(float value, int totalBits)
+    {
+        var bits = new List<bool>(totalBits);
+
+        bool isNegative = value < 0;
+        bits.Add(isNegative);
+
+        // For negative values, the decoder does: result = -1 + fraction
+        // So to encode: fraction = value + 1
+        // For positive values: fraction = value
+        float fraction = isNegative ? value + 1.0f : value;
+
+        float baseValue = 0.5f;
+
+        for (int i = 1; i < totalBits; i++)
+        {
+            if (fraction >= baseValue)
+            {
+                bits.Add(true);
+                fraction -= baseValue;
+            }
+            else
+            {
+                bits.Add(false);
+            }
+
+            baseValue /= 2f;
+        }
+
+        return bits;
+    }
+
     public static int ConvertBitsToInt(List<bool> binaryArray)
     {
         if (binaryArray == null || binaryArray.Count == 0)

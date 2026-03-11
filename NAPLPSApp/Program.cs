@@ -36,6 +36,11 @@ sealed class Program
                 return HandleExportCommand(args);
             }
 
+            if (command == "diff" || command == "--diff" || command == "-d")
+            {
+                return HandleDiffCommand(args);
+            }
+
             if (command == "help" || command == "--help" || command == "-h" || command == "-?")
             {
                 PrintHelp();
@@ -60,17 +65,32 @@ sealed class Program
         Console.WriteLine("Usage: NAPLPSApp [command] [options]");
         Console.WriteLine();
         Console.WriteLine("Commands:");
-        Console.WriteLine("  info <file> [--format=text|json]   Display file information");
-        Console.WriteLine("  export <file> [output] [options]   Export file to image format");
+        Console.WriteLine("  info <file> [--format=text|json]        Display file information");
+        Console.WriteLine("  export <file> [output] [options]        Export file to image format");
+        Console.WriteLine("  export --batch <dir> [options]          Batch export all .nap files");
+        Console.WriteLine("  diff <file1> <file2> [options]          Compare two NAPLPS files");
         Console.WriteLine();
         Console.WriteLine("Export Options:");
         Console.WriteLine("  --format=png|gif      Output format (default: png)");
         Console.WriteLine("  --size=WxH            Canvas size (default: 1024x768)");
         Console.WriteLine("  --stdout, -           Output to stdout instead of file");
         Console.WriteLine();
+        Console.WriteLine("Batch Export Options:");
+        Console.WriteLine("  --batch               Enable batch mode (input is a directory)");
+        Console.WriteLine("  --output-dir=<path>   Output directory (default: alongside source files)");
+        Console.WriteLine();
         Console.WriteLine("GIF Options:");
         Console.WriteLine("  --loop                Loop the GIF animation (default: no loop)");
         Console.WriteLine("  --delay=N             Frame delay in 1/100s of a second (default: 5)");
+        Console.WriteLine();
+        Console.WriteLine("Palette Animation Options:");
+        Console.WriteLine("  --palette-anim        Export blink/palette animation as GIF");
+        Console.WriteLine("  --frames=N            Number of animation frames (default: 120)");
+        Console.WriteLine();
+        Console.WriteLine("Diff Options:");
+        Console.WriteLine("  --mode=text|visual    Diff mode (default: text)");
+        Console.WriteLine("  --size=WxH            Canvas size for visual diff (default: 1024x768)");
+        Console.WriteLine("  --output=<file>       Output file for visual diff (default: diff.png)");
         Console.WriteLine();
         Console.WriteLine("Examples:");
         Console.WriteLine("  NAPLPSApp info myfile.nap");
@@ -79,6 +99,11 @@ sealed class Program
         Console.WriteLine("  NAPLPSApp export myfile.nap --format=gif output.gif");
         Console.WriteLine("  NAPLPSApp export myfile.nap --format=gif --loop --delay=10 output.gif");
         Console.WriteLine("  NAPLPSApp export myfile.nap --stdout > output.png");
+        Console.WriteLine("  NAPLPSApp export --batch Examples/ --format=png");
+        Console.WriteLine("  NAPLPSApp export --batch Examples/ --output-dir=output/ --format=gif");
+        Console.WriteLine("  NAPLPSApp export building.nap --palette-anim --loop --frames=300 anim.gif");
+        Console.WriteLine("  NAPLPSApp diff file1.nap file2.nap");
+        Console.WriteLine("  NAPLPSApp diff file1.nap file2.nap --mode=visual --output=diff.png");
     }
 
     private static int HandleInfoCommand(string[] args)
@@ -157,16 +182,20 @@ sealed class Program
         if (args.Length < 2)
         {
             Console.Error.WriteLine("Error: No input file specified.");
-            Console.Error.WriteLine("Usage: NAPLPSApp export <file> [output] [--format=png|gif] [--size=WxH] [--stdout]");
+            Console.Error.WriteLine("Usage: NAPLPSApp export <file|--batch dir> [output] [--format=png|gif] [--size=WxH] [--stdout]");
             return 1;
         }
 
         var inputFile = args[1];
         string? outputFile = null;
+        string? outputDir = null;
         var format = "png";
         var size = "1024x768";
         var useStdout = false;
         var loop = false;
+        var batch = false;
+        var paletteAnim = false;
+        var paletteFrames = 120; // Default ~2 seconds at 60fps
         var delay = 5; // Default frame delay in 1/100s of a second
 
         for (int i = 2; i < args.Length; i++)
@@ -179,6 +208,15 @@ sealed class Program
             {
                 loop = true;
             }
+            else if (args[i] == "--batch")
+            {
+                batch = true;
+            }
+            else if (args[i] == "--palette-anim")
+            {
+                paletteAnim = true;
+                format = "gif"; // Force GIF for animation
+            }
             else if (args[i].StartsWith("--format="))
             {
                 format = args[i]["--format=".Length..].ToLowerInvariant();
@@ -186,6 +224,10 @@ sealed class Program
             else if (args[i].StartsWith("--size="))
             {
                 size = args[i]["--size=".Length..];
+            }
+            else if (args[i].StartsWith("--output-dir="))
+            {
+                outputDir = args[i]["--output-dir=".Length..];
             }
             else if (args[i].StartsWith("--delay="))
             {
@@ -195,10 +237,30 @@ sealed class Program
                     return 1;
                 }
             }
+            else if (args[i].StartsWith("--frames="))
+            {
+                if (!int.TryParse(args[i]["--frames=".Length..], out paletteFrames) || paletteFrames < 1)
+                {
+                    Console.Error.WriteLine($"Error: Invalid frames value. Expected positive integer.");
+                    return 1;
+                }
+            }
             else if (!args[i].StartsWith("--") && !args[i].StartsWith("-"))
             {
                 outputFile = args[i];
             }
+        }
+
+        if (!ParseSize(size, out var width, out var height))
+        {
+            Console.Error.WriteLine($"Error: Invalid size format: {size}. Expected WxH (e.g., 1024x768)");
+            return 1;
+        }
+
+        // Batch mode
+        if (batch)
+        {
+            return HandleBatchExport(inputFile, outputDir, format, width, height, loop, delay);
         }
 
         if (!useStdout && outputFile == null)
@@ -212,20 +274,16 @@ sealed class Program
             return 1;
         }
 
-        // Parse size
-        var sizeParts = size.Split('x');
-        if (sizeParts.Length != 2 || !int.TryParse(sizeParts[0], out var width) || !int.TryParse(sizeParts[1], out var height))
-        {
-            Console.Error.WriteLine($"Error: Invalid size format: {size}. Expected WxH (e.g., 1024x768)");
-            return 1;
-        }
-
         try
         {
             var naplps = NaplpsFormat.FromFile(inputFile);
             using var drawContext = new DrawContext(naplps, new SixLabors.ImageSharp.Size(width, height));
 
-            if (format == "gif")
+            if (paletteAnim)
+            {
+                return ExportPaletteAnimGif(drawContext, outputFile, useStdout, loop, delay, paletteFrames);
+            }
+            else if (format == "gif")
             {
                 return ExportGif(drawContext, outputFile, useStdout, loop, delay);
             }
@@ -239,6 +297,152 @@ sealed class Program
             Console.Error.WriteLine($"Error: Failed to export file: {ex.Message}");
             return 1;
         }
+    }
+
+    private static int HandleBatchExport(string inputDir, string? outputDir, string format,
+        int width, int height, bool loop, int delay)
+    {
+        if (!Directory.Exists(inputDir))
+        {
+            Console.Error.WriteLine($"Error: Directory not found: {inputDir}");
+            return 1;
+        }
+
+        if (outputDir != null)
+        {
+            Directory.CreateDirectory(outputDir);
+        }
+
+        var files = Directory.EnumerateFiles(inputDir, "*.nap", SearchOption.AllDirectories).ToList();
+
+        if (files.Count == 0)
+        {
+            Console.Error.WriteLine($"No .nap files found in: {inputDir}");
+            return 1;
+        }
+
+        int processed = 0, failed = 0;
+        var total = files.Count;
+        var parsedSize = new SixLabors.ImageSharp.Size(width, height);
+
+        Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, file =>
+        {
+            try
+            {
+                var outPath = outputDir != null
+                    ? IOPath.Combine(outputDir, IOPath.ChangeExtension(IOPath.GetFileName(file), format))
+                    : IOPath.ChangeExtension(file, format);
+
+                var naplps = NaplpsFormat.FromFile(file);
+                using var drawContext = new DrawContext(naplps, parsedSize);
+
+                if (format == "gif")
+                    ExportGif(drawContext, outPath, false, loop, delay);
+                else
+                    ExportPng(drawContext, outPath, false);
+
+                var count = Interlocked.Increment(ref processed);
+                Console.Error.WriteLine($"[{count}/{total}] Exported: {file}");
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Increment(ref failed);
+                Console.Error.WriteLine($"[FAIL] {file}: {ex.Message}");
+            }
+        });
+
+        Console.Error.WriteLine($"Done. {processed} exported, {failed} failed of {total} total.");
+        return failed > 0 ? 1 : 0;
+    }
+
+    private static int HandleDiffCommand(string[] args)
+    {
+        if (args.Length < 3)
+        {
+            Console.Error.WriteLine("Error: Two input files required.");
+            Console.Error.WriteLine("Usage: NAPLPSApp diff <file1> <file2> [--mode=visual|text] [--size=WxH] [--output=file]");
+            return 1;
+        }
+
+        var fileA = args[1];
+        var fileB = args[2];
+        var mode = "text";
+        var size = "1024x768";
+        string? outputFile = null;
+
+        for (int i = 3; i < args.Length; i++)
+        {
+            if (args[i].StartsWith("--mode="))
+                mode = args[i]["--mode=".Length..].ToLowerInvariant();
+            else if (args[i].StartsWith("--size="))
+                size = args[i]["--size=".Length..];
+            else if (args[i].StartsWith("--output="))
+                outputFile = args[i]["--output=".Length..];
+        }
+
+        if (!File.Exists(fileA)) { Console.Error.WriteLine($"Error: File not found: {fileA}"); return 1; }
+        if (!File.Exists(fileB)) { Console.Error.WriteLine($"Error: File not found: {fileB}"); return 1; }
+
+        try
+        {
+            var a = NaplpsFormat.FromFile(fileA);
+            var b = NaplpsFormat.FromFile(fileB);
+
+            if (mode == "visual")
+            {
+                if (!ParseSize(size, out var width, out var height))
+                {
+                    Console.Error.WriteLine($"Error: Invalid size format: {size}");
+                    return 1;
+                }
+
+                using var diff = NapDiff.VisualDiff(a, b, new SixLabors.ImageSharp.Size(width, height));
+                var outPath = outputFile ?? "diff.png";
+                diff.SaveAsPng(outPath);
+                Console.Error.WriteLine($"Visual diff saved to: {outPath}");
+            }
+            else
+            {
+                var entries = NapDiff.CommandDiff(a, b);
+                int diffCount = 0;
+
+                foreach (var entry in entries)
+                {
+                    if (entry.IsDifferent)
+                    {
+                        diffCount++;
+                        string idxA = entry.IndexA.HasValue ? entry.IndexA.Value.ToString() : "-";
+                        string idxB = entry.IndexB.HasValue ? entry.IndexB.Value.ToString() : "-";
+
+                        if (entry.CommandA == "")
+                            Console.WriteLine($"+ [{idxB}] {entry.CommandB}");
+                        else if (entry.CommandB == "")
+                            Console.WriteLine($"- [{idxA}] {entry.CommandA}");
+                        else
+                        {
+                            Console.WriteLine($"- [{idxA}] {entry.CommandA}");
+                            Console.WriteLine($"+ [{idxB}] {entry.CommandB}");
+                        }
+                    }
+                }
+
+                Console.Error.WriteLine($"{diffCount} differences found in {entries.Count} commands.");
+            }
+
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static bool ParseSize(string size, out int width, out int height)
+    {
+        width = 0; height = 0;
+        var parts = size.Split('x');
+        return parts.Length == 2 && int.TryParse(parts[0], out width) && int.TryParse(parts[1], out height);
     }
 
     private static int ExportPng(DrawContext drawContext, string? outputFile, bool useStdout)
@@ -311,6 +515,78 @@ sealed class Program
         {
             gif.SaveAsGif(outputFile);
             Console.Error.WriteLine($"Exported GIF with {drawContext.TotalFrames + 1} frames to: {outputFile}");
+        }
+
+        return 0;
+    }
+
+    private static int ExportPaletteAnimGif(DrawContext drawContext, string? outputFile, bool useStdout,
+        bool loop, int delay, int totalFrames)
+    {
+        // First render the full file with palette animation mode
+        drawContext.PaletteAnimationMode = true;
+        drawContext.Render();
+
+        // Initialize blink animator
+        drawContext.InitializeBlinkAnimator();
+
+        Console.Error.WriteLine($"Blink processes: {drawContext.NAPLPS.State.BlinkProcesses.Count}");
+
+        if (drawContext.BlinkAnimator == null || !drawContext.BlinkAnimator.HasActiveProcesses)
+        {
+            Console.Error.WriteLine("Warning: No active blink processes found. Exporting static image as GIF.");
+            // Fall back to single-frame GIF
+            using var staticGif = drawContext.Image.Clone();
+            var outPath = outputFile ?? "palette_anim.gif";
+            staticGif.SaveAsGif(outPath);
+            Console.Error.WriteLine($"Exported to: {outPath}");
+            return 0;
+        }
+
+        using var gif = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(
+            drawContext.Size.Width, drawContext.Size.Height);
+
+        var gifMetaData = gif.Metadata.GetGifMetadata();
+        gifMetaData.RepeatCount = loop ? (ushort)0 : (ushort)1;
+
+        // Capture the initial frame
+        gif.ProcessPixelRows(drawContext.Image, (dst, src) =>
+        {
+            for (int y = 0; y < src.Height; y++)
+            {
+                src.GetRowSpan(y).CopyTo(dst.GetRowSpan(y));
+            }
+        });
+        gif.Frames.RootFrame.Metadata.GetGifMetadata().FrameDelay = delay;
+
+        // Tick the blink animator and capture frames
+        const int tickMs = 16; // ~60Hz tick rate
+        for (int frame = 1; frame < totalFrames; frame++)
+        {
+            bool changed = drawContext.TickBlink(tickMs);
+
+            if (changed || frame == totalFrames - 1)
+            {
+                // Add frame to GIF
+                var frameClone = drawContext.Image.Clone();
+                var frameMetadata = frameClone.Frames.RootFrame.Metadata.GetGifMetadata();
+                frameMetadata.FrameDelay = delay;
+                gif.Frames.AddFrame(frameClone.Frames.RootFrame);
+                frameClone.Dispose();
+            }
+        }
+
+        var path = outputFile ?? "palette_anim.gif";
+
+        if (useStdout)
+        {
+            using var stdout = Console.OpenStandardOutput();
+            gif.SaveAsGif(stdout);
+        }
+        else
+        {
+            gif.SaveAsGif(path);
+            Console.Error.WriteLine($"Exported palette animation GIF with {gif.Frames.Count} frames to: {path}");
         }
 
         return 0;

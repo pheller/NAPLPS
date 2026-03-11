@@ -11,12 +11,17 @@
 		x:Class="NAPLPSApp.Views.MainWindow"
 		x:DataType="vm:MainWindowViewModel"
 		Icon="/Assets/naplps.ico"
-		Title="{Binding TitleBar}">
+		Title="{Binding TitleBarDisplay}">
 	<Window.KeyBindings>
 		<KeyBinding Command="{Binding PreviousFrameCommand}" Gesture="Left"/>
 		<KeyBinding Command="{Binding NextFrameCommand}" Gesture="Right"/>
 		<KeyBinding Command="{Binding FirstFrameCommand}" Gesture="Home"/>
 		<KeyBinding Command="{Binding LastFrameCommand}" Gesture="End"/>
+		<KeyBinding Command="{Binding UndoCommand}" Gesture="Ctrl+Z"/>
+		<KeyBinding Command="{Binding RedoCommand}" Gesture="Ctrl+Y"/>
+		<KeyBinding Command="{Binding SaveCommand}" Gesture="Ctrl+S"/>
+		<KeyBinding Command="{Binding SaveAsCommand}" Gesture="Ctrl+Shift+S"/>
+		<KeyBinding Command="{Binding DeleteSelectedCommand}" Gesture="Delete"/>
 	</Window.KeyBindings>
 
 	<Window.Resources>
@@ -34,18 +39,34 @@
 				<MenuItem Header="_New" Command="{Binding NewCommand}" i:MenuItem.Icon="fa-solid fa-file"/>
 				<Separator/>
 				<MenuItem Header="_Open" Command="{Binding OpenCommand}"  i:MenuItem.Icon="fa-solid fa-folder-open"/>
-				<MenuItem Header="_Save" Command="{Binding SaveCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-floppy-disk"/>
+				<MenuItem Header="_Save" Command="{Binding SaveCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-floppy-disk" InputGesture="Ctrl+S"/>
+				<MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-floppy-disk" InputGesture="Ctrl+Shift+S"/>
 				<MenuItem Header="_Close" Command="{Binding CloseCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-xmark"/>
 				<Separator/>
 				<MenuItem Header="_Export PNG" Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
 				<Separator/>
 				<MenuItem Header="_Quit" Command="{Binding QuitCommand}" i:MenuItem.Icon="fa-solid fa-door-open"/>
 			</MenuItem>
+			<MenuItem Header="_Edit">
+				<MenuItem Header="_Undo" Command="{Binding UndoCommand}" i:MenuItem.Icon="fa-solid fa-rotate-left" InputGesture="Ctrl+Z"/>
+				<MenuItem Header="_Redo" Command="{Binding RedoCommand}" i:MenuItem.Icon="fa-solid fa-rotate-right" InputGesture="Ctrl+Y"/>
+				<Separator/>
+				<MenuItem Header="_Toolbox" Command="{Binding ToggleToolboxCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-pen-ruler"></MenuItem>
+				<Separator/>
+				<MenuItem Header="_Group Layers" IsEnabled="false"></MenuItem>
+				<MenuItem Header="_Ungroup Layers" IsEnabled="false"></MenuItem>
+				<Separator/>
+				<MenuItem Header="_Properties" IsEnabled="false"></MenuItem>
+				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
+			</MenuItem>
 			<MenuItem Header="_Render">
 				<MenuItem Header="_Re-render" Command="{Binding RerenderCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-recycle"/>
 				<Separator/>
 				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding IsAnimated}" i:MenuItem.Icon="fa-solid fa-check"/>
 				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding !IsAnimated}"/>
+				<MenuItem Header="_Loop" Command="{Binding ToggleLoopCommand}" ToggleType="CheckBox" IsChecked="{Binding IsLooping}" i:MenuItem.Icon="fa-solid fa-repeat"/>
+				<MenuItem Header="_Palette Animation" Command="{Binding TogglePaletteAnimationCommand}" ToggleType="CheckBox" IsChecked="{Binding IsPaletteAnimationMode}" i:MenuItem.Icon="fa-solid fa-palette"/>
+				<Separator/>
 				<MenuItem Header="_Speed" i:MenuItem.Icon="fa-solid fa-gauge">
 					<MenuItem Header="Fastest" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="0" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=0}" />
 					<MenuItem Header="460Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="460800" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=460800}" />
@@ -63,15 +84,6 @@
 					<MenuItem Header="300bps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="300" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=300}" />
 					<MenuItem Header="110bps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="110" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=110}" />
 				</MenuItem>
-			</MenuItem>
-			<MenuItem Header="_Tools">
-				<MenuItem Header="_Toolbox"></MenuItem>
-				<Separator/>
-				<MenuItem Header="_Group Layers" IsEnabled="false"></MenuItem>
-				<MenuItem Header="_Ungroup Layers" IsEnabled="false"></MenuItem>
-				<Separator/>
-				<MenuItem Header="_Properties" IsEnabled="false"></MenuItem>
-				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
 			</MenuItem>
 			<MenuItem Header="_View">
 				<MenuItem Header="_Sequence" Command="{Binding ToggleSequenceCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-shoe-prints"/>
@@ -142,11 +154,95 @@
 				<TextBlock Text="{Binding CurrentFrame}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
 				<TextBlock Text="/" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
 				<TextBlock Text="{Binding TotalFrames}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
+
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsEditorMode}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+				<i:Icon Value="fa-solid fa-pen-ruler" Margin="0,0,5,0" IsVisible="{Binding IsEditorMode}" />
+				<TextBlock Text="{Binding ActiveToolName}" VerticalAlignment="Center" IsVisible="{Binding IsEditorMode}"/>
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsEditorMode}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+				<Border Width="12" Height="12" Background="{Binding ForegroundColorBrush}" BorderBrush="White" BorderThickness="1" VerticalAlignment="Center" IsVisible="{Binding IsEditorMode}" Margin="0,0,2,0"/>
+				<Border Width="12" Height="12" Background="{Binding BackgroundColorBrush}" BorderBrush="Gray" BorderThickness="1" VerticalAlignment="Center" IsVisible="{Binding IsEditorMode}"/>
+			</StackPanel>
+		</Border>
+
+		<!-- Editor Toolbar (left dock) -->
+		<Border DockPanel.Dock="Left" Background="{DynamicResource SystemControlBackgroundBase}" Padding="2" IsVisible="{Binding IsEditorMode}">
+			<StackPanel Orientation="Vertical" Spacing="2">
+				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsSelectToolActive}" ToolTip.Tip="Select"
+							 Command="{Binding SetActiveToolCommand}" CommandParameter="Select">
+					<i:Icon Value="fa-solid fa-arrow-pointer" FontSize="16"/>
+				</RadioButton>
+				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsMovePenToolActive}" ToolTip.Tip="Move Pen"
+							 Command="{Binding SetActiveToolCommand}" CommandParameter="MovePen">
+					<i:Icon Value="fa-solid fa-crosshairs" FontSize="16"/>
+				</RadioButton>
+				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsLineToolActive}" ToolTip.Tip="Line"
+							 Command="{Binding SetActiveToolCommand}" CommandParameter="Line">
+					<i:Icon Value="fa-solid fa-minus" FontSize="16"/>
+				</RadioButton>
+				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsRectangleToolActive}" ToolTip.Tip="Rectangle"
+							 Command="{Binding SetActiveToolCommand}" CommandParameter="Rectangle">
+					<i:Icon Value="fa-solid fa-square" FontSize="16"/>
+				</RadioButton>
+				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsPolygonToolActive}" ToolTip.Tip="Polygon"
+							 Command="{Binding SetActiveToolCommand}" CommandParameter="Polygon">
+					<i:Icon Value="fa-solid fa-draw-polygon" FontSize="16"/>
+				</RadioButton>
+				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsArcToolActive}" ToolTip.Tip="Arc"
+							 Command="{Binding SetActiveToolCommand}" CommandParameter="Arc">
+					<i:Icon Value="fa-solid fa-circle-notch" FontSize="16"/>
+				</RadioButton>
+				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsTextToolActive}" ToolTip.Tip="Text"
+							 Command="{Binding SetActiveToolCommand}" CommandParameter="Text">
+					<i:Icon Value="fa-solid fa-font" FontSize="16"/>
+				</RadioButton>
+				<Separator Margin="0,4"/>
+				<CheckBox IsChecked="{Binding IsFilledMode}" ToolTip.Tip="Filled">
+					<i:Icon Value="fa-solid fa-fill" FontSize="16"/>
+				</CheckBox>
+				<Separator Margin="0,4"/>
+				<CheckBox IsChecked="{Binding GridSettings.IsVisible}" ToolTip.Tip="Grid" Command="{Binding ToggleGridCommand}">
+					<i:Icon Value="fa-solid fa-border-all" FontSize="16"/>
+				</CheckBox>
+				<CheckBox IsChecked="{Binding GridSettings.IsSnapEnabled}" ToolTip.Tip="Snap to Grid" Command="{Binding ToggleSnapCommand}">
+					<i:Icon Value="fa-solid fa-magnet" FontSize="16"/>
+				</CheckBox>
+			</StackPanel>
+		</Border>
+
+		<!-- Color Picker Panel (left dock, below toolbar) -->
+		<Border DockPanel.Dock="Left" Background="{DynamicResource SystemControlBackgroundBase}" Padding="4" IsVisible="{Binding IsEditorMode}" Width="44">
+			<StackPanel Orientation="Vertical" Spacing="2">
+				<TextBlock Text="FG" FontSize="10" HorizontalAlignment="Center"/>
+				<Border Width="28" Height="28" BorderBrush="White" BorderThickness="2" CornerRadius="2" HorizontalAlignment="Center"
+						Background="{Binding ForegroundColorBrush}"/>
+				<TextBlock Text="BG" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+				<Border Width="28" Height="28" BorderBrush="Gray" BorderThickness="2" CornerRadius="2" HorizontalAlignment="Center"
+						Background="{Binding BackgroundColorBrush}"/>
+				<Separator Margin="0,4"/>
+				<ItemsControl ItemsSource="{Binding PaletteColors}">
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel ItemWidth="18" ItemHeight="18"/>
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<Button Width="16" Height="16" Padding="0" Margin="1"
+									Background="{Binding Brush}"
+									Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectPaletteColorCommand}"
+									CommandParameter="{Binding Index}"/>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
 			</StackPanel>
 		</Border>
 
 		<Grid Background="#222222">
-			<Image Source="{Binding CanvasImage}" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="{Binding ImageStretch}"/>
+			<Image Source="{Binding CanvasImage}" Name="CanvasImageControl"
+				   HorizontalAlignment="Center" VerticalAlignment="Center"
+				   Stretch="{Binding ImageStretch}"/>
+			<Canvas Name="EditorOverlay" Background="Transparent"
+					IsVisible="{Binding IsEditorMode}"/>
 		</Grid>
 	</DockPanel>
 </Window>

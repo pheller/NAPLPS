@@ -1,5 +1,8 @@
 ﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Processing;
+
 namespace NAPLPS.Drawing;
 
 public class DrawContext : IDisposable
@@ -10,6 +13,9 @@ public class DrawContext : IDisposable
 
     // Track last displayed character for Repeat command
     private AsciiCharCommand? _lastDisplayedChar;
+
+    /// <summary>Blink animator for palette animation. Initialized after render completes.</summary>
+    public BlinkAnimator? BlinkAnimator { get; private set; }
 
     public NaplpsFormat NAPLPS { get; }
 
@@ -22,6 +28,14 @@ public class DrawContext : IDisposable
     public uint CurrentIndex;
 
     public uint TotalFrames;
+
+    /// <summary>
+    /// When true, rendering uses the final parsed state's ColorMap as a live palette.
+    /// All drawables resolve colors from this shared palette instead of their historical snapshots.
+    /// This enables palette animation effects (blink, palette cycling) where previously-drawn
+    /// objects retroactively change color when palette entries are modified.
+    /// </summary>
+    public bool PaletteAnimationMode { get; set; }
 
     public DrawContext() { }
 
@@ -39,11 +53,25 @@ public class DrawContext : IDisposable
         CurrentIndex = 0;
         _lastDisplayedChar = null;
 
+        // Clear canvas (important for loop restarts and re-renders)
+        Image.Mutate(ctx => ctx.Fill(ISColor.Black));
+
+        if (PaletteAnimationMode)
+        {
+            Drawable.LivePalette = NAPLPS.State.ColorMap;
+        }
+
         foreach (var sequence in NAPLPS.Commands)
         {
             var (command, state) = sequence;
 
-            var drawable = ConvertToDrawable(command);
+            // Handle scroll: shift image pixels up when scroll event occurs
+            if (state.ScrollEventOccurred)
+            {
+                ScrollImageUp(state);
+            }
+
+            var drawable = ConvertToDrawable(command, state);
 
             // Track last displayed character for Repeat
             if (command is AsciiCharCommand asciiChar)
@@ -74,6 +102,8 @@ public class DrawContext : IDisposable
             CurrentIndex = TotalFrames;
         }
 
+        Drawable.LivePalette = null;
+
         OnImageUpdated?.Invoke();
     }
 
@@ -81,6 +111,14 @@ public class DrawContext : IDisposable
     {
         CurrentIndex = 0;
         _lastDisplayedChar = null;
+
+        // Clear canvas (important for loop restarts)
+        Image.Mutate(ctx => ctx.Fill(ISColor.Black));
+
+        if (PaletteAnimationMode)
+        {
+            Drawable.LivePalette = NAPLPS.State.ColorMap;
+        }
 
         foreach (var sequence in NAPLPS.Commands)
         {
@@ -91,7 +129,13 @@ public class DrawContext : IDisposable
 
             var (command, state) = sequence;
 
-            var drawable = ConvertToDrawable(command);
+            // Handle scroll: shift image pixels up when scroll event occurs
+            if (state.ScrollEventOccurred)
+            {
+                ScrollImageUp(state);
+            }
+
+            var drawable = ConvertToDrawable(command, state);
 
             // Track last displayed character for Repeat
             if (command is AsciiCharCommand asciiChar)
@@ -123,6 +167,8 @@ public class DrawContext : IDisposable
         {
             CurrentIndex = TotalFrames;
         }
+
+        Drawable.LivePalette = null;
     }
 
     private void RenderRepeat(DrawableRepeat repeatDrawable, NaplpsState state)
@@ -140,7 +186,16 @@ public class DrawContext : IDisposable
         for (int i = 0; i < repeatCount; i++)
         {
             // Create a drawable for the repeated character using current pen position
-            var charDrawable = new DrawableAsciiChar(_lastDisplayedChar);
+            // Check DRCS table first
+            IDrawable charDrawable;
+            if (state.DrcsCharacters.TryGetValue(_lastDisplayedChar.OpCode, out var bitmap))
+            {
+                charDrawable = new DrawableDrcsChar(_lastDisplayedChar, bitmap);
+            }
+            else
+            {
+                charDrawable = new DrawableAsciiChar(_lastDisplayedChar);
+            }
             charDrawable.Draw(Image, state, Size);
 
             // Advance pen position (same logic as AsciiCharCommand.MovePen)
@@ -182,6 +237,80 @@ public class DrawContext : IDisposable
         state.Pen = pen;
     }
 
+    /// <summary>
+    /// Shifts all pixels up by one text line height, clearing the bottom rows to black.
+    /// Used when scroll mode is active and pen reaches below field origin.
+    /// </summary>
+    private void ScrollImageUp(NaplpsState state)
+    {
+        var (_, lineHeightPx) = ConvertNormalizedToScreenScale(Size, 0,
+            state.CharSize.Y * GetInterrowMultiplier(state.TextInterrowSpacing));
+        int shiftPixels = Math.Max(1, Math.Abs(lineHeightPx));
+
+        Image.ProcessPixelRows(accessor =>
+        {
+            // Shift rows up
+            for (int y = 0; y < accessor.Height - shiftPixels; y++)
+            {
+                var srcRow = accessor.GetRowSpan(y + shiftPixels);
+                var dstRow = accessor.GetRowSpan(y);
+                srcRow.CopyTo(dstRow);
+            }
+
+            // Clear bottom rows to black
+            for (int y = accessor.Height - shiftPixels; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                row.Fill(new Rgba32(0, 0, 0, 255));
+            }
+        });
+    }
+
+    private static float GetInterrowMultiplier(TextInterrowSpacing spacing) => spacing switch
+    {
+        TextInterrowSpacing.One => 1.0f,
+        TextInterrowSpacing.FiveQuarters => 1.25f,
+        TextInterrowSpacing.ThreeHalves => 1.5f,
+        TextInterrowSpacing.Two => 2.0f,
+        _ => 1.0f
+    };
+
+    /// <summary>
+    /// Initializes the blink animator after rendering completes.
+    /// Call this if the parsed state has active blink processes.
+    /// </summary>
+    public void InitializeBlinkAnimator()
+    {
+        if (NAPLPS.State.BlinkProcesses.Count > 0)
+        {
+            BlinkAnimator = new BlinkAnimator(NAPLPS.State.BlinkProcesses, NAPLPS.State.ColorMap);
+        }
+    }
+
+    /// <summary>
+    /// Ticks the blink animator and re-renders if colors changed.
+    /// Returns true if a re-render occurred.
+    /// </summary>
+    public bool TickBlink(int deltaMs)
+    {
+        if (BlinkAnimator == null || !BlinkAnimator.HasActiveProcesses)
+            return false;
+
+        bool changed = BlinkAnimator.Tick(deltaMs);
+
+        if (changed)
+        {
+            // Re-render with palette animation mode to use the updated live palette
+            var oldMode = PaletteAnimationMode;
+            PaletteAnimationMode = true;
+            Render();
+            PaletteAnimationMode = oldMode;
+            return true;
+        }
+
+        return false;
+    }
+
     public void SaveAsPng(string filepath)
     {
         // TODO: Reset the image??
@@ -189,7 +318,7 @@ public class DrawContext : IDisposable
         Image.SaveAsPng(filepath);
     }
 
-    private static IDrawable? ConvertToDrawable(NaplpsCommand command)
+    private static IDrawable? ConvertToDrawable(NaplpsCommand command, NaplpsState? state = null)
     {
         switch (command)
         {
@@ -247,6 +376,11 @@ public class DrawContext : IDisposable
 
             case AsciiCharCommand asciiCharCommand:
             {
+                // Check if this character has a DRCS replacement
+                if (state != null && state.DrcsCharacters.TryGetValue(asciiCharCommand.OpCode, out var bitmap))
+                {
+                    return new DrawableDrcsChar(asciiCharCommand, bitmap);
+                }
                 return new DrawableAsciiChar(asciiCharCommand);
             }
 
