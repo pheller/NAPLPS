@@ -18,6 +18,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
     private static readonly float _refLineHeight;
     private static readonly float _refTopOffset;
     private static readonly float _refCharWidth;
+    private static readonly float _refCapHeight;
 
     // NAPLPS Spec-defined width classes (0-9) for ASCII 0x20-0x7E
     // From docs/NAPLPS.ASC lines 2227-2245
@@ -65,6 +66,9 @@ public class DrawableAsciiChar : Drawable, IDrawable
         _refLineHeight = refBounds.Height;
         _refTopOffset = refBounds.Top;
         _refCharWidth = refWidthBounds.Width;
+
+        var refCapBounds = TextMeasurer.MeasureBounds("H", new TextOptions(refFont));
+        _refCapHeight = refCapBounds.Height;
     }
 
     /// <summary>
@@ -193,8 +197,10 @@ public class DrawableAsciiChar : Drawable, IDrawable
         float scaledLineHeight = _refLineHeight * scaleY;
         float scaledTopOffset = _refTopOffset * scaleY;
 
-        // Center vertically
-        float vertPad = (cellH - scaledLineHeight) / 2f;
+        // Center on cap height so text aligns visually with adjacent elements.
+        // Full _refLineHeight includes descender space which shifts caps upward.
+        float scaledCapHeight = _refCapHeight * scaleY;
+        float vertPad = MathF.Min((cellH - scaledCapHeight) / 2f, cellH - scaledLineHeight);
 
         // Position for the glyph's top to land at cellTopY + vertPad
         // But we need to account for the transform scaling around origin
