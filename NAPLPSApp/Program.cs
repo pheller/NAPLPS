@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
@@ -299,8 +299,7 @@ sealed class Program
         }
     }
 
-    private static int HandleBatchExport(string inputDir, string? outputDir, string format,
-        int width, int height, bool loop, int delay)
+    private static int HandleBatchExport(string inputDir, string? outputDir, string format, int width, int height, bool loop, int delay)
     {
         if (!Directory.Exists(inputDir))
         {
@@ -329,17 +328,19 @@ sealed class Program
         {
             try
             {
-                var outPath = outputDir != null
-                    ? IOPath.Combine(outputDir, IOPath.ChangeExtension(IOPath.GetFileName(file), format))
-                    : IOPath.ChangeExtension(file, format);
+                var outPath = outputDir != null ? IOPath.Combine(outputDir, IOPath.ChangeExtension(IOPath.GetFileName(file), format)) : IOPath.ChangeExtension(file, format);
 
                 var naplps = NaplpsFormat.FromFile(file);
                 using var drawContext = new DrawContext(naplps, parsedSize);
 
                 if (format == "gif")
+                {
                     ExportGif(drawContext, outPath, false, loop, delay);
+                }
                 else
+                {
                     ExportPng(drawContext, outPath, false);
+                }
 
                 var count = Interlocked.Increment(ref processed);
                 Console.Error.WriteLine($"[{count}/{total}] Exported: {file}");
@@ -373,15 +374,30 @@ sealed class Program
         for (int i = 3; i < args.Length; i++)
         {
             if (args[i].StartsWith("--mode="))
+            {
                 mode = args[i]["--mode=".Length..].ToLowerInvariant();
+            }
             else if (args[i].StartsWith("--size="))
+            {
                 size = args[i]["--size=".Length..];
+            }
             else if (args[i].StartsWith("--output="))
+            {
                 outputFile = args[i]["--output=".Length..];
+            }
         }
 
-        if (!File.Exists(fileA)) { Console.Error.WriteLine($"Error: File not found: {fileA}"); return 1; }
-        if (!File.Exists(fileB)) { Console.Error.WriteLine($"Error: File not found: {fileB}"); return 1; }
+        if (!File.Exists(fileA))
+        {
+            Console.Error.WriteLine($"Error: File not found: {fileA}");
+            return 1;
+        }
+
+        if (!File.Exists(fileB))
+        {
+            Console.Error.WriteLine($"Error: File not found: {fileB}");
+            return 1;
+        }
 
         try
         {
@@ -415,9 +431,13 @@ sealed class Program
                         string idxB = entry.IndexB.HasValue ? entry.IndexB.Value.ToString() : "-";
 
                         if (entry.CommandA == "")
+                        {
                             Console.WriteLine($"+ [{idxB}] {entry.CommandB}");
+                        }
                         else if (entry.CommandB == "")
+                        {
                             Console.WriteLine($"- [{idxA}] {entry.CommandA}");
+                        }
                         else
                         {
                             Console.WriteLine($"- [{idxA}] {entry.CommandA}");
@@ -465,8 +485,7 @@ sealed class Program
 
     private static int ExportGif(DrawContext drawContext, string? outputFile, bool useStdout, bool loop, int delay)
     {
-        using var gif = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(
-            drawContext.Size.Width, drawContext.Size.Height);
+        using var gif = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(drawContext.Size.Width, drawContext.Size.Height);
 
         var gifMetaData = gif.Metadata.GetGifMetadata();
         gifMetaData.RepeatCount = loop ? (ushort)0 : (ushort)1; // 0 = loop forever, 1 = play once
@@ -520,8 +539,7 @@ sealed class Program
         return 0;
     }
 
-    private static int ExportPaletteAnimGif(DrawContext drawContext, string? outputFile, bool useStdout,
-        bool loop, int delay, int totalFrames)
+    private static int ExportPaletteAnimGif(DrawContext drawContext, string? outputFile, bool useStdout, bool loop, int delay, int totalFrames)
     {
         // First render the full file with palette animation mode
         drawContext.PaletteAnimationMode = true;
@@ -543,8 +561,7 @@ sealed class Program
             return 0;
         }
 
-        using var gif = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(
-            drawContext.Size.Width, drawContext.Size.Height);
+        using var gif = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(drawContext.Size.Width, drawContext.Size.Height);
 
         var gifMetaData = gif.Metadata.GetGifMetadata();
         gifMetaData.RepeatCount = loop ? (ushort)0 : (ushort)1;

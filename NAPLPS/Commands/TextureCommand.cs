@@ -1,7 +1,7 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
-using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
 using LineTextures = NAPLPS.NaplpsTexture.LineTextures;
+using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
 
 namespace NAPLPS.Commands;
 

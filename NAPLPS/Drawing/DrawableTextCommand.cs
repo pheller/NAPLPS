@@ -1,4 +1,6 @@
-﻿using SixLabors.ImageSharp.Processing;
+﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
+using SixLabors.ImageSharp.Processing;
 
 namespace NAPLPS.Drawing;
 

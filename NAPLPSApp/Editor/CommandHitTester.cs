@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.Editor;
 
@@ -30,15 +30,22 @@ public static class CommandHitTester
                     {
                         var p1 = geo.Points[j];
                         var p2 = geo.Points[j + 1];
+
                         if (PointToSegmentDistance(normX, normY, p1.X, p1.Y, p2.X, p2.Y) < tolerance)
+                        {
                             return i;
+                        }
                     }
+
                     // Single-point line: check distance to point
                     if (geo.Points.Count == 1)
                     {
                         var p = geo.Points[0];
+
                         if (Distance(normX, normY, p.X, p.Y) < tolerance)
+                        {
                             return i;
+                        }
                     }
                 }
                 // Rectangle commands — check point-in-rect
@@ -60,22 +67,29 @@ public static class CommandHitTester
                         float maxY = MathF.Max(y1, y2) + tolerance;
 
                         if (normX >= minX && normX <= maxX && normY >= minY && normY <= maxY)
+                        {
                             return i;
+                        }
                     }
                 }
                 // Arc, polygon, etc — bounding box check
                 else
                 {
                     if (IsNearAnyPoint(geo.Points, normX, normY, tolerance))
+                    {
                         return i;
+                    }
                 }
             }
             // Point commands
             else if (command is PointCommand pointCmd)
             {
                 var pen = state.Pen;
+
                 if (Distance(normX, normY, pen.X, pen.Y) < tolerance)
+                {
                     return i;
+                }
             }
             // Ascii char — check character cell
             else if (command is AsciiCharCommand)
@@ -84,9 +98,10 @@ public static class CommandHitTester
                 float cellW = state.CharSize.X;
                 float cellH = state.CharSize.Y;
 
-                if (normX >= pen.X - tolerance && normX <= pen.X + cellW + tolerance &&
-                    normY >= pen.Y - tolerance && normY <= pen.Y + cellH + tolerance)
+                if (normX >= pen.X - tolerance && normX <= pen.X + cellW + tolerance && normY >= pen.Y - tolerance && normY <= pen.Y + cellH + tolerance)
+                {
                     return i;
+                }
             }
         }
 
@@ -99,7 +114,10 @@ public static class CommandHitTester
     /// </summary>
     public static (float X, float Y, float W, float H)? GetBoundingBox(NaplpsFormat format, int index)
     {
-        if (index < 0 || index >= format.Commands.Count) return null;
+        if (index < 0 || index >= format.Commands.Count)
+        {
+            return null;
+        }
 
         var (command, state) = format.Commands[index];
 
@@ -121,6 +139,7 @@ public static class CommandHitTester
             // Generic bounding box from all points
             float minX = float.MaxValue, minY = float.MaxValue;
             float maxX = float.MinValue, maxY = float.MinValue;
+
             foreach (var p in geo.Points)
             {
                 minX = MathF.Min(minX, p.X);
@@ -128,6 +147,7 @@ public static class CommandHitTester
                 maxX = MathF.Max(maxX, p.X);
                 maxY = MathF.Max(maxY, p.Y);
             }
+
             return (minX, minY, maxX - minX, maxY - minY);
         }
 
@@ -153,7 +173,9 @@ public static class CommandHitTester
         float lenSq = dx * dx + dy * dy;
 
         if (lenSq < 1e-10f)
+        {
             return Distance(px, py, ax, ay);
+        }
 
         float t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
         t = Math.Clamp(t, 0f, 1f);
@@ -168,8 +190,11 @@ public static class CommandHitTester
         foreach (var p in points)
         {
             if (Distance(normX, normY, p.X, p.Y) < tolerance)
+            {
                 return true;
+            }
         }
+
         return false;
     }
 }

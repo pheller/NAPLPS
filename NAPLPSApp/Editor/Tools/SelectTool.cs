@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.Editor.Tools;
 
@@ -36,7 +36,10 @@ public class SelectTool : EditorToolBase
 
     public override ToolPreview? GetPreview()
     {
-        if (SelectedIndex < 0 || Format == null) return null;
+        if (SelectedIndex < 0 || Format == null)
+        {
+            return null;
+        }
 
         var bbox = CommandHitTester.GetBoundingBox(Format, SelectedIndex);
         if (bbox == null) return null;

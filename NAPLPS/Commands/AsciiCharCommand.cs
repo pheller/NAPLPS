@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using NAPLPS.Drawing;
 
@@ -34,17 +34,17 @@ public class AsciiCharCommand : NaplpsCommand
         switch (state.TextPath)
         {
             case TextPath.Right:
-                pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
-                break;
+            pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
+            break;
             case TextPath.Left:
-                pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
-                break;
+            pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
+            break;
             case TextPath.Up:
-                pen.Y += state.CharSize.Y * spacingMultiplier;
-                break;
+            pen.Y += state.CharSize.Y * spacingMultiplier;
+            break;
             case TextPath.Down:
-                pen.Y -= state.CharSize.Y * spacingMultiplier;
-                break;
+            pen.Y -= state.CharSize.Y * spacingMultiplier;
+            break;
         }
 
         state.Pen = pen;

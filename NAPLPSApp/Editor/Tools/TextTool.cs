@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.Editor.Tools;
 
@@ -20,7 +20,10 @@ public class TextTool : EditorToolBase
 
     public override void OnPointerPressed(float normX, float normY, bool isRightButton)
     {
-        if (isRightButton) return;
+        if (isRightButton)
+        {
+            return;
+        }
 
         // Commit any existing text first
         // (handled by the ViewModel which checks HasPendingCommit)
@@ -42,7 +45,10 @@ public class TextTool : EditorToolBase
     /// <summary>Add a character to the buffer.</summary>
     public void OnKeyDown(char c)
     {
-        if (!HasInsertionPoint) return;
+        if (!HasInsertionPoint)
+        {
+            return;
+        }
 
         if (c >= 0x20 && c <= 0x7E)
         {
@@ -82,7 +88,10 @@ public class TextTool : EditorToolBase
 
     public override ToolPreview? GetPreview()
     {
-        if (!HasInsertionPoint) return null;
+        if (!HasInsertionPoint)
+        {
+            return null;
+        }
 
         // Show a cursor-like preview at insertion point
         return new ToolPreview

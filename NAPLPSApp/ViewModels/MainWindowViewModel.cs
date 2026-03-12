@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using Avalonia.Platform.Storage;
 
@@ -165,7 +165,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task New()
     {
-        if (!await PromptSaveIfDirty()) return;
+        if (!await PromptSaveIfDirty())
+        {
+            return;
+        }
 
         await FileNew();
 
@@ -175,7 +178,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task Open()
     {
-        if (!await PromptSaveIfDirty()) return;
+        if (!await PromptSaveIfDirty())
+        {
+            return;
+        }
 
         var storageProvider = App.MainWindow?.StorageProvider;
 
@@ -256,7 +262,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task SaveAs()
     {
-        if (loadedFile == null || App.MainWindow?.StorageProvider == null) return;
+        if (loadedFile == null || App.MainWindow?.StorageProvider == null)
+        {
+            return;
+        }
 
         var fileTypes = new FilePickerFileType[]
         {
@@ -290,7 +299,10 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     private async Task<bool> PromptSaveIfDirty()
     {
-        if (!IsFileDirty || App.MainWindow == null) return true;
+        if (!IsFileDirty || App.MainWindow == null)
+        {
+            return true;
+        }
 
         var result = await Program.ShowQuestionDialogBox(
             App.MainWindow,
@@ -309,7 +321,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task Close()
     {
-        if (!await PromptSaveIfDirty()) return;
+        if (!await PromptSaveIfDirty())
+        {
+            return;
+        }
 
         FileClose();
     }
@@ -346,7 +361,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task Quit()
     {
-        if (!await PromptSaveIfDirty()) return;
+        if (!await PromptSaveIfDirty())
+        {
+            return;
+        }
 
         FileClose();
 
@@ -565,7 +583,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task Undo()
     {
-        if (loadedFile == null || !undoManager.CanUndo) return;
+        if (loadedFile == null || !undoManager.CanUndo)
+        {
+            return;
+        }
 
         undoManager.Undo(loadedFile);
         IsFileDirty = true;
@@ -576,7 +597,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task Redo()
     {
-        if (loadedFile == null || !undoManager.CanRedo) return;
+        if (loadedFile == null || !undoManager.CanRedo)
+        {
+            return;
+        }
 
         undoManager.Redo(loadedFile);
         IsFileDirty = true;
@@ -669,7 +693,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task DeleteSelected()
     {
-        if (loadedFile == null || SelectedCommandIndex < 0) return;
+        if (loadedFile == null || SelectedCommandIndex < 0)
+        {
+            return;
+        }
 
         var action = new RemoveCommandsAction(loadedFile, SelectedCommandIndex);
         undoManager.Execute(action, loadedFile);
@@ -688,7 +715,10 @@ public partial class MainWindowViewModel : ViewModelBase
     // Called from MainWindow code-behind
     public void OnEditorPointerPressed(Avalonia.Point pos, Avalonia.Size controlSize, bool isRightButton)
     {
-        if (!IsEditorMode || loadedFile == null) return;
+        if (!IsEditorMode || loadedFile == null)
+        {
+            return;
+        }
 
         if (isRightButton)
         {
@@ -712,7 +742,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void OnEditorPointerMoved(Avalonia.Point pos, Avalonia.Size controlSize)
     {
-        if (!IsEditorMode || loadedFile == null) return;
+        if (!IsEditorMode || loadedFile == null)
+        {
+            return;
+        }
 
         var canvasSizeObj = GetSizeObj();
         var (normX, normY) = CoordinateMapper.ScreenToNaplps(pos, controlSize, canvasSizeObj, ImageStretch);
@@ -726,7 +759,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public async void OnEditorPointerReleased(Avalonia.Point pos, Avalonia.Size controlSize)
     {
-        if (!IsEditorMode || loadedFile == null) return;
+        if (!IsEditorMode || loadedFile == null)
+        {
+            return;
+        }
 
         var canvasSizeObj = GetSizeObj();
         var (normX, normY) = CoordinateMapper.ScreenToNaplps(pos, controlSize, canvasSizeObj, ImageStretch);
@@ -738,7 +774,10 @@ public partial class MainWindowViewModel : ViewModelBase
         // Clear preview on release
         EditorPreview = null;
 
-        if (commands.Count == 0) return;
+        if (commands.Count == 0)
+        {
+            return;
+        }
 
         // Prepend a SelectColor command if we're not using the default color
         if (EditorForegroundIndex != 0)
@@ -762,7 +801,10 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     private async void CommitToolCommands(List<(byte opcode, NaplpsOperands operands)> commands)
     {
-        if (loadedFile == null || commands.Count == 0) return;
+        if (loadedFile == null || commands.Count == 0)
+        {
+            return;
+        }
 
         // Prepend a SelectColor command if we're not using the default color
         if (EditorForegroundIndex != 0)
@@ -932,7 +974,9 @@ public partial class MainWindowViewModel : ViewModelBase
         StopBlinkTimer();
 
         if (drawContext?.BlinkAnimator == null || !drawContext.BlinkAnimator.HasActiveProcesses)
+        {
             return;
+        }
 
         blinkTimer = new Avalonia.Threading.DispatcherTimer
         {
@@ -1046,8 +1090,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task UpdateCanvas()
     {
-        if (loadedFile == null) return;
-        if (drawContext == null) return;
+        if (loadedFile == null)
+        {
+            return;
+        }
+
+        if (drawContext == null)
+        {
+            return;
+        }
 
         // Stop blink timer before starting a new render to prevent
         // concurrent Render calls during RenderAsync's Task.Delay gaps

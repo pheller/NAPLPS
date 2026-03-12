@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
@@ -26,8 +26,7 @@ public class DrawableArc : Drawable, IDrawable
 
         // Check if start and end are the same (circle) using original normalized coords
         // to avoid precision loss from screen conversion
-        bool isCircle = Math.Abs(_command.StartPoint.X - _command.EndPointDisplacement.X) < 0.0001f &&
-                        Math.Abs(_command.StartPoint.Y - _command.EndPointDisplacement.Y) < 0.0001f;
+        bool isCircle = Math.Abs(_command.StartPoint.X - _command.EndPointDisplacement.X) < 0.0001f && Math.Abs(_command.StartPoint.Y - _command.EndPointDisplacement.Y) < 0.0001f;
 
         if (isCircle)
         {
@@ -87,20 +86,17 @@ public class DrawableArc : Drawable, IDrawable
             float startToEnd = NormRadians(endAngle - startAngle);
 
             // If mid point falls within [start, end) going CCW, sweep CCW; otherwise sweep CW
-            float sweepAngle = (startToMid <= startToEnd)
-                ? startToEnd                        // CCW sweep includes mid
-                : startToEnd - 2f * MathF.PI;       // CW sweep includes mid
+            float sweepAngle = (startToMid <= startToEnd) ? startToEnd : startToEnd - 2f * MathF.PI;
 
             // Generate arc points
             int steps = Math.Max(32, (int)(MathF.Abs(sweepAngle) * radius));
             var arcPoints = new PointF[steps + 1];
+
             for (int i = 0; i <= steps; i++)
             {
                 float t = (float)i / steps;
                 float a = startAngle + sweepAngle * t;
-                arcPoints[i] = new PointF(
-                    center.X + radius * MathF.Cos(a),
-                    center.Y + radius * MathF.Sin(a));
+                arcPoints[i] = new PointF(center.X + radius * MathF.Cos(a), center.Y + radius * MathF.Sin(a));
             }
 
             if (arcPoints.Length >= 2)
@@ -137,7 +133,12 @@ public class DrawableArc : Drawable, IDrawable
     {
         const float twoPi = 2f * MathF.PI;
         angle %= twoPi;
-        if (angle < 0) angle += twoPi;
+
+        if (angle < 0)
+        {
+            angle += twoPi;
+        }
+
         return angle;
     }
 

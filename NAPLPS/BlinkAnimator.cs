@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS;
 
@@ -44,7 +44,10 @@ public class BlinkAnimator
 
         foreach (var process in _processes)
         {
-            if (process.IsFinished) continue;
+            if (process.IsFinished)
+            {
+                continue;
+            }
 
             bool changed = process.Tick(deltaMs);
 

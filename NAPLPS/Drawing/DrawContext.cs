@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
@@ -221,17 +221,17 @@ public class DrawContext : IDisposable
         switch (state.TextPath)
         {
             case TextPath.Right:
-                pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
-                break;
+            pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
+            break;
             case TextPath.Left:
-                pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
-                break;
+            pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
+            break;
             case TextPath.Up:
-                pen.Y += state.CharSize.Y * spacingMultiplier;
-                break;
+            pen.Y += state.CharSize.Y * spacingMultiplier;
+            break;
             case TextPath.Down:
-                pen.Y -= state.CharSize.Y * spacingMultiplier;
-                break;
+            pen.Y -= state.CharSize.Y * spacingMultiplier;
+            break;
         }
 
         state.Pen = pen;
@@ -243,8 +243,7 @@ public class DrawContext : IDisposable
     /// </summary>
     private void ScrollImageUp(NaplpsState state)
     {
-        var (_, lineHeightPx) = ConvertNormalizedToScreenScale(Size, 0,
-            state.CharSize.Y * GetInterrowMultiplier(state.TextInterrowSpacing));
+        var (_, lineHeightPx) = ConvertNormalizedToScreenScale(Size, 0, state.CharSize.Y * GetInterrowMultiplier(state.TextInterrowSpacing));
         int shiftPixels = Math.Max(1, Math.Abs(lineHeightPx));
 
         Image.ProcessPixelRows(accessor =>
@@ -294,7 +293,9 @@ public class DrawContext : IDisposable
     public bool TickBlink(int deltaMs)
     {
         if (BlinkAnimator == null || !BlinkAnimator.HasActiveProcesses)
+        {
             return false;
+        }
 
         bool changed = BlinkAnimator.Tick(deltaMs);
 

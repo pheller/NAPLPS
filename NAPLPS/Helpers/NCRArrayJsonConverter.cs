@@ -1,4 +1,6 @@
-﻿using NCR = NAPLPS.NaplpsCommandReference;
+﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
+using NCR = NAPLPS.NaplpsCommandReference;
 
 namespace NAPLPS.Helpers;
 

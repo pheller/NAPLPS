@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -34,7 +34,11 @@ public partial class MainWindow : Window
                 if (args.PropertyName is nameof(Editor.GridSettings.IsVisible) or nameof(Editor.GridSettings.SpacingX) or nameof(Editor.GridSettings.SpacingY))
                 {
                     var ov = this.FindControl<Canvas>("EditorOverlay");
-                    if (ov != null) RenderGrid(vm, ov);
+
+                    if (ov != null)
+                    {
+                        RenderGrid(vm, ov);
+                    }
                 }
             };
         }
@@ -113,7 +117,11 @@ public partial class MainWindow : Window
     private void UpdatePreviewOverlay(MainWindowViewModel vm, Canvas canvas)
     {
         var overlay = this.FindControl<Canvas>("EditorOverlay");
-        if (overlay == null) return;
+
+        if (overlay == null)
+        {
+            return;
+        }
 
         var preview = vm.EditorPreview;
         if (preview == null || preview.Shape == PreviewShape.None)
@@ -210,7 +218,11 @@ public partial class MainWindow : Window
     private void ClearPreviewOverlay()
     {
         var overlay = this.FindControl<Canvas>("EditorOverlay");
-        if (overlay == null) return;
+
+        if (overlay == null)
+        {
+            return;
+        }
 
         // Remove only non-grid children (grid lines have Tag="grid")
         for (int i = overlay.Children.Count - 1; i >= 0; i--)
@@ -233,7 +245,10 @@ public partial class MainWindow : Window
             }
         }
 
-        if (!vm.GridSettings.IsVisible) return;
+        if (!vm.GridSettings.IsVisible)
+        {
+            return;
+        }
 
         var controlSize = overlay.Bounds.Size;
         var canvasSize = vm.GetSizeObj();

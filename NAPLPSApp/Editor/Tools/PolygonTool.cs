@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using System.Numerics;
 
@@ -74,6 +74,7 @@ public class PolygonTool : EditorToolBase
 
         // Build polygon with relative vertices from first point
         var relativeVerts = new Vector3[_vertices.Count - 1];
+
         for (int i = 1; i < _vertices.Count; i++)
         {
             relativeVerts[i - 1] = new Vector3(
@@ -98,7 +99,10 @@ public class PolygonTool : EditorToolBase
 
     public override ToolPreview? GetPreview()
     {
-        if (_vertices.Count == 0) return null;
+        if (_vertices.Count == 0)
+        {
+            return null;
+        }
 
         var preview = new ToolPreview
         {

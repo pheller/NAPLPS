@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.Editor;
 
@@ -80,18 +80,18 @@ public class CoordinateMapper
         switch (stretch)
         {
             case Stretch.None:
-                renderW = imageW;
-                renderH = imageH;
-                offsetX = (controlW - renderW) / 2;
-                offsetY = (controlH - renderH) / 2;
-                break;
+            renderW = imageW;
+            renderH = imageH;
+            offsetX = (controlW - renderW) / 2;
+            offsetY = (controlH - renderH) / 2;
+            break;
 
             case Stretch.Fill:
-                renderW = controlW;
-                renderH = controlH;
-                offsetX = 0;
-                offsetY = 0;
-                break;
+            renderW = controlW;
+            renderH = controlH;
+            offsetX = 0;
+            offsetY = 0;
+            break;
 
             case Stretch.Uniform:
             {
@@ -114,11 +114,11 @@ public class CoordinateMapper
             }
 
             default:
-                renderW = imageW;
-                renderH = imageH;
-                offsetX = 0;
-                offsetY = 0;
-                break;
+            renderW = imageW;
+            renderH = imageH;
+            offsetX = 0;
+            offsetY = 0;
+            break;
         }
 
         return (offsetX, offsetY, renderW, renderH);

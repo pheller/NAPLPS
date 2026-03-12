@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using System.Diagnostics;
 
@@ -115,19 +115,19 @@ public partial class NaplpsFormat
         switch (SystemType)
         {
             case NaplpsSystemType.Prodigy:
-                State.ColorMap = new Dictionary<byte, NaplpsColor>(NaplpsState.ColorMapProdigyDefaults);
-                break;
+            State.ColorMap = new Dictionary<byte, NaplpsColor>(NaplpsState.ColorMapProdigyDefaults);
+            break;
 
             case NaplpsSystemType.Telidon:
-                // Telidon v699: higher default coordinate precision, restricted PDI set
-                State.MultiByteValue = 4;
-                NaplpsState.TelidonPDISet.CopyTo(State.InUseTable, NaplpsState.GRight);
-                break;
+            // Telidon v699: higher default coordinate precision, restricted PDI set
+            State.MultiByteValue = 4;
+            NaplpsState.TelidonPDISet.CopyTo(State.InUseTable, NaplpsState.GRight);
+            break;
 
             case NaplpsSystemType.NAPLPS:
             default:
-                // Default color map is already set in NaplpsState
-                break;
+            // Default color map is already set in NaplpsState
+            break;
         }
     }
 
@@ -786,12 +786,19 @@ public partial class NaplpsFormat
     /// </summary>
     private void ParseTextureData(byte maskId, List<byte> data)
     {
-        if (data.Count == 0) return;
+        if (data.Count == 0)
+        {
+            return;
+        }
 
         // Determine pattern size from data length
         // Common sizes are 8x8, 16x16, etc.
         int size = (int)Math.Sqrt(data.Count * 8);
-        if (size < 1) size = 8;
+
+        if (size < 1)
+        {
+            size = 8;
+        }
 
         var pattern = new bool[size, size];
         int bitIndex = 0;

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.Editor;
 
@@ -19,7 +19,10 @@ public class UndoManager
 
     public void Undo(NaplpsFormat format)
     {
-        if (!CanUndo) return;
+        if (!CanUndo)
+        {
+            return;
+        }
 
         var action = _undoStack.Pop();
         action.Undo(format);
@@ -28,7 +31,10 @@ public class UndoManager
 
     public void Redo(NaplpsFormat format)
     {
-        if (!CanRedo) return;
+        if (!CanRedo)
+        {
+            return;
+        }
 
         var action = _redoStack.Pop();
         action.Execute(format);

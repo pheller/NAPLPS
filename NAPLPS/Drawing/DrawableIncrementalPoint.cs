@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
@@ -40,7 +40,7 @@ public class DrawableIncrementalPoint : Drawable, IDrawable
         float currentY = fieldOrigin.Y - pelHeight; // Start at top of field (Y is inverted)
 
         // Calculate pels per row
-        int pelsPerRow = Math.Max(1, (int)(Math.Abs(fieldWidth) / pelWidth));
+        int pelsPerRow = Math.Max(1, Math.Abs(fieldWidth) / pelWidth);
         int currentPelInRow = 0;
 
         image.Mutate(ctx =>

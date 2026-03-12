@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.Editor.Tools;
 
@@ -74,7 +74,10 @@ public class ArcTool : EditorToolBase
 
     public override ToolPreview? GetPreview()
     {
-        if (_clickPoints.Count == 0) return null;
+        if (_clickPoints.Count == 0)
+        {
+            return null;
+        }
 
         var preview = new ToolPreview
         {

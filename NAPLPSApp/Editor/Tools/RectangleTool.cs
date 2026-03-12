@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSApp.Editor.Tools;
 
@@ -34,7 +34,10 @@ public class RectangleTool : EditorToolBase
 
     public override ToolPreview? GetPreview()
     {
-        if (!IsDragging) return null;
+        if (!IsDragging)
+        {
+            return null;
+        }
 
         return new ToolPreview
         {

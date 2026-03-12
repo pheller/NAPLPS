@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
@@ -44,7 +44,10 @@ public class DrawableDrcsChar : Drawable, IDrawable
         int bitmapRows = _bitmap.GetLength(0);
         int bitmapCols = _bitmap.GetLength(1);
 
-        if (bitmapRows == 0 || bitmapCols == 0) return;
+        if (bitmapRows == 0 || bitmapCols == 0)
+        {
+            return;
+        }
 
         float pixelW = cellW / bitmapCols;
         float pixelH = cellH / bitmapRows;

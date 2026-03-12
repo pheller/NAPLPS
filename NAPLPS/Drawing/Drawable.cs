@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 using Brush = SixLabors.ImageSharp.Drawing.Processing.Brush;
@@ -58,7 +58,7 @@ public class Drawable
 
         var brush = GetFillBrush(size, fgColor, bgColor);
 
-        var penColor = fgColor;
+        var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
         var penWidth = GetPenWidth(size);
         var pen = GetTexturedPen(penColor.ToISColor(), penWidth);
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using System.ComponentModel;
 using AC = NAPLPS.Commands.AsciiCharCommand;
@@ -339,11 +339,17 @@ public class NaplpsState
         static bool Matches(NCR[] table, int offset, NCR[] set)
         {
             if (offset + set.Length > table.Length)
+            {
                 return false;
+            }
 
             for (int i = 0; i < set.Length; i++)
+            {
                 if (!ReferenceEquals(table[offset + i], set[i]))
+                {
                     return false;
+                }
+            }
 
             return true;
         }
@@ -351,31 +357,20 @@ public class NaplpsState
         string Resolve(int offset, params (string name, NCR[] set)[] candidates)
         {
             foreach (var (name, set) in candidates)
+            {
                 if (Matches(InUseTable, offset, set))
+                {
                     return name;
+                }
+            }
 
             return "Unknown";
         }
 
-        var c0 = Resolve(C0,
-            ("C0Set", C0Set)
-        );
-
-        var gLeft = Resolve(GLeft,
-            ("PrimaryCharacterSet", PrimaryCharacterSet),
-            ("SupplementaryCharacterSet", SupplementaryCharacterSet),
-            ("GeneralPDISet", GeneralPDISet),
-            ("MosiacSet", MosiacSet)
-        );
-
-        var c1 = Resolve(C1,
-            ("C1Set", C1Set)
-        );
-
-        var gRight = Resolve(GRight,
-            ("GeneralPDISet", GeneralPDISet),
-            ("MosiacSet", MosiacSet)
-        );
+        var c0 = Resolve(C0, ("C0Set", C0Set));
+        var gLeft = Resolve(GLeft, ("PrimaryCharacterSet", PrimaryCharacterSet), ("SupplementaryCharacterSet", SupplementaryCharacterSet), ("GeneralPDISet", GeneralPDISet), ("MosiacSet", MosiacSet));
+        var c1 = Resolve(C1, ("C1Set", C1Set));
+        var gRight = Resolve(GRight, ("GeneralPDISet", GeneralPDISet), ("MosiacSet", MosiacSet));
 
         return $"C0={c0}\nGLeft={gLeft}\nC1={c1}\nGRight={gRight}";
     }

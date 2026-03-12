@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using System.Text.RegularExpressions;
 
@@ -20,7 +20,9 @@ public static partial class ProdigySequence
     public static List<FileGroup> DetectSequences(string directoryPath)
     {
         if (!Directory.Exists(directoryPath))
+        {
             return [];
+        }
 
         var files = Directory.GetFiles(directoryPath)
             .Select(System.IO.Path.GetFileName)
@@ -34,11 +36,16 @@ public static partial class ProdigySequence
         foreach (var file in files)
         {
             var match = PrefixPattern().Match(file);
+
             if (match.Success)
             {
                 var prefix = match.Groups[1].Value;
+
                 if (!groups.ContainsKey(prefix))
+                {
                     groups[prefix] = [];
+                }
+
                 groups[prefix].Add(file);
             }
         }

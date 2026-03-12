@@ -1,4 +1,4 @@
-// Copyright (c) 2025 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPS;
 
@@ -52,7 +52,10 @@ public class BlinkProcess
     /// </summary>
     public bool Tick(int deltaMs)
     {
-        if (IsFinished) return false;
+        if (IsFinished)
+        {
+            return false;
+        }
 
         ElapsedTime += deltaMs;
 
@@ -60,7 +63,11 @@ public class BlinkProcess
         if (StartDelay > 0)
         {
             int delayMs = StartDelay * TimeUnit;
-            if (ElapsedTime < delayMs) return false;
+
+            if (ElapsedTime < delayMs)
+            {
+                return false;
+            }
 
             ElapsedTime -= delayMs;
             StartDelay = 0;
@@ -68,7 +75,11 @@ public class BlinkProcess
 
         // Calculate interval in ms
         int intervalMs = (IsOn ? OnInterval : OffInterval) * TimeUnit;
-        if (intervalMs <= 0) intervalMs = TimeUnit;
+
+        if (intervalMs <= 0)
+        {
+            intervalMs = TimeUnit;
+        }
 
         if (ElapsedTime >= intervalMs)
         {
@@ -106,7 +117,11 @@ public class BlinkProcess
 
         // Gradual transition: interpolate based on elapsed time and phase
         int intervalMs = (IsOn ? OnInterval : OffInterval) * TimeUnit;
-        if (intervalMs <= 0) intervalMs = TimeUnit;
+
+        if (intervalMs <= 0)
+        {
+            intervalMs = TimeUnit;
+        }
 
         float progress = Math.Clamp((float)ElapsedTime / intervalMs, 0f, 1f);
 
