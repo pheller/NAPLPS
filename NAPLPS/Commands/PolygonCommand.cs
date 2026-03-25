@@ -27,6 +27,9 @@ public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
             {
                 MovePen(vert);
             }
+
+            // ANSI X3.110: Drawing point is unchanged after drawing a polygon
+            SetPen(StartPoint);
         }
         else
         {

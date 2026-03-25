@@ -432,6 +432,12 @@ public partial class NaplpsFormat
                         // Cancel all running macros and do not treat this as a queued command, if we're queuing...
                         // Noop
                     }
+                    else if (controlCommand == ClearScreen)
+                    {
+                        // ANSI X3.110: Clear screen to nominal black in modes 0/1,
+                        // background color in mode 2. Move cursor to upper left.
+                        State.Pen = new Vector3(0f, 0.75f - State.CharSize.Y, 0f);
+                    }
                     else if (controlCommand == ActivePositionDown)
                     {
                         // Move pen down one interrow spacing (NAPLPS Y-up, so subtract)
@@ -499,14 +505,14 @@ public partial class NaplpsFormat
                     else if (controlCommand == SmallText)
                     {
                         State.TextSizeMode = 1;
-                        // Small: half the normal size
-                        State.CharSize = new Vector2(1.0f / 80.0f, 5.0f / 256.0f);
+                        // ANSI X3.110: 1/80 wide x 5/128 high (80x19 screen)
+                        State.CharSize = new Vector2(1.0f / 80.0f, 5.0f / 128.0f);
                     }
                     else if (controlCommand == MedText)
                     {
                         State.TextSizeMode = 2;
-                        // Medium: 3/4 normal size
-                        State.CharSize = new Vector2(1.0f / 53.0f, 5.0f / 170.0f);
+                        // ANSI X3.110: 1/32 wide x 3/64 high (32x15 screen)
+                        State.CharSize = new Vector2(1.0f / 32.0f, 3.0f / 64.0f);
                     }
                     else if (controlCommand == NormalText)
                     {
@@ -705,34 +711,73 @@ public partial class NaplpsFormat
 
     private void ControlCommandNonSelectiveReset(BinaryReader reader)
     {
-        // TODO: Verify these default states!
-        // Reset the entire state to its default values
-        State.DoShiftIn();  // Reset character set to default
+        // ANSI X3.110 NSR: Reset G0-G3, C0, C1 to defaults; reset GL/GR
+        State.Reset();
+        State.DoShiftIn();
+
+        // Reset DOMAIN parameters to defaults
+        State.Dimensionality = 2;
+        State.MultiByteValue = 3;
+        State.SingleByteValue = 1;
+        State.LogicalPel = new Vector2(0f, 0f);
+
+        // Reset text parameters to defaults
         State.TextRotation = TextRotation.Zero;
         State.TextPath = TextPath.Right;
         State.TextSpacing = TextSpacing.One;
         State.TextInterrowSpacing = TextInterrowSpacing.One;
         State.TextMoveAttributes = TextMoveAttributes.MoveTogether;
-        State.TextCursorStyle = TextCursorStyle.Block;
-        State.ColorMap.Clear();
-        State.ColorMap = new Dictionary<byte, NaplpsColor>(NaplpsState.ColorMapDefaults);
+        State.TextCursorStyle = TextCursorStyle.Underscore;
+        State.CharSize = new Vector2(1.0f / 40.0f, 5.0f / 128.0f);
+        State.TextSizeMode = 0;
+        State.IsReverseVideo = false;
+        State.IsUnderline = false;
+        State.IsWordWrapMode = false;
+        State.IsScrollMode = false;
+
+        // Reset active field to unit screen
+        State.Field = new NaplpsField();
+
+        // Reset texture attributes (programmable masks are NOT cleared)
+        State.Texture = new NaplpsTexture();
+
+        // Reset color mode to 0 and drawing color to nominal white
+        // Palette is NOT cleared by NSR
         State.ColorMode = 0;
-        State.LogicalPel = new Vector2(0f, 0f);  // Reset logical position
-        State.Pen = new Vector3(0f, 0f, 0f);     // Reset drawing position
+        State.Foreground = new NaplpsColor(255, 255, 255);
+        State.ColorMapForeground = 0x07; // Nominal white
 
-        // Handle the cursor position if valid bytes follow the NSR
-        if (reader.PeekChar() >= 0x40 && reader.PeekChar() <= 0x7F)
-        {
-            // Read and decode the row address (MSB first, subtract 32)
-            var row = (reader.ReadByte() & 0x7F) - 32;
-            var column = (reader.ReadByte() & 0x7F) - 32;
+        // Reset drawing position
+        State.Pen = new Vector3(0f, 0f, 0f);
 
-            // Normalize cursor position for the screen (assuming 40x25 grid)
-            State.LogicalPel = new Vector2(row / 40.0f, column / 25.0f);
-        }
-        else
+        // NSR cursor positioning: if two bytes 0x40-0x7F follow, decode row/column
+        // Origin is UPPER LEFT (row 0, col 0 = top-left) - different from 0x1C which uses bottom-left
+        if (reader.BaseStream.Position + 2 <= reader.BaseStream.Length)
         {
-            State.LogicalPel = new Vector2(0f, 0f);  // Default if invalid operands
+            var peek1 = reader.PeekChar();
+
+            if (peek1 >= 0x40 && peek1 <= 0x7F)
+            {
+                byte rowByte = reader.ReadByte();
+                int peek2 = reader.PeekChar();
+
+                if (peek2 >= 0x40 && peek2 <= 0x7F)
+                {
+                    byte colByte = reader.ReadByte();
+
+                    // Extract row/column from bits 6-1 (6 data bits each)
+                    int row = (rowByte & 0x3F);
+                    int col = (colByte & 0x3F);
+
+                    // Convert from upper-left origin row/col to NAPLPS normalized coords
+                    // Row 0 = top of visible display (Y = 0.75 in NAPLPS)
+                    // Using default 40x19 visible grid (char field 1/40 x 5/128)
+                    float penX = col * (1.0f / 40.0f);
+                    float penY = 0.75f - (row * (5.0f / 128.0f));
+
+                    State.Pen = new Vector3(penX, penY, 0f);
+                }
+            }
         }
     }
 

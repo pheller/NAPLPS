@@ -43,8 +43,8 @@ public class BlinkProcess
     /// <summary>Whether this process has finished all its cycles</summary>
     public bool IsFinished => CycleCount > 0 && CompletedCycles >= CycleCount;
 
-    /// <summary>Base time unit in milliseconds (~60Hz frame, NAPLPS spec dependent)</summary>
-    private const int TimeUnit = 16;
+    /// <summary>Base time unit in milliseconds (NAPLPS spec: blink intervals are in 1/10ths of a second)</summary>
+    private const int TimeUnit = 100;
 
     /// <summary>
     /// Advances the blink animation by the given delta time.

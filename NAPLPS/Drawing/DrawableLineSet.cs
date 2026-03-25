@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
@@ -22,7 +22,6 @@ public class DrawableLineSet : Drawable, IDrawable
         foreach (var verts in _command.Points)
         {
             var thePoint = NaplpsUtils.ConvertNormalizedToPoint(size, verts.X, verts.Y);
-
             points.Add(new PointF(thePoint.X, thePoint.Y));
         }
 
@@ -31,17 +30,23 @@ public class DrawableLineSet : Drawable, IDrawable
             return;
         }
 
-        float penWidth = GetPenWidth(size);
-
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
-        var pen = GetTexturedPen(color.ToISColor(), penWidth);
+        var isColor = color.ToISColor();
 
-        image.Mutate(x =>
+        var scaledPel = GetScaledLogicalPel(size);
+        float pelW = scaledPel.X;
+        float pelH = scaledPel.Y;
+
+        image.Mutate(ctx =>
         {
+            // SET variants draw discrete line segments in pairs: (start, end), (start, end), ...
             for (var i = 0; i < points.Count - 1; i += 2)
             {
-                var line = new SixLabors.ImageSharp.Drawing.Path(points.GetRange(i, 2).ToArray());
-                x.Draw(pen, line);
+                var p1 = points[i];
+                var p2 = points[i + 1];
+
+                var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, pelW, pelH);
+                ctx.FillPolygon(isColor, hull);
             }
         });
     }

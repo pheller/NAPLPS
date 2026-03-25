@@ -35,11 +35,6 @@ public class DrawableIncrementalLine : Drawable, IDrawable
         float currentX = startPoint.X;
         float currentY = startPoint.Y;
 
-        // Get logical pel size for scaling motion deltas
-        var (pelWidth, pelHeight) = ConvertNormalizedToScreenScale(size, state.LogicalPel.X, state.LogicalPel.Y);
-        pelWidth = Math.Max(1, Math.Abs(pelWidth));
-        pelHeight = Math.Max(1, Math.Abs(pelHeight));
-
         // Get pen color and width
         var (fgColor, _) = GetISColorFromState(state);
         float penWidth = GetPenWidth(size);
@@ -49,9 +44,9 @@ public class DrawableIncrementalLine : Drawable, IDrawable
         {
             foreach (var segment in _command.Segments)
             {
-                // Calculate the next point
-                float dx = segment.HasDx ? segment.Dx * pelWidth : 0;
-                float dy = segment.HasDy ? segment.Dy * pelHeight : 0;
+                // Dx and Dy are in normalized coordinate space with correct sign
+                // Convert to screen pixel displacement
+                var (dx, dy) = ConvertNormalizedToScreenScale(size, segment.Dx, segment.Dy);
 
                 // Note: Y is inverted in screen coordinates
                 float nextX = currentX + dx;

@@ -406,6 +406,17 @@ public class DrawContext : IDisposable
                 return new DrawableIncrementalPolygonFilled(incPolyCommand);
             }
 
+            case MosaicElementCommand mosaicCommand:
+            {
+                return new DrawableMosaicElement(mosaicCommand);
+            }
+
+            case ControlCommand controlCommand when
+                controlCommand.Command == NaplpsControlCommands.ClearScreen:
+            {
+                return new DrawableClearScreen(controlCommand);
+            }
+
             case ControlCommand controlCommand when
                 controlCommand.Command == NaplpsControlCommands.Repeat ||
                 controlCommand.Command == NaplpsControlCommands.RepeatToEOL:

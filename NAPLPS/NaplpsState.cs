@@ -295,7 +295,7 @@ public class NaplpsState
 
     [Category("Color")]
     [ReadOnly(true)]
-    public byte ColorMapForeground { get; set; }
+    public byte ColorMapForeground { get; set; } = 0x07;
 
     [Category("Color")]
     [ReadOnly(true)]
@@ -305,9 +305,13 @@ public class NaplpsState
     [ReadOnly(true)]
     public bool IsTransparent { get; set; }
 
+    /// <summary>Tracks which palette entries have been used by SET COLOR or SELECT COLOR since last reset (for mode 0 auto-allocation).</summary>
+    [Browsable(false)]
+    public HashSet<byte> UsedPaletteEntries { get; set; } = new();
+
     [Category("Color")]
     [ReadOnly(true)]
-    public NaplpsColor Foreground { get; set; } = new(1, 1, 1);
+    public NaplpsColor Foreground { get; set; } = NaplpsColor.White;
 
     [Category("Color")]
     [ReadOnly(true)]
@@ -381,6 +385,54 @@ public class NaplpsState
     }
 
     /* Defaults */
+
+    /// <summary>
+    /// Generates a default palette per ANSI X3.110 algorithm:
+    /// First half = uniformly spaced greyscale (R=G=B).
+    /// Second half = hues equally spaced around the hue circle
+    /// (Blue at 0, Red at 120, Green at 240 degrees).
+    /// </summary>
+    public static Dictionary<byte, NaplpsColor> GenerateDefaultPalette(int entryCount)
+    {
+        var palette = new Dictionary<byte, NaplpsColor>();
+        int half = entryCount / 2;
+
+        // First half: greyscale
+        for (int i = 0; i < half; i++)
+        {
+            byte val = (byte)(i * 255 / Math.Max(1, half - 1));
+            palette[(byte)i] = new NaplpsColor(val, val, val);
+        }
+
+        // Second half: hues around the circle
+        // Blue=0, Red=120, Green=240 degrees
+        for (int i = 0; i < half; i++)
+        {
+            float angle = i * 360.0f / half;
+            float blueAngle = 0f, redAngle = 120f, greenAngle = 240f;
+
+            // Find P1 (closest primary), P2 (second closest), P3 (farthest)
+            float distB = Math.Min(Math.Abs(angle - blueAngle), 360f - Math.Abs(angle - blueAngle));
+            float distR = Math.Min(Math.Abs(angle - redAngle), 360f - Math.Abs(angle - redAngle));
+            float distG = Math.Min(Math.Abs(angle - greenAngle), 360f - Math.Abs(angle - greenAngle));
+
+            var primaries = new (float dist, float angleP, int idx)[] { (distB, blueAngle, 2), (distR, redAngle, 1), (distG, greenAngle, 0) };
+            Array.Sort(primaries, (a, b) => a.dist.CompareTo(b.dist));
+
+            float[] rgb = new float[3]; // [G, R, B]
+            rgb[primaries[0].idx] = 1.0f;
+            rgb[primaries[1].idx] = Math.Clamp(Math.Abs(angle - primaries[0].angleP) / 60f, 0f, 1f);
+
+            // Handle wrap-around for angle distance
+            float p2dist = Math.Min(Math.Abs(angle - primaries[0].angleP), 360f - Math.Abs(angle - primaries[0].angleP));
+            rgb[primaries[1].idx] = Math.Clamp(p2dist / 60f, 0f, 1f);
+            rgb[primaries[2].idx] = 0f;
+
+            palette[(byte)(half + i)] = new NaplpsColor((byte)(rgb[0] * 255), (byte)(rgb[1] * 255), (byte)(rgb[2] * 255));
+        }
+
+        return palette;
+    }
 
     public static readonly Dictionary<byte, NaplpsColor> ColorMapDefaults = new()
     {

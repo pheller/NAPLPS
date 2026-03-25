@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 using FontFamily = SixLabors.Fonts.FontFamily;
 using PointF = SixLabors.ImageSharp.PointF;
+using TextRotation = NAPLPS.Commands.TextCommand.TextRotation;
 
 namespace NAPLPS.Drawing;
 
@@ -211,6 +212,22 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         // Create transform that scales from origin (0,0)
         var transform = Matrix3x2.CreateScale(scaleX, scaleY);
+
+        // After creating the scale transform, compose with rotation if needed
+        if (state.TextRotation != TextRotation.Zero)
+        {
+            float rotationRadians = state.TextRotation switch
+            {
+                TextRotation.Ninety => -MathF.PI / 2f,
+                TextRotation.OneEighty => MathF.PI,
+                TextRotation.TwoSeventy => MathF.PI / 2f,
+                _ => 0f
+            };
+
+            // Rotate around the pen position (character field origin)
+            var rotationTransform = Matrix3x2.CreateRotation(rotationRadians, new System.Numerics.Vector2(penPoint.X, penPoint.Y));
+            transform = transform * rotationTransform;
+        }
 
         var drawingOptions = new DrawingOptions
         {

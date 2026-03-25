@@ -19,6 +19,16 @@ public class DrawableArc : Drawable, IDrawable
     {
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
 
+        // Check for spline: more vertices than a standard arc requires
+        bool isSet = _command is ArcSetFilledCommand or ArcSetOutlinedCommand;
+        int normalArcVertexCount = isSet ? 3 : 2;
+
+        if (_command.Vertices.Count > normalArcVertexCount)
+        {
+            DrawSpline(image, state, size, brush, pen, isSet);
+            return;
+        }
+
         // Use floating point for precision - don't convert to integer Point yet
         var (startX, startY) = ConvertNormalizedToScreenF(size, _command.StartPoint.X, _command.StartPoint.Y);
         var (midX, midY) = ConvertNormalizedToScreenF(size, _command.IntermediatePointDisplacement.X, _command.IntermediatePointDisplacement.Y);
@@ -52,7 +62,27 @@ public class DrawableArc : Drawable, IDrawable
 
                 if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
                 {
-                    x.Draw(pen, circle);
+                    // Generate circle points and sweep rectangular pel along them
+                    var scaledPel = GetScaledLogicalPel(size);
+                    float pelW = scaledPel.X;
+                    float pelH = scaledPel.Y;
+
+                    // Use the correct outline color from the command's color state
+                    var fillableCmd = (FillableGeometricDrawingCommandBase)_command;
+                    var (cmdFg, cmdBg) = fillableCmd.GetColors(_command.State ?? new NaplpsState());
+                    var circleColor = (fillableCmd.ShouldFill ? cmdBg : cmdFg).ToISColor();
+
+                    int circleSteps = Math.Max(32, (int)(MathF.PI * 2f * circleRadius));
+
+                    for (int s = 0; s < circleSteps; s++)
+                    {
+                        float a1 = (float)s / circleSteps * MathF.PI * 2f;
+                        float a2 = (float)(s + 1) / circleSteps * MathF.PI * 2f;
+                        var cp1 = new PointF(centerX + circleRadius * MathF.Cos(a1), centerY + circleRadius * MathF.Sin(a1));
+                        var cp2 = new PointF(centerX + circleRadius * MathF.Cos(a2), centerY + circleRadius * MathF.Sin(a2));
+                        var hull = DrawableLine.ConvexHullOfSweptPel(cp1, cp2, pelW, pelH);
+                        x.FillPolygon(circleColor, hull);
+                    }
                 }
             });
         }
@@ -101,18 +131,56 @@ public class DrawableArc : Drawable, IDrawable
 
             if (arcPoints.Length >= 2)
             {
+                var scaledPel = GetScaledLogicalPel(size);
+                float pelW = scaledPel.X;
+                float pelH = scaledPel.Y;
+
+                // Determine the outline color from the command's own color state (not GetColorFromState
+                // which can resolve the wrong palette entry). Use the same logic as GetBrushAndPenFromFillableCommand.
+                var fillableCmd = (FillableGeometricDrawingCommandBase)_command;
+                var (cmdFg, cmdBg) = fillableCmd.GetColors(_command.State ?? new NaplpsState());
+                ISColor outlineColor;
+
+                if (fillableCmd.ShouldFill && fillableCmd.Texture.ShouldHighlight)
+                {
+                    outlineColor = (_command.State?.ColorMode == 2 ? cmdBg : Color.Black).ToISColor();
+                }
+                else
+                {
+                    outlineColor = (fillableCmd.ShouldFill ? cmdBg : cmdFg).ToISColor();
+                }
+
                 image.Mutate(x =>
                 {
                     if (_command.ShouldFill)
                     {
+                        // ANSI X3.110: filled arc area includes "the region of the outline
+                        // and the chord traced by the logical pel." The fill extends by pel size.
+                        // First fill the arc-chord interior
                         var fillPoints = new List<PointF>(arcPoints);
                         fillPoints.Add(new PointF(startX, startY));
                         x.FillPolygon(brush, fillPoints.ToArray());
+
+                        // Then sweep the pel along the arc curve (fills the outline region)
+                        for (int j = 0; j < arcPoints.Length - 1; j++)
+                        {
+                            var hull = DrawableLine.ConvexHullOfSweptPel(arcPoints[j], arcPoints[j + 1], pelW, pelH);
+                            x.FillPolygon(brush, hull);
+                        }
+
+                        // Also sweep pel along the chord (start to end)
+                        var chordHull = DrawableLine.ConvexHullOfSweptPel(arcPoints[0], arcPoints[^1], pelW, pelH);
+                        x.FillPolygon(brush, chordHull);
                     }
 
+                    // Draw outline for non-filled arcs, or highlight outline for filled arcs
                     if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
                     {
-                        x.DrawLine(pen, arcPoints);
+                        for (int j = 0; j < arcPoints.Length - 1; j++)
+                        {
+                            var hull = DrawableLine.ConvexHullOfSweptPel(arcPoints[j], arcPoints[j + 1], pelW, pelH);
+                            x.FillPolygon(outlineColor, hull);
+                        }
                     }
                 });
             }
@@ -140,6 +208,99 @@ public class DrawableArc : Drawable, IDrawable
         }
 
         return angle;
+    }
+
+    private void DrawSpline(Image<Rgba32> image, NaplpsState state, Size size, Brush brush, Pen pen, bool isSet)
+    {
+        // Build absolute control points from the vertex chain
+        var controlPoints = new List<PointF>();
+
+        if (isSet)
+        {
+            // Set variant: Vertices[0] is absolute start, rest are relative displacements
+            var current = _command.Vertices[0];
+            var (sx, sy) = ConvertNormalizedToScreenF(size, current.X, current.Y);
+            controlPoints.Add(new PointF(sx, sy));
+
+            for (int i = 1; i < _command.Vertices.Count; i++)
+            {
+                current += _command.Vertices[i];
+                var (px, py) = ConvertNormalizedToScreenF(size, current.X, current.Y);
+                controlPoints.Add(new PointF(px, py));
+            }
+        }
+        else
+        {
+            // Non-set variant: start is the pen position, all vertices are relative displacements
+            var current = _command.State.Pen;
+            var (sx, sy) = ConvertNormalizedToScreenF(size, current.X, current.Y);
+            controlPoints.Add(new PointF(sx, sy));
+
+            for (int i = 0; i < _command.Vertices.Count; i++)
+            {
+                current += _command.Vertices[i];
+                var (px, py) = ConvertNormalizedToScreenF(size, current.X, current.Y);
+                controlPoints.Add(new PointF(px, py));
+            }
+        }
+
+        if (controlPoints.Count < 2)
+        {
+            return;
+        }
+
+        // Generate Catmull-Rom spline points through all control points
+        const int segmentSteps = 16;
+        var splinePoints = new List<PointF>();
+
+        for (int i = 0; i < controlPoints.Count - 1; i++)
+        {
+            // Catmull-Rom requires 4 points: p0, p1, p2, p3
+            // For boundary segments, clamp to the nearest available point
+            var p0 = controlPoints[Math.Max(i - 1, 0)];
+            var p1 = controlPoints[i];
+            var p2 = controlPoints[i + 1];
+            var p3 = controlPoints[Math.Min(i + 2, controlPoints.Count - 1)];
+
+            for (int step = 0; step < segmentSteps; step++)
+            {
+                float t = (float)step / segmentSteps;
+                splinePoints.Add(CatmullRom(p0, p1, p2, p3, t));
+            }
+        }
+
+        // Add the final point
+        splinePoints.Add(controlPoints[controlPoints.Count - 1]);
+
+        if (splinePoints.Count >= 2)
+        {
+            var splineArray = splinePoints.ToArray();
+
+            image.Mutate(x =>
+            {
+                if (_command.ShouldFill)
+                {
+                    var fillPoints = new List<PointF>(splineArray);
+                    fillPoints.Add(splineArray[0]);
+                    x.FillPolygon(brush, fillPoints.ToArray());
+                }
+
+                if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+                {
+                    x.DrawLine(pen, splineArray);
+                }
+            });
+        }
+    }
+
+    private static PointF CatmullRom(PointF p0, PointF p1, PointF p2, PointF p3, float t)
+    {
+        float t2 = t * t;
+        float t3 = t2 * t;
+        return new PointF(
+            0.5f * ((2f * p1.X) + (-p0.X + p2.X) * t + (2f * p0.X - 5f * p1.X + 4f * p2.X - p3.X) * t2 + (-p0.X + 3f * p1.X - 3f * p2.X + p3.X) * t3),
+            0.5f * ((2f * p1.Y) + (-p0.Y + p2.Y) * t + (2f * p0.Y - 5f * p1.Y + 4f * p2.Y - p3.Y) * t2 + (-p0.Y + 3f * p1.Y - 3f * p2.Y + p3.Y) * t3)
+        );
     }
 
     private static PointF CalculateCircleCenterF(float ax, float ay, float bx, float by, float cx, float cy)

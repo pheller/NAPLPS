@@ -58,9 +58,22 @@ public class Drawable
 
         var brush = GetFillBrush(size, fgColor, bgColor);
 
-        var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
         var penWidth = GetPenWidth(size);
-        var pen = GetTexturedPen(penColor.ToISColor(), penWidth);
+        Pen pen;
+
+        if (fillableCommand.ShouldFill && fillableCommand.Texture.ShouldHighlight)
+        {
+            // ANSI X3.110: Highlighted filled shapes are outlined with SOLID line texture
+            // (ignoring current line texture), using nominal black in modes 0/1,
+            // or background color in mode 2.
+            var highlightColor = _state.ColorMode == 2 ? bgColor : Color.Black;
+            pen = Pens.Solid(highlightColor.ToISColor(), penWidth);
+        }
+        else
+        {
+            var penColor = fillableCommand.ShouldFill ? bgColor : fgColor;
+            pen = GetTexturedPen(penColor.ToISColor(), penWidth);
+        }
 
         return (brush, pen);
     }

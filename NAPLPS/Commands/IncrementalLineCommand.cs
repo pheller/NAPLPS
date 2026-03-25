@@ -35,7 +35,7 @@ public class IncrementalLineCommand : GeometricDrawingCommandBase
 
         IsValid = true;
 
-        // First operand is a multi-value operand for dx, dy offset
+        // First operand is a multi-value operand for dx, dy step size
         var vertices = ProcessVertices(operands);
         if (vertices.Count > 0)
         {
@@ -43,7 +43,6 @@ public class IncrementalLineCommand : GeometricDrawingCommandBase
         }
 
         // Parse the string portion for motion codes
-        // Motion codes are 2-bit instructions followed by optional dx/dy values
         ParseMotionCodes(operands, vertices.Count > 0 ? GetOperandByteCount(vertices[0]) : 0);
     }
 
@@ -71,87 +70,111 @@ public class IncrementalLineCommand : GeometricDrawingCommandBase
             }
         }
 
-        // Parse motion codes
-        // 00 = end OR toggle draw flag (if followed by more data)
-        // 01 = move dy only
-        // 10 = move dx only
-        // 11 = move dx and dy
+        // The dx and dy step sizes are fixed from the first multi-value operand
+        float dx = StartOffset.X;
+        float dy = StartOffset.Y;
+
+        // Sign tracking: starts positive, can be reversed by meta opcodes
+        int signDx = 1;
+        int signDy = 1;
+
+        // Draw flag starts ON
+        bool drawFlag = true;
+
         int bitIndex = 0;
-        bool drawFlag = true; // Draw flag starts ON
 
         while (bitIndex + 2 <= bitBuffer.Count)
         {
             int code = (bitBuffer[bitIndex] ? 2 : 0) + (bitBuffer[bitIndex + 1] ? 1 : 0);
             bitIndex += 2;
 
-            if (code == 0)
+            switch (code)
             {
-                // Check if this is end or toggle
-                if (bitIndex + 2 <= bitBuffer.Count)
+                case 0b00:
                 {
-                    // Toggle draw flag
-                    drawFlag = !drawFlag;
+                    // Meta opcode: read another 2-bit sub-opcode
+                    if (bitIndex + 2 > bitBuffer.Count)
+                    {
+                        // Not enough bits for sub-opcode, stop parsing
+                        return;
+                    }
+
+                    int subCode = (bitBuffer[bitIndex] ? 2 : 0) + (bitBuffer[bitIndex + 1] ? 1 : 0);
+                    bitIndex += 2;
+
+                    switch (subCode)
+                    {
+                        case 0b00:
+                        {
+                            drawFlag = !drawFlag;
+                        }
+                        break;
+
+                        case 0b01:
+                        {
+                            signDx = -signDx;
+                        }
+                        break;
+
+                        case 0b10:
+                        {
+                            signDy = -signDy;
+                        }
+                        break;
+
+                        case 0b11:
+                        {
+                            signDx = -signDx;
+                            signDy = -signDy;
+                        }
+                        break;
+                    }
                 }
-                else
+                break;
+
+                case 0b01:
                 {
-                    // End of scribble
-                    break;
+                    // Move dx in x direction only
+                    Segments.Add(new MotionSegment
+                    {
+                        Draw = drawFlag,
+                        Dx = signDx * dx,
+                        Dy = 0
+                    });
                 }
+                break;
+
+                case 0b10:
+                {
+                    // Move dy in y direction only
+                    Segments.Add(new MotionSegment
+                    {
+                        Draw = drawFlag,
+                        Dx = 0,
+                        Dy = signDy * dy
+                    });
+                }
+                break;
+
+                case 0b11:
+                {
+                    // Move dx and dy simultaneously
+                    Segments.Add(new MotionSegment
+                    {
+                        Draw = drawFlag,
+                        Dx = signDx * dx,
+                        Dy = signDy * dy
+                    });
+                }
+                break;
             }
-            else
-            {
-                var segment = new MotionSegment
-                {
-                    Draw = drawFlag,
-                    HasDx = code == 2 || code == 3,
-                    HasDy = code == 1 || code == 3
-                };
-
-                // Read dx if present (simplified: using 6 bits as signed value)
-                if (segment.HasDx && bitIndex + 6 <= bitBuffer.Count)
-                {
-                    segment.Dx = ReadSignedBits(bitBuffer, ref bitIndex, 6);
-                }
-
-                // Read dy if present
-                if (segment.HasDy && bitIndex + 6 <= bitBuffer.Count)
-                {
-                    segment.Dy = ReadSignedBits(bitBuffer, ref bitIndex, 6);
-                }
-
-                Segments.Add(segment);
-            }
         }
-    }
-
-    private static int ReadSignedBits(List<bool> buffer, ref int index, int bits)
-    {
-        if (index + bits > buffer.Count) return 0;
-
-        int value = 0;
-        bool negative = buffer[index]; // First bit is sign
-
-        for (int i = 0; i < bits && index < buffer.Count; i++)
-        {
-            value = (value << 1) | (buffer[index++] ? 1 : 0);
-        }
-
-        // Convert from sign-magnitude or two's complement as needed
-        if (negative)
-        {
-            // Simple sign-magnitude interpretation
-            value = -(value & ((1 << (bits - 1)) - 1));
-        }
-
-        return value;
     }
 
     public struct MotionSegment
     {
         public bool Draw;   // Whether to draw a line (or just move)
-        public bool HasDx;  // Whether dx is specified
-        public bool HasDy;  // Whether dy is specified
-        public int Dx;      // Delta X (in logical pel units)
-        public int Dy;      // Delta Y (in logical pel units)
+        public float Dx;    // Delta X displacement for this segment
+        public float Dy;    // Delta Y displacement for this segment
     }
 }
