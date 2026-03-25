@@ -62,27 +62,12 @@ public class DrawableArc : Drawable, IDrawable
 
                 if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
                 {
-                    // Generate circle points and sweep rectangular pel along them
-                    var scaledPel = GetScaledLogicalPel(size);
-                    float pelW = scaledPel.X;
-                    float pelH = scaledPel.Y;
-
-                    // Use the correct outline color from the command's color state
+                    // Use centered round pen for circle outlines (symmetric)
                     var fillableCmd = (FillableGeometricDrawingCommandBase)_command;
                     var (cmdFg, cmdBg) = fillableCmd.GetColors(_command.State ?? new NaplpsState());
                     var circleColor = (fillableCmd.ShouldFill ? cmdBg : cmdFg).ToISColor();
-
-                    int circleSteps = Math.Max(32, (int)(MathF.PI * 2f * circleRadius));
-
-                    for (int s = 0; s < circleSteps; s++)
-                    {
-                        float a1 = (float)s / circleSteps * MathF.PI * 2f;
-                        float a2 = (float)(s + 1) / circleSteps * MathF.PI * 2f;
-                        var cp1 = new PointF(centerX + circleRadius * MathF.Cos(a1), centerY + circleRadius * MathF.Sin(a1));
-                        var cp2 = new PointF(centerX + circleRadius * MathF.Cos(a2), centerY + circleRadius * MathF.Sin(a2));
-                        var hull = DrawableLine.ConvexHullOfSweptPel(cp1, cp2, pelW, pelH);
-                        x.FillPolygon(circleColor, hull);
-                    }
+                    float outlineWidth = GetPenWidth(size);
+                    x.Draw(Pens.Solid(circleColor, outlineWidth), circle);
                 }
             });
         }
@@ -156,31 +141,33 @@ public class DrawableArc : Drawable, IDrawable
                     {
                         // ANSI X3.110: filled arc area includes "the region of the outline
                         // and the chord traced by the logical pel." The fill extends by pel size.
-                        // First fill the arc-chord interior
-                        var fillPoints = new List<PointF>(arcPoints);
-                        fillPoints.Add(new PointF(startX, startY));
-                        x.FillPolygon(brush, fillPoints.ToArray());
-
-                        // Then sweep the pel along the arc curve (fills the outline region)
+                        // Sweep pel along arc curve first (extends fill outward)
                         for (int j = 0; j < arcPoints.Length - 1; j++)
                         {
                             var hull = DrawableLine.ConvexHullOfSweptPel(arcPoints[j], arcPoints[j + 1], pelW, pelH);
                             x.FillPolygon(brush, hull);
                         }
 
-                        // Also sweep pel along the chord (start to end)
+                        // Sweep pel along the chord (start to end)
                         var chordHull = DrawableLine.ConvexHullOfSweptPel(arcPoints[0], arcPoints[^1], pelW, pelH);
                         x.FillPolygon(brush, chordHull);
+
+                        // Fill the arc-chord interior LAST to cover any sub-pixel gaps
+                        // between adjacent pel sweep hulls
+                        var fillPoints = new List<PointF>(arcPoints);
+                        fillPoints.Add(new PointF(startX, startY));
+                        x.FillPolygon(brush, fillPoints.ToArray());
                     }
 
-                    // Draw outline for non-filled arcs, or highlight outline for filled arcs
+                    // Draw outline for non-filled arcs, or highlight outline for filled arcs.
+                    // Use centered round pen for outlines (symmetric, matches PP3 behavior)
+                    // rather than asymmetric pel sweep which can leave visible edges
+                    // that subsequent fills don't fully cover.
                     if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
                     {
-                        for (int j = 0; j < arcPoints.Length - 1; j++)
-                        {
-                            var hull = DrawableLine.ConvexHullOfSweptPel(arcPoints[j], arcPoints[j + 1], pelW, pelH);
-                            x.FillPolygon(outlineColor, hull);
-                        }
+                        float outlineWidth = GetPenWidthF(size);
+                        var outlinePen = Pens.Solid(outlineColor, outlineWidth);
+                        x.DrawLine(outlinePen, arcPoints);
                     }
                 });
             }

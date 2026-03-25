@@ -56,10 +56,10 @@ public class DrawContext : IDisposable
         // Clear canvas (important for loop restarts and re-renders)
         Image.Mutate(ctx => ctx.Fill(ISColor.Black));
 
-        if (PaletteAnimationMode)
-        {
-            Drawable.LivePalette = NAPLPS.State.ColorMap;
-        }
+        // NAPLPS is a CLUT system: palette changes via SET COLOR retroactively affect
+        // all previously drawn objects using that palette index. Always use the final
+        // parsed state's palette for color resolution in modes 1 and 2.
+        Drawable.LivePalette = NAPLPS.State.ColorMap;
 
         foreach (var sequence in NAPLPS.Commands)
         {
@@ -115,10 +115,8 @@ public class DrawContext : IDisposable
         // Clear canvas (important for loop restarts)
         Image.Mutate(ctx => ctx.Fill(ISColor.Black));
 
-        if (PaletteAnimationMode)
-        {
-            Drawable.LivePalette = NAPLPS.State.ColorMap;
-        }
+        // NAPLPS CLUT: always use final palette for color resolution
+        Drawable.LivePalette = NAPLPS.State.ColorMap;
 
         foreach (var sequence in NAPLPS.Commands)
         {

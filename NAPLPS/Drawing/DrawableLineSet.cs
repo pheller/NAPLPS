@@ -30,7 +30,8 @@ public class DrawableLineSet : Drawable, IDrawable
             return;
         }
 
-        var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
+        var palette = Drawable.LivePalette ?? state.ColorMap;
+        var color = state.ColorMode == 0 ? state.Foreground.ToColor() : palette[state.ColorMapForeground].ToColor();
         var isColor = color.ToISColor();
 
         var scaledPel = GetScaledLogicalPel(size);

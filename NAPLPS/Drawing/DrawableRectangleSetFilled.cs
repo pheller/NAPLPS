@@ -42,7 +42,8 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
 
                 if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
                 {
-                    x.Draw(pen, rect);
+                    float outlineWidth = GetPenWidth(size);
+                    x.Draw(Pens.Solid(GetOutlineColor(), outlineWidth), rect);
                 }
             }
         });

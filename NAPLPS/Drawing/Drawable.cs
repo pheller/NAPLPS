@@ -5,6 +5,7 @@ using Brush = SixLabors.ImageSharp.Drawing.Processing.Brush;
 using Brushes = SixLabors.ImageSharp.Drawing.Processing.Brushes;
 using Pens = SixLabors.ImageSharp.Drawing.Processing.Pens;
 using SolidBrush = SixLabors.ImageSharp.Drawing.Processing.SolidBrush;
+using SixLabors.ImageSharp.Processing;
 using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
 
 namespace NAPLPS.Drawing;
@@ -48,6 +49,19 @@ public class Drawable
         var scaledLogicalPel = GetScaledLogicalPel(size);
 
         return Math.Max(scaledLogicalPel.X, scaledLogicalPel.Y);
+    }
+
+    /// <summary>
+    /// Gets the pen width using float precision (avoids integer truncation artifacts
+    /// for outlines that need to align precisely with subsequent fills).
+    /// </summary>
+    public float GetPenWidthF(Size size)
+    {
+        var drawingCommand = (GeometricDrawingCommandBase)_baseCommand;
+        var logicalPel = drawingCommand.LogicalPel;
+        float pelX = MathF.Abs(logicalPel.X * size.Width);
+        float pelY = MathF.Abs(logicalPel.Y / 0.80f * size.Height);
+        return MathF.Max(MathF.Max(pelX, pelY), 1f);
     }
 
     internal (Brush, Pen) GetBrushAndPenFromFillableCommand(Size size)
@@ -140,11 +154,13 @@ public class Drawable
             case TexturePatterns.MaskB:
             case TexturePatterns.HorizontalHatching:
             {
-                var pattern = new bool[scaledLogicalPel.X * 2, 1];
+                // ANSI X3.110: horizontal lines 1 logical pel HEIGHT high, spaced 2x pelH apart
+                var pelY = Math.Max(1, scaledLogicalPel.Y);
+                var pattern = new bool[pelY * 2, 1];
 
                 for (var i = 0; i < pattern.Length; ++i)
                 {
-                    pattern[i, 0] = i >= pattern.Length / 2;
+                    pattern[i, 0] = i >= pelY;
                 }
 
                 return new PatternBrush(fgColorImageSharp, bgColorImageSharp, pattern);
@@ -153,15 +169,18 @@ public class Drawable
             case TexturePatterns.MaskC:
             case TexturePatterns.CrossHatching:
             {
-                var pelX = scaledLogicalPel.X;
-                var length = pelX * 2;
-                var pattern = new bool[length, length];
+                // ANSI X3.110: combination of vertical (pelW wide) and horizontal (pelH high)
+                var pelX = Math.Max(1, scaledLogicalPel.X);
+                var pelY = Math.Max(1, scaledLogicalPel.Y);
+                var width = pelX * 2;
+                var height = pelY * 2;
+                var pattern = new bool[height, width];
 
-                for (var y = 0; y < length; ++y)
+                for (var y = 0; y < height; ++y)
                 {
-                    for (var x = 0; x < length; ++x)
+                    for (var x = 0; x < width; ++x)
                     {
-                        pattern[y, x] = y >= pelX || x < pelX;
+                        pattern[y, x] = y >= pelY || x < pelX;
                     }
                 }
 
@@ -211,5 +230,43 @@ public class Drawable
         var (fgColor, bgColor) = GetISColorFromState(state);
 
         return (Brushes.Solid(bgColor), Pens.Solid(fgColor, state.LogicalPel.X == 0 ? 1 : state.LogicalPel.X));
+    }
+
+    /// <summary>
+    /// Draws a shape outline using rectangular logical pel sweep.
+    /// Sweeps the pel along each edge of the given polygon points.
+    /// </summary>
+    internal void DrawOutlineWithPelSweep(IImageProcessingContext ctx, PointF[] points, ISColor color, Size size, bool closePath = true)
+    {
+        var scaledPel = GetScaledLogicalPel(size);
+        float pelW = scaledPel.X;
+        float pelH = scaledPel.Y;
+
+        int edgeCount = closePath ? points.Length : points.Length - 1;
+
+        for (int i = 0; i < edgeCount; i++)
+        {
+            var p1 = points[i];
+            var p2 = points[(i + 1) % points.Length];
+            var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, pelW, pelH);
+            ctx.FillPolygon(color, hull);
+        }
+    }
+
+    /// <summary>
+    /// Gets the outline color for a fillable command per NAPLPS spec.
+    /// Non-filled: foreground color. Filled+highlight: nominal black (modes 0/1) or background (mode 2).
+    /// </summary>
+    internal ISColor GetOutlineColor()
+    {
+        var fillableCommand = (FillableGeometricDrawingCommandBase)_baseCommand;
+        var (fgColor, bgColor) = fillableCommand.GetColors(_state);
+
+        if (fillableCommand.ShouldFill && fillableCommand.Texture.ShouldHighlight)
+        {
+            return (_state.ColorMode == 2 ? bgColor : Color.Black).ToISColor();
+        }
+
+        return (fillableCommand.ShouldFill ? bgColor : fgColor).ToISColor();
     }
 }

@@ -43,7 +43,8 @@ public class DrawablePolygon : Drawable, IDrawable
 
             if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
             {
-                x.Draw(pen, polygon);
+                float outlineWidth = GetPenWidth(size);
+                x.Draw(Pens.Solid(GetOutlineColor(), outlineWidth), polygon);
             }
         });
     }

@@ -30,7 +30,9 @@ public class DrawableLine : Drawable, IDrawable
             return;
         }
 
-        var color = state.ColorMode == 0 ? state.Foreground.ToColor() : state.ColorMap[state.ColorMapForeground].ToColor();
+        // Use LivePalette (CLUT) for modes 1/2 to reflect retroactive palette changes
+        var palette = Drawable.LivePalette ?? state.ColorMap;
+        var color = state.ColorMode == 0 ? state.Foreground.ToColor() : palette[state.ColorMapForeground].ToColor();
         var isColor = color.ToISColor();
 
         // NAPLPS spec: lines are drawn by sweeping the rectangular logical pel along the path.

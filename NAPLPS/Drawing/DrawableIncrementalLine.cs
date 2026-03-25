@@ -8,7 +8,7 @@ namespace NAPLPS.Drawing;
 
 /// <summary>
 /// Renders INCREMENTAL LINE (scribble) commands.
-/// Draws polylines with motion-based segments.
+/// Draws polylines with motion-based segments using rectangular pel sweep.
 /// </summary>
 public class DrawableIncrementalLine : Drawable, IDrawable
 {
@@ -35,10 +35,13 @@ public class DrawableIncrementalLine : Drawable, IDrawable
         float currentX = startPoint.X;
         float currentY = startPoint.Y;
 
-        // Get pen color and width
+        // Get pen color
         var (fgColor, _) = GetISColorFromState(state);
-        float penWidth = GetPenWidth(size);
-        var pen = Pens.Solid(fgColor, penWidth);
+
+        // Rectangular pel sweep
+        var scaledPel = GetScaledLogicalPel(size);
+        float pelW = scaledPel.X;
+        float pelH = scaledPel.Y;
 
         image.Mutate(ctx =>
         {
@@ -50,12 +53,14 @@ public class DrawableIncrementalLine : Drawable, IDrawable
 
                 // Note: Y is inverted in screen coordinates
                 float nextX = currentX + dx;
-                float nextY = currentY - dy; // Subtract because screen Y is inverted
+                float nextY = currentY - dy;
 
                 if (segment.Draw)
                 {
-                    // Draw line from current to next
-                    ctx.DrawLine(pen, new PointF(currentX, currentY), new PointF(nextX, nextY));
+                    var p1 = new PointF(currentX, currentY);
+                    var p2 = new PointF(nextX, nextY);
+                    var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, pelW, pelH);
+                    ctx.FillPolygon(fgColor, hull);
                 }
 
                 currentX = nextX;
@@ -67,6 +72,4 @@ public class DrawableIncrementalLine : Drawable, IDrawable
         var (normX, normY) = ConvertScreenToNormalizedF(size, currentX, currentY);
         state.Pen = new Vector3(normX, normY, 0);
     }
-
-    // Uses centralized NaplpsUtils.ConvertScreenToNormalizedF
 }
