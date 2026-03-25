@@ -97,21 +97,26 @@ public class Drawable
         var fillableCommand = (GeometricDrawingCommandBase)_baseCommand;
         var lineTexture = fillableCommand.Texture.LineTexture;
 
+        // ANSI X3.110 line texture patterns are defined in terms of logical pel size:
+        // - Dot: 1 pel on, 1 pel off
+        // - Dash: 3 pels on, 1 pel off
+        // - Dot-Dash: 1 pel on, 1 pel off, 3 pels on, 1 pel off
+        // PatternPen multiplies each entry by the pen width (which is the pel size).
         switch (lineTexture)
         {
             case NaplpsTexture.LineTextures.Dotted:
             {
-                return Pens.Dot(color, penWidth);
-            }
-
-            case NaplpsTexture.LineTextures.DottedDashed:
-            {
-                return Pens.DashDot(color, penWidth);
+                return new PatternPen(color, penWidth, new float[] { 1f, 1f });
             }
 
             case NaplpsTexture.LineTextures.Dashed:
             {
-                return Pens.Dash(color, penWidth);
+                return new PatternPen(color, penWidth, new float[] { 3f, 1f });
+            }
+
+            case NaplpsTexture.LineTextures.DottedDashed:
+            {
+                return new PatternPen(color, penWidth, new float[] { 1f, 1f, 3f, 1f });
             }
 
             default:

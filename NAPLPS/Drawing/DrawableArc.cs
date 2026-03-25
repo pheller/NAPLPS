@@ -166,7 +166,10 @@ public class DrawableArc : Drawable, IDrawable
                     if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
                     {
                         float outlineWidth = GetPenWidthF(size);
-                        var outlinePen = Pens.Solid(outlineColor, outlineWidth);
+                        // Highlight uses solid per spec; outlined arcs use current line texture
+                        var outlinePen = _command.Texture.ShouldHighlight
+                            ? Pens.Solid(outlineColor, outlineWidth)
+                            : GetTexturedPen(outlineColor, outlineWidth);
                         x.DrawLine(outlinePen, arcPoints);
                     }
                 });
