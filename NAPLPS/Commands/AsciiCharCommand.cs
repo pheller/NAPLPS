@@ -58,32 +58,77 @@ public class AsciiCharCommand : NaplpsCommand
     {
         var pen = state.Pen;
 
-        float spacingMultiplier = state.TextSpacing switch
+        if (state.TextSpacing == TextSpacing.Proportional)
         {
-            TextSpacing.One => 1.0f,
-            TextSpacing.FiveQuarters => 1.25f,
-            TextSpacing.ThreeHalves => 1.5f,
-            TextSpacing.Proportional => 1.0f,
-            _ => 1.0f
-        };
+            // ANSI X3.110 full proportional spacing algorithm
+            // Displacement is calculated from character field width and width class
+            float charFieldDim = (state.TextPath == TextPath.Right || state.TextPath == TextPath.Left)
+                ? state.CharSize.X : state.CharSize.Y;
+            float displacement = DrawableAsciiChar.GetProportionalDisplacement(MathF.Abs(charFieldDim), AsciiCharacter);
 
-        // Get proportional width ratio for this character
-        float widthRatio = DrawableAsciiChar.GetCharWidthRatio(AsciiCharacter);
+            switch (state.TextPath)
+            {
+                case TextPath.Right:
+                {
+                    pen.X += displacement;
+                }
+                break;
 
-        switch (state.TextPath)
+                case TextPath.Left:
+                {
+                    pen.X -= displacement;
+                }
+                break;
+
+                case TextPath.Up:
+                {
+                    pen.Y += displacement;
+                }
+                break;
+
+                case TextPath.Down:
+                {
+                    pen.Y -= displacement;
+                }
+                break;
+            }
+        }
+        else
         {
-            case TextPath.Right:
-            pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
-            break;
-            case TextPath.Left:
-            pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
-            break;
-            case TextPath.Up:
-            pen.Y += state.CharSize.Y * spacingMultiplier;
-            break;
-            case TextPath.Down:
-            pen.Y -= state.CharSize.Y * spacingMultiplier;
-            break;
+            float spacingMultiplier = state.TextSpacing switch
+            {
+                TextSpacing.One => 1.0f,
+                TextSpacing.FiveQuarters => 1.25f,
+                TextSpacing.ThreeHalves => 1.5f,
+                _ => 1.0f
+            };
+
+            switch (state.TextPath)
+            {
+                case TextPath.Right:
+                {
+                    pen.X += state.CharSize.X * spacingMultiplier;
+                }
+                break;
+
+                case TextPath.Left:
+                {
+                    pen.X -= state.CharSize.X * spacingMultiplier;
+                }
+                break;
+
+                case TextPath.Up:
+                {
+                    pen.Y += state.CharSize.Y * spacingMultiplier;
+                }
+                break;
+
+                case TextPath.Down:
+                {
+                    pen.Y -= state.CharSize.Y * spacingMultiplier;
+                }
+                break;
+            }
         }
 
         state.Pen = pen;

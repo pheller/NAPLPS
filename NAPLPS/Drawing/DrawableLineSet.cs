@@ -34,9 +34,7 @@ public class DrawableLineSet : Drawable, IDrawable
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : palette[state.ColorMapForeground].ToColor();
         var isColor = color.ToISColor();
 
-        var scaledPel = GetScaledLogicalPel(size);
-        float pelW = scaledPel.X;
-        float pelH = scaledPel.Y;
+        var (dxMin, dxMax, dyMin, dyMax) = GetPelOffsets(size);
 
         image.Mutate(ctx =>
         {
@@ -46,7 +44,7 @@ public class DrawableLineSet : Drawable, IDrawable
                 var p1 = points[i];
                 var p2 = points[i + 1];
 
-                var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, pelW, pelH);
+                var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, dxMin, dxMax, dyMin, dyMax);
                 ctx.FillPolygon(isColor, hull);
             }
         });

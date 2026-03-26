@@ -36,11 +36,8 @@ public class DrawableLine : Drawable, IDrawable
         var isColor = color.ToISColor();
 
         // NAPLPS spec: lines are drawn by sweeping the rectangular logical pel along the path.
-        // The pel is NOT centered — its origin corner is aligned with the drawing point.
-        // Positive width extends RIGHT, positive height extends UP (screen Y decreases).
-        var scaledPel = GetScaledLogicalPel(size);
-        float pelW = scaledPel.X;
-        float pelH = scaledPel.Y;
+        // The pel is NOT centered — its origin corner is determined by the sign of pel dimensions.
+        var (dxMin, dxMax, dyMin, dyMax) = GetPelOffsets(size);
 
         image.Mutate(ctx =>
         {
@@ -49,9 +46,7 @@ public class DrawableLine : Drawable, IDrawable
                 var p1 = points[i];
                 var p2 = points[i + 1];
 
-                // Compute the convex hull of the pel rectangle at both endpoints.
-                // This correctly handles all line directions without vertex ordering issues.
-                var hull = ConvexHullOfSweptPel(p1, p2, pelW, pelH);
+                var hull = ConvexHullOfSweptPel(p1, p2, dxMin, dxMax, dyMin, dyMax);
                 ctx.FillPolygon(isColor, hull);
             }
         });
@@ -59,21 +54,30 @@ public class DrawableLine : Drawable, IDrawable
 
     /// <summary>
     /// Computes the convex hull of the logical pel rectangle positioned at two points.
-    /// The pel extends RIGHT by pelW and UP by pelH (Y-pelH in screen coords) from each point.
-    /// Returns the hull vertices in counter-clockwise order for correct polygon fill.
+    /// Default: pel extends RIGHT by pelW and UP by pelH (positive NAPLPS dimensions).
     /// </summary>
     internal static PointF[] ConvexHullOfSweptPel(PointF p1, PointF p2, float pelW, float pelH)
     {
+        return ConvexHullOfSweptPel(p1, p2, 0, pelW, -pelH, 0);
+    }
+
+    /// <summary>
+    /// Computes the convex hull of the logical pel rectangle positioned at two points,
+    /// with sign-aware offsets per ANSI X3.110 logical pel origin rules.
+    /// (dxMin, dxMax, dyMin, dyMax) define the pel rectangle offset from the drawing point.
+    /// </summary>
+    internal static PointF[] ConvexHullOfSweptPel(PointF p1, PointF p2, float dxMin, float dxMax, float dyMin, float dyMax)
+    {
         // 4 corners of pel at P1 + 4 corners of pel at P2 = 8 points
         var allPoints = new PointF[8];
-        allPoints[0] = new PointF(p1.X, p1.Y);
-        allPoints[1] = new PointF(p1.X + pelW, p1.Y);
-        allPoints[2] = new PointF(p1.X + pelW, p1.Y - pelH);
-        allPoints[3] = new PointF(p1.X, p1.Y - pelH);
-        allPoints[4] = new PointF(p2.X, p2.Y);
-        allPoints[5] = new PointF(p2.X + pelW, p2.Y);
-        allPoints[6] = new PointF(p2.X + pelW, p2.Y - pelH);
-        allPoints[7] = new PointF(p2.X, p2.Y - pelH);
+        allPoints[0] = new PointF(p1.X + dxMin, p1.Y + dyMin);
+        allPoints[1] = new PointF(p1.X + dxMax, p1.Y + dyMin);
+        allPoints[2] = new PointF(p1.X + dxMax, p1.Y + dyMax);
+        allPoints[3] = new PointF(p1.X + dxMin, p1.Y + dyMax);
+        allPoints[4] = new PointF(p2.X + dxMin, p2.Y + dyMin);
+        allPoints[5] = new PointF(p2.X + dxMax, p2.Y + dyMin);
+        allPoints[6] = new PointF(p2.X + dxMax, p2.Y + dyMax);
+        allPoints[7] = new PointF(p2.X + dxMin, p2.Y + dyMax);
 
         return ComputeConvexHull(allPoints);
     }

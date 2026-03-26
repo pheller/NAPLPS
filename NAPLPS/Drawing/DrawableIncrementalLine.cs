@@ -38,10 +38,8 @@ public class DrawableIncrementalLine : Drawable, IDrawable
         // Get pen color
         var (fgColor, _) = GetISColorFromState(state);
 
-        // Rectangular pel sweep
-        var scaledPel = GetScaledLogicalPel(size);
-        float pelW = scaledPel.X;
-        float pelH = scaledPel.Y;
+        // Rectangular pel sweep with sign-aware offsets
+        var (dxMin, dxMax, dyMin, dyMax) = GetPelOffsets(size);
 
         image.Mutate(ctx =>
         {
@@ -59,7 +57,7 @@ public class DrawableIncrementalLine : Drawable, IDrawable
                 {
                     var p1 = new PointF(currentX, currentY);
                     var p2 = new PointF(nextX, nextY);
-                    var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, pelW, pelH);
+                    var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, dxMin, dxMax, dyMin, dyMax);
                     ctx.FillPolygon(fgColor, hull);
                 }
 

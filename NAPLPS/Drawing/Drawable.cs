@@ -51,6 +51,37 @@ public class Drawable
         return new System.Drawing.Point(Math.Max(1, Math.Abs(pelX)), Math.Max(1, Math.Abs(pelY)));
     }
 
+    /// <summary>
+    /// Gets the pel X/Y offsets for the convex hull sweep, respecting the logical pel origin.
+    /// ANSI X3.110: The pel is NOT centered. The drawing point sits at a corner determined
+    /// by the sign of the pel dimensions:
+    ///   +W, +H → drawing point at lower-left  → pel extends RIGHT and UP
+    ///   +W, -H → drawing point at upper-left  → pel extends RIGHT and DOWN
+    ///   -W, +H → drawing point at lower-right → pel extends LEFT and UP
+    ///   -W, -H → drawing point at upper-right → pel extends LEFT and DOWN
+    /// Returns (dxMin, dxMax, dyMin, dyMax) offsets from the drawing point in SCREEN coords.
+    /// </summary>
+    internal (float dxMin, float dxMax, float dyMin, float dyMax) GetPelOffsets(Size size)
+    {
+        var drawingCommand = (GeometricDrawingCommandBase)_baseCommand;
+        var logicalPel = drawingCommand.LogicalPel;
+        var scaledPel = GetScaledLogicalPel(size);
+        float pelW = scaledPel.X;
+        float pelH = scaledPel.Y;
+
+        // In screen coords (Y-down):
+        // Positive NAPLPS width  → extends RIGHT → dxMin=0, dxMax=+pelW
+        // Negative NAPLPS width  → extends LEFT  → dxMin=-pelW, dxMax=0
+        // Positive NAPLPS height → extends UP (screen Y decreases) → dyMin=-pelH, dyMax=0
+        // Negative NAPLPS height → extends DOWN (screen Y increases) → dyMin=0, dyMax=+pelH
+        float dxMin = logicalPel.X >= 0 ? 0 : -pelW;
+        float dxMax = logicalPel.X >= 0 ? pelW : 0;
+        float dyMin = logicalPel.Y >= 0 ? -pelH : 0;
+        float dyMax = logicalPel.Y >= 0 ? 0 : pelH;
+
+        return (dxMin, dxMax, dyMin, dyMax);
+    }
+
     public float GetPenWidth(Size size)
     {
         var scaledLogicalPel = GetScaledLogicalPel(size);
@@ -250,9 +281,7 @@ public class Drawable
     /// </summary>
     internal void DrawOutlineWithPelSweep(IImageProcessingContext ctx, PointF[] points, ISColor color, Size size, bool closePath = true)
     {
-        var scaledPel = GetScaledLogicalPel(size);
-        float pelW = scaledPel.X;
-        float pelH = scaledPel.Y;
+        var (dxMin, dxMax, dyMin, dyMax) = GetPelOffsets(size);
 
         int edgeCount = closePath ? points.Length : points.Length - 1;
 
@@ -260,7 +289,7 @@ public class Drawable
         {
             var p1 = points[i];
             var p2 = points[(i + 1) % points.Length];
-            var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, pelW, pelH);
+            var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, dxMin, dxMax, dyMin, dyMax);
             ctx.FillPolygon(color, hull);
         }
     }

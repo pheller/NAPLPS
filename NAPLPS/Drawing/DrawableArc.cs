@@ -116,9 +116,7 @@ public class DrawableArc : Drawable, IDrawable
 
             if (arcPoints.Length >= 2)
             {
-                var scaledPel = GetScaledLogicalPel(size);
-                float pelW = scaledPel.X;
-                float pelH = scaledPel.Y;
+                var (dxMin, dxMax, dyMin, dyMax) = GetPelOffsets(size);
 
                 // Determine the outline color from the command's own color state (not GetColorFromState
                 // which can resolve the wrong palette entry). Use the same logic as GetBrushAndPenFromFillableCommand.
@@ -144,12 +142,12 @@ public class DrawableArc : Drawable, IDrawable
                         // Sweep pel along arc curve first (extends fill outward)
                         for (int j = 0; j < arcPoints.Length - 1; j++)
                         {
-                            var hull = DrawableLine.ConvexHullOfSweptPel(arcPoints[j], arcPoints[j + 1], pelW, pelH);
+                            var hull = DrawableLine.ConvexHullOfSweptPel(arcPoints[j], arcPoints[j + 1], dxMin, dxMax, dyMin, dyMax);
                             x.FillPolygon(brush, hull);
                         }
 
                         // Sweep pel along the chord (start to end)
-                        var chordHull = DrawableLine.ConvexHullOfSweptPel(arcPoints[0], arcPoints[^1], pelW, pelH);
+                        var chordHull = DrawableLine.ConvexHullOfSweptPel(arcPoints[0], arcPoints[^1], dxMin, dxMax, dyMin, dyMax);
                         x.FillPolygon(brush, chordHull);
 
                         // Fill the arc-chord interior LAST to cover any sub-pixel gaps

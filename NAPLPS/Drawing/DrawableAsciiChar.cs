@@ -42,8 +42,40 @@ public class DrawableAsciiChar : Drawable, IDrawable
         5, 5, 5, 5, 2, 5, 9, 9, 9, 5, 5, 5, 0, 5, 9
     };
 
-    // Displacement table row 8 from NAPLPS spec (for text sizes < 12/256)
-    // Maps width class (0-9) to displacement value (2-8)
+    // ANSI X3.110 full displacement table for text sizes < 12/256
+    // Rows indexed by (n-6) where n = charFieldWidth * 256 truncated, columns by width class 0-9
+    private static readonly int[,] _displacementTable = new int[,]
+    {
+        //       0  1  2  3  4  5  6  7  8  9
+        /* 6 */ { 2, 3, 4, 3, 4, 5, 6, 4, 5, 6 },
+        /* 7 */ { 3, 4, 5, 4, 5, 6, 7, 5, 6, 7 },
+        /* 8 */ { 2, 3, 4, 4, 5, 6, 7, 6, 7, 8 },
+        /* 9 */ { 3, 4, 5, 5, 6, 7, 8, 7, 8, 9 },
+        /*10 */ { 4, 5, 6, 6, 7, 8, 9, 8, 9, 10 },
+        /*11 */ { 3, 4, 6, 6, 7, 8, 10, 8, 10, 11 },
+    };
+
+    // Row 12: unit spacing numbers used for the large text (>=12/256) algorithm
+    private static readonly int[] _unitSpacingRow12 = { 6, 5, 4, 4, 3, 2, 1, 2, 1, 0 };
+
+    // Supplementary character width classes (same layout as ASCII, positions 0x20-0x7E in supp set)
+    private static readonly byte[] _suppWidthClass = new byte[95]
+    {
+        // 0x20-0x2F
+        9, 0, 9, 5, 9, 9, 9, 6, 9, 1, 6, 8, 9, 9, 9, 9,
+        // 0x30-0x3F
+        9, 4, 4, 4, 9, 6, 9, 0, 9, 1, 1, 8, 9, 9, 9, 9,
+        // 0x40-0x4F (non-spacing accents — use class 9 for max width)
+        9, 7, 2, 2, 9, 5, 5, 0, 4, 9, 1, 7, 9, 9, 9, 6,
+        // 0x50-0x5F
+        5, 9, 5, 5, 6, 6, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+        // 0x60-0x6F
+        6, 9, 6, 4, 9, 9, 9, 4, 9, 9, 9, 9, 5, 9, 6, 2,
+        // 0x70-0x7E
+        9, 9, 9, 9, 5, 0, 4, 4, 7, 9, 9, 6, 5, 4, 5
+    };
+
+    // Legacy row 8 lookup for backward compatibility
     private static readonly int[] _displacementRow8 = { 2, 3, 4, 4, 5, 6, 7, 6, 7, 8 };
 
     static DrawableAsciiChar()
@@ -100,7 +132,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
     /// <summary>
     /// Gets the width ratio of a character relative to full cell width.
-    /// Uses NAPLPS spec-defined width classes and displacement table.
+    /// Simplified version using row 8 lookup. Used for rendering cell sizing.
     /// </summary>
     public static float GetCharWidthRatio(char c)
     {
@@ -110,8 +142,76 @@ public class DrawableAsciiChar : Drawable, IDrawable
         }
 
         int widthClass = _asciiWidthClass[c - 0x20];
-        // Convert displacement value (2-8) to ratio (0.25-1.0)
         return _displacementRow8[widthClass] / 8f;
+    }
+
+    /// <summary>
+    /// ANSI X3.110 proportional spacing algorithm.
+    /// Returns the cursor displacement as a normalized coordinate value,
+    /// given the character field width and the character's width class.
+    /// </summary>
+    public static float GetProportionalDisplacement(float charFieldWidth, char c)
+    {
+        // Get width class for this character
+        int widthClass;
+        if (c >= 0x20 && c <= 0x7E)
+        {
+            widthClass = _asciiWidthClass[c - 0x20];
+        }
+        else
+        {
+            widthClass = 9; // Full width for supplementary/unknown
+        }
+
+        // Multiply character field width by 256, truncate to integer
+        int n = (int)(charFieldWidth * 256f);
+
+        if (n < 6)
+        {
+            // Below minimum table row — use full field width for class 9, scale for others
+            return charFieldWidth * (widthClass + 1) / 10f;
+        }
+
+        if (n < 12)
+        {
+            // Phase 1: Small text — direct table lookup
+            int row = n - 6; // Table rows 0-5 correspond to n=6-11
+            if (row >= 0 && row < 6)
+            {
+                int disp = _displacementTable[row, widthClass];
+                return disp / 256f;
+            }
+        }
+
+        // Phase 2: Large text (n >= 12) — scaling algorithm
+        // Step 1: Truncate to 8 MSBs (DOMAIN 3 precision)
+        int n8 = n & 0xFF; // Already 8-bit from the multiply-by-256
+
+        // Step 2: Multiply by 11/13
+        int scaled = (n8 * 11) / 13;
+
+        // Step 3: Subtract 1/256, OR with 1/256, subtract 1/256 again
+        // This forces the result to be odd (in 1/256 units)
+        int f = scaled;
+        f = f - 1;
+        f = f | 1;
+        f = f - 1;
+        f = f & 0xFF; // Truncate to 8 bits
+
+        // Step 4: Get unit spacing from row 12
+        int unitSpacing = _unitSpacingRow12[widthClass];
+
+        // Step 5: Multiply unit spacing by f
+        int product = unitSpacing * f;
+
+        // Step 6: Divide by 6, add 1/512 for rounding, truncate to 8 bits
+        int adjustment = ((product / 6) + 1) >> 1; // +1 then >>1 approximates +0.5 rounding
+        adjustment = adjustment & 0xFF;
+
+        // Displacement = n - adjustment
+        int displacement = n8 - adjustment;
+
+        return displacement / 256f;
     }
 
     /// <summary>
