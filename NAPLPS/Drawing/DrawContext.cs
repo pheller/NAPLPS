@@ -361,7 +361,7 @@ public class DrawContext : IDisposable
         Image.SaveAsPng(filepath);
     }
 
-    private static IDrawable? ConvertToDrawable(NaplpsCommand command, NaplpsState? state = null)
+    internal static IDrawable? ConvertToDrawable(NaplpsCommand command, NaplpsState? state = null)
     {
         switch (command)
         {

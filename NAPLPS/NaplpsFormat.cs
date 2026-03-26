@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using System.Diagnostics;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Processing;
 
 namespace NAPLPS;
 
@@ -797,31 +799,108 @@ public partial class NaplpsFormat
     /// </summary>
     private void ParseDrcsData(byte startCode, List<byte> data)
     {
-        const int charWidth = 8;
-        const int charHeight = 10;
-        const int bytesPerChar = charHeight; // 1 byte per row for 8-pixel width
-
-        var charCode = startCode;
-        var index = 0;
-
-        while (index + bytesPerChar <= data.Count)
+        if (data.Count == 0)
         {
-            // Create bitmap for this character
-            var bitmap = new bool[charHeight, charWidth];
+            // Empty definition = reset to space character
+            State.DrcsCharacters.Remove(startCode);
+            return;
+        }
 
-            for (int row = 0; row < charHeight && index < data.Count; row++)
+        // ANSI X3.110: DRCS definitions are NAPLPS command streams rendered to an
+        // offscreen monochrome bitmap. The bitmap aspect ratio matches the character
+        // field dimensions at DEF DRCS time.
+
+        // Determine offscreen bitmap size from character field aspect ratio
+        float charW = Math.Abs(State.CharSize.X);
+        float charH = Math.Abs(State.CharSize.Y);
+        float aspect = charW > 0 && charH > 0 ? charW / charH : 0.625f; // Default 5/8
+
+        // Use a reasonable resolution (larger = more detail, slower)
+        int bitmapHeight = 32;
+        int bitmapWidth = Math.Max(8, (int)(bitmapHeight * aspect));
+        var offscreenSize = new Size(bitmapWidth, bitmapHeight);
+
+        // Try to parse as NAPLPS commands first
+        bool parsedAsCommands = false;
+
+        try
+        {
+            using var stream = new MemoryStream(data.ToArray());
+            using var reader = new BinaryReader(stream);
+
+            // Save pen position (spec: drawing point set to 0,0 after DRCS)
+            var savedPen = State.Pen;
+            State.Pen = new Vector3(0, 0, 0);
+
+            var drcsCommands = ReadStream(reader);
+
+            if (drcsCommands.Count > 0)
             {
-                byte rowByte = data[index++];
-                for (int col = 0; col < charWidth; col++)
+                // Render commands to offscreen monochrome image
+                using var offscreen = new Image<Rgba32>(bitmapWidth, bitmapHeight);
+                offscreen.Mutate(ctx => ctx.Fill(SixLabors.ImageSharp.Color.Black));
+
+                Drawing.Drawable.LivePalette = State.ColorMap;
+
+                foreach (var (command, state) in drcsCommands)
                 {
-                    // MSB is leftmost pixel
-                    bitmap[row, col] = (rowByte & (0x80 >> col)) != 0;
+                    var drawable = Drawing.DrawContext.ConvertToDrawable(command, state);
+                    drawable?.Draw(offscreen, state, offscreenSize);
                 }
+
+                Drawing.Drawable.LivePalette = null;
+
+                // Convert to monochrome bitmap (any non-black pixel = set)
+                var bitmap = new bool[bitmapHeight, bitmapWidth];
+
+                for (int y = 0; y < bitmapHeight; y++)
+                {
+                    for (int x = 0; x < bitmapWidth; x++)
+                    {
+                        var pixel = offscreen[x, y];
+                        bitmap[y, x] = pixel.R > 10 || pixel.G > 10 || pixel.B > 10;
+                    }
+                }
+
+                State.DrcsCharacters[startCode] = bitmap;
+                parsedAsCommands = true;
             }
 
-            // Store the character bitmap
-            State.DrcsCharacters[charCode] = bitmap;
-            charCode++;
+            // Spec: drawing point set to (0,0) after DRCS definition
+            State.Pen = new Vector3(0, 0, 0);
+        }
+        catch
+        {
+            // If NAPLPS parsing fails, fall through to raw bitmap interpretation
+        }
+
+        if (!parsedAsCommands)
+        {
+            // Fallback: interpret as raw 8x10 bitmap data (legacy/simple DRCS)
+            const int charWidth = 8;
+            const int charHeight = 10;
+            const int bytesPerChar = charHeight;
+
+            var charCode = startCode;
+            var index = 0;
+
+            while (index + bytesPerChar <= data.Count)
+            {
+                var bitmap = new bool[charHeight, charWidth];
+
+                for (int row = 0; row < charHeight && index < data.Count; row++)
+                {
+                    byte rowByte = data[index++];
+
+                    for (int col = 0; col < charWidth; col++)
+                    {
+                        bitmap[row, col] = (rowByte & (0x80 >> col)) != 0;
+                    }
+                }
+
+                State.DrcsCharacters[charCode] = bitmap;
+                charCode++;
+            }
         }
     }
 
