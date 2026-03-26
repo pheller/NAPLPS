@@ -209,6 +209,11 @@ public class NaplpsState
     [ReadOnly(true)]
     public bool IsWordWrapMode { get; set; } = false;
 
+    /// <summary>Pen position at the last word break point (space or special char) for word wrap</summary>
+    [Browsable(false)]
+    [JsonIgnore]
+    public Vector3 LastWordBreakPen { get; set; } = new();
+
     /// <summary>Blink mode causes subsequent text to blink</summary>
     [Category("C1 Controls")]
     [ReadOnly(true)]

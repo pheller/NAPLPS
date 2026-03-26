@@ -73,8 +73,8 @@ public class DrawContext : IDisposable
 
             var drawable = ConvertToDrawable(command, state);
 
-            // Track last displayed character for Repeat
-            if (command is AsciiCharCommand asciiChar)
+            // Track last displayed character for Repeat (skip discarded chars from word wrap)
+            if (command is AsciiCharCommand asciiChar && !asciiChar.IsDiscarded)
             {
                 _lastDisplayedChar = asciiChar;
             }
@@ -135,8 +135,8 @@ public class DrawContext : IDisposable
 
             var drawable = ConvertToDrawable(command, state);
 
-            // Track last displayed character for Repeat
-            if (command is AsciiCharCommand asciiChar)
+            // Track last displayed character for Repeat (skip discarded chars from word wrap)
+            if (command is AsciiCharCommand asciiChar && !asciiChar.IsDiscarded)
             {
                 _lastDisplayedChar = asciiChar;
             }
@@ -419,6 +419,12 @@ public class DrawContext : IDisposable
 
             case AsciiCharCommand asciiCharCommand:
             {
+                // Discarded characters (trailing spaces in word wrap) produce no drawable
+                if (asciiCharCommand.IsDiscarded)
+                {
+                    return null;
+                }
+
                 // Check if this character has a DRCS replacement
                 if (state != null && state.DrcsCharacters.TryGetValue(asciiCharCommand.OpCode, out var bitmap))
                 {
