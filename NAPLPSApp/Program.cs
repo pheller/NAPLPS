@@ -71,7 +71,7 @@ sealed class Program
         Console.WriteLine("  diff <file1> <file2> [options]          Compare two NAPLPS files");
         Console.WriteLine();
         Console.WriteLine("Export Options:");
-        Console.WriteLine("  --format=png|gif      Output format (default: png)");
+        Console.WriteLine("  --format=png|gif|apng Output format (default: png)");
         Console.WriteLine("  --size=WxH            Canvas size (default: 1024x768)");
         Console.WriteLine("  --stdout, -           Output to stdout instead of file");
         Console.WriteLine();
@@ -283,6 +283,10 @@ sealed class Program
             {
                 return ExportPaletteAnimGif(drawContext, outputFile, useStdout, loop, delay, paletteFrames);
             }
+            else if (format == "apng")
+            {
+                return ExportApng(drawContext, outputFile, useStdout, delay);
+            }
             else if (format == "gif")
             {
                 return ExportGif(drawContext, outputFile, useStdout, loop, delay);
@@ -478,6 +482,64 @@ sealed class Program
         {
             drawContext.Image.SaveAsPng(outputFile);
             Console.Error.WriteLine($"Exported to: {outputFile}");
+        }
+
+        return 0;
+    }
+
+    private static int ExportApng(DrawContext drawContext, string? outputFile, bool useStdout, int delay)
+    {
+        using var apng = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(drawContext.Size.Width, drawContext.Size.Height);
+
+        var pngMeta = apng.Metadata.GetFormatMetadata(SixLabors.ImageSharp.Formats.Png.PngFormat.Instance);
+        pngMeta.RepeatCount = 0; // Loop forever
+
+        // Frame delay as a Rational: delay/1000 seconds per frame
+        var frameDelay = new SixLabors.ImageSharp.Rational((uint)delay, 1000);
+
+        int visualFrames = 0;
+
+        for (uint i = 0; i <= drawContext.TotalFrames; i++)
+        {
+            drawContext.Render(i);
+
+            var frame = drawContext.Image.Clone();
+
+            if (i == 0)
+            {
+                apng.Frames.RootFrame.ProcessPixelRows(frame.Frames.RootFrame, (accessorApng, accessorFrame) =>
+                {
+                    for (int y = 0; y < accessorApng.Height; y++)
+                    {
+                        var rowApng = accessorApng.GetRowSpan(y);
+                        var rowFrame = accessorFrame.GetRowSpan(y);
+                        rowFrame.CopyTo(rowApng);
+                    }
+                });
+
+                var rootFrameMeta = apng.Frames.RootFrame.Metadata.GetFormatMetadata(SixLabors.ImageSharp.Formats.Png.PngFormat.Instance);
+                rootFrameMeta.FrameDelay = frameDelay;
+            }
+            else
+            {
+                var addedFrame = apng.Frames.AddFrame(frame.Frames.RootFrame);
+                var addedMeta = addedFrame.Metadata.GetFormatMetadata(SixLabors.ImageSharp.Formats.Png.PngFormat.Instance);
+                addedMeta.FrameDelay = frameDelay;
+            }
+
+            frame.Dispose();
+            visualFrames++;
+        }
+
+        if (useStdout)
+        {
+            using var stdout = Console.OpenStandardOutput();
+            apng.SaveAsPng(stdout);
+        }
+        else if (outputFile != null)
+        {
+            apng.SaveAsPng(outputFile);
+            Console.Error.WriteLine($"Exported APNG with {visualFrames} frames to: {outputFile}");
         }
 
         return 0;

@@ -205,40 +205,6 @@ public class DrawContext : IDisposable
     {
         var pen = state.Pen;
 
-        if (state.TextSpacing == TextSpacing.Proportional)
-        {
-            float charFieldDim = (state.TextPath == TextPath.Right || state.TextPath == TextPath.Left)
-                ? state.CharSize.X : state.CharSize.Y;
-            float displacement = DrawableAsciiChar.GetProportionalDisplacement(MathF.Abs(charFieldDim), character);
-
-            switch (state.TextPath)
-            {
-                case TextPath.Right:
-                {
-                    pen.X += displacement;
-                }
-                break;
-
-                case TextPath.Left:
-                {
-                    pen.X -= displacement;
-                }
-                break;
-
-                case TextPath.Up:
-                {
-                    pen.Y += displacement;
-                }
-                break;
-
-                case TextPath.Down:
-                {
-                    pen.Y -= displacement;
-                }
-                break;
-            }
-        }
-        else
         {
             float spacingMultiplier = state.TextSpacing switch
             {
@@ -248,17 +214,19 @@ public class DrawContext : IDisposable
                 _ => 1.0f
             };
 
+            float widthRatio = DrawableAsciiChar.GetCharWidthRatio(character);
+
             switch (state.TextPath)
             {
                 case TextPath.Right:
                 {
-                    pen.X += state.CharSize.X * spacingMultiplier;
+                    pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
                 }
                 break;
 
                 case TextPath.Left:
                 {
-                    pen.X -= state.CharSize.X * spacingMultiplier;
+                    pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
                 }
                 break;
 

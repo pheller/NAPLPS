@@ -65,21 +65,26 @@ public class AsciiCharCommand : NaplpsCommand
 
         if (!IsNonSpacing)
         {
-            // Check if auto-wrap is needed before advancing the pen
-            if (CheckFieldBoundary(state))
-            {
-                // Space that doesn't fit in word wrap mode → discard
-                if (state.IsWordWrapMode && asciiCharacter == ' ')
-                {
-                    IsDiscarded = true;
-                    return;
-                }
-            }
-
             MovePen(state);
 
+            // ANSI X3.110: "if the subsequent cursor movement would cause part of the
+            // character field to be outside the unit screen or outside the active field,
+            // then an automatic <carriage return> <linefeed> is executed."
+            // Check AFTER advancing — if the new pen position is outside the field, wrap.
+            if (CheckFieldBoundary(state))
+            {
+                // In word wrap mode, discard trailing spaces instead of wrapping
+                if (state.IsWordWrapMode && asciiCharacter == ' ')
+                {
+                    // Undo the pen advance — space is discarded
+                    IsDiscarded = true;
+                }
+
+                PerformAutoWrap(state);
+            }
+
             // Track last break position for word wrap
-            if (state.IsWordWrapMode)
+            if (state.IsWordWrapMode && !IsDiscarded)
             {
                 if (asciiCharacter == ' ' || WordBreakChars.Contains(asciiCharacter))
                 {
@@ -90,49 +95,45 @@ public class AsciiCharCommand : NaplpsCommand
     }
 
     /// <summary>
-    /// Checks if the next character would exceed the field boundary.
-    /// If so, performs auto CR+LF. Returns true if wrap occurred.
+    /// Checks if the pen position (after character advance) is outside the field boundary.
+    /// Returns true if it exceeds the boundary and a wrap is needed.
+    /// Does NOT perform the wrap — caller decides (may discard space in word wrap mode).
     /// </summary>
     private static bool CheckFieldBoundary(NaplpsState state)
     {
+        // Don't check if field hasn't been explicitly set (default struct has zero dimensions)
+        if (state.Field.Dimensions.X == 0 && state.Field.Dimensions.Y == 0)
+        {
+            return false;
+        }
+
         var pen = state.Pen;
         float fieldRight = state.Field.Origin.X + state.Field.Dimensions.X;
         float fieldLeft = state.Field.Origin.X;
-
-        bool wouldExceed = false;
+        float fieldBottom = state.Field.Origin.Y;
+        float fieldTop = state.Field.Origin.Y + state.Field.Dimensions.Y;
 
         switch (state.TextPath)
         {
             case TextPath.Right:
             {
-                wouldExceed = pen.X + state.CharSize.X > fieldRight;
+                return pen.X > fieldRight;
             }
-            break;
 
             case TextPath.Left:
             {
-                wouldExceed = pen.X - state.CharSize.X < fieldLeft;
+                return pen.X < fieldLeft;
             }
-            break;
 
             case TextPath.Down:
             {
-                wouldExceed = pen.Y - state.CharSize.Y < state.Field.Origin.Y;
+                return pen.Y < fieldBottom;
             }
-            break;
 
             case TextPath.Up:
             {
-                float fieldTop = state.Field.Origin.Y + state.Field.Dimensions.Y;
-                wouldExceed = pen.Y + state.CharSize.Y > fieldTop;
+                return pen.Y > fieldTop;
             }
-            break;
-        }
-
-        if (wouldExceed)
-        {
-            PerformAutoWrap(state);
-            return true;
         }
 
         return false;
@@ -193,41 +194,6 @@ public class AsciiCharCommand : NaplpsCommand
     {
         var pen = state.Pen;
 
-        if (state.TextSpacing == TextSpacing.Proportional)
-        {
-            // ANSI X3.110 full proportional spacing algorithm
-            float charFieldDim = (state.TextPath == TextPath.Right || state.TextPath == TextPath.Left)
-                ? state.CharSize.X : state.CharSize.Y;
-            float displacement = DrawableAsciiChar.GetProportionalDisplacement(MathF.Abs(charFieldDim), AsciiCharacter);
-
-            switch (state.TextPath)
-            {
-                case TextPath.Right:
-                {
-                    pen.X += displacement;
-                }
-                break;
-
-                case TextPath.Left:
-                {
-                    pen.X -= displacement;
-                }
-                break;
-
-                case TextPath.Up:
-                {
-                    pen.Y += displacement;
-                }
-                break;
-
-                case TextPath.Down:
-                {
-                    pen.Y -= displacement;
-                }
-                break;
-            }
-        }
-        else
         {
             float spacingMultiplier = state.TextSpacing switch
             {
@@ -237,17 +203,22 @@ public class AsciiCharCommand : NaplpsCommand
                 _ => 1.0f
             };
 
+            // Apply proportional width ratio even in non-proportional modes.
+            // While the spec says non-proportional uses full field width, files
+            // were authored expecting width-class-based spacing in all modes.
+            float widthRatio = DrawableAsciiChar.GetCharWidthRatio(AsciiCharacter);
+
             switch (state.TextPath)
             {
                 case TextPath.Right:
                 {
-                    pen.X += state.CharSize.X * spacingMultiplier;
+                    pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
                 }
                 break;
 
                 case TextPath.Left:
                 {
-                    pen.X -= state.CharSize.X * spacingMultiplier;
+                    pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
                 }
                 break;
 
