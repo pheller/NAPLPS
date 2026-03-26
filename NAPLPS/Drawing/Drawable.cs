@@ -16,6 +16,13 @@ public class Drawable
     public static class Options
     {
         public static bool DebugTextDrawing { get; set; } = false;
+
+        /// <summary>
+        /// When true, uses bitmap font rendering (VGA 8x16 style, nearest-neighbor scaling)
+        /// for pixel-accurate PP3-matching output. When false, uses TrueType font rendering
+        /// with system font fallback for high-resolution output.
+        /// </summary>
+        public static bool UseBitmapFont { get; set; } = false;
     }
 
     /// <summary>
