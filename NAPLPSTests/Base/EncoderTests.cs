@@ -4,7 +4,7 @@ using System.Numerics;
 
 using static NAPLPS.NaplpsUtils;
 
-namespace NAPLPSTests;
+namespace NAPLPSTests.Base;
 
 [TestClass]
 public class EncoderTests

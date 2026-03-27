@@ -1,8 +1,6 @@
 // Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
-using System.Numerics;
-
-namespace NAPLPSTests;
+namespace NAPLPSTests.Base;
 
 [TestClass]
 public class DefaultStateTests
