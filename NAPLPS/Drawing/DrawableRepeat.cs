@@ -40,7 +40,15 @@ public class DrawableRepeat : Drawable, IDrawable
         if (_command.Operands.Count > 0)
         {
             var countByte = _command.Operands[0];
-            // Values in 0xC0-0xFF range (numerical data) have 0x40 subtracted
+
+            // Values below 0x40 are invalid — discard
+            if (countByte < 0x40)
+            {
+                return 0;
+            }
+
+            // 8-bit mode: count bytes 0xC0-0xFF have 0x40 subtracted to get the repeat count
+            // 7-bit mode: count bytes 0x40-0x7F are used directly as the repeat count
             return countByte >= 0xC0 ? countByte - 0x40 : countByte;
         }
 

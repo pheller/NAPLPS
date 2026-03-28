@@ -109,6 +109,49 @@ public class NaplpsState
     [ReadOnly(true)]
     public Vector3 Pen { get; set; } = new();
 
+    /// <summary>
+    /// ANSI X3.110: The graphics drawing point, separate from the text cursor (Pen).
+    /// In MoveTogether mode (default), DrawingPoint always equals Pen.
+    /// In other modes, they can diverge.
+    /// </summary>
+    [Browsable(false)]
+    [JsonIgnore]
+    public Vector3 DrawingPoint { get; set; } = new();
+
+    /// <summary>
+    /// Call after a text operation (character display, cursor movement) updates Pen.
+    /// Syncs DrawingPoint based on TextMoveAttributes.
+    /// </summary>
+    public void SyncAfterTextMove()
+    {
+        switch (TextMoveAttributes)
+        {
+            case TextMoveAttributes.MoveTogether:
+            case TextMoveAttributes.CursorLeads:
+            {
+                DrawingPoint = Pen;
+            }
+            break;
+        }
+    }
+
+    /// <summary>
+    /// Call after a graphics operation updates DrawingPoint.
+    /// Syncs Pen (text cursor) based on TextMoveAttributes.
+    /// </summary>
+    public void SyncAfterGraphicsMove()
+    {
+        switch (TextMoveAttributes)
+        {
+            case TextMoveAttributes.MoveTogether:
+            case TextMoveAttributes.DrawingPointLeads:
+            {
+                Pen = DrawingPoint;
+            }
+            break;
+        }
+    }
+
     [Category("Drawing")]
     [ReadOnly(true)]
     public NaplpsField Field { get; set; } = new();
@@ -220,6 +263,16 @@ public class NaplpsState
     [Category("C1 Controls")]
     [ReadOnly(true)]
     public bool IsWordWrapMode { get; set; } = false;
+
+    /// <summary>Number of BEL (0x07) characters received. GUI/CLI can use this to trigger alerts.</summary>
+    [Browsable(false)]
+    [JsonIgnore]
+    public int BellCount { get; set; } = 0;
+
+    /// <summary>Set when CAN (0x18) is received to immediately terminate macro execution.</summary>
+    [Browsable(false)]
+    [JsonIgnore]
+    public bool IsCancelRequested { get; set; } = false;
 
     /// <summary>Pen position at the last word break point (space or special char) for word wrap</summary>
     [Browsable(false)]
@@ -343,6 +396,7 @@ public class NaplpsState
     {
         Errors.Add(new NaplpsError(severity, type, message, opcode, streamPosition));
 
+
 #if DEBUG
         if (severity == NaplpsErrorSeverity.Error)
         {
@@ -406,9 +460,9 @@ public class NaplpsState
         }
 
         var c0 = Resolve(C0, ("C0Set", C0Set));
-        var gLeft = Resolve(GLeft, ("PrimaryCharacterSet", PrimaryCharacterSet), ("SupplementaryCharacterSet", SupplementaryCharacterSet), ("GeneralPDISet", GeneralPDISet), ("MosiacSet", MosiacSet));
+        var gLeft = Resolve(GLeft, ("PrimaryCharacterSet", PrimaryCharacterSet), ("SupplementaryCharacterSet", SupplementaryCharacterSet), ("GeneralPDISet", GeneralPDISet), ("MosaicSet", MosaicSet));
         var c1 = Resolve(C1, ("C1Set", C1Set));
-        var gRight = Resolve(GRight, ("GeneralPDISet", GeneralPDISet), ("MosiacSet", MosiacSet));
+        var gRight = Resolve(GRight, ("GeneralPDISet", GeneralPDISet), ("MosaicSet", MosaicSet));
 
         return $"C0={c0}\nGLeft={gLeft}\nC1={c1}\nGRight={gRight}";
     }
@@ -1008,7 +1062,7 @@ public class NaplpsState
         new NCR(typeof(NumericalDataCommand)),
     ];
 
-    public static readonly NCR[] MosiacSet =
+    public static readonly NCR[] MosaicSet =
     [
         new NCR(typeof(MC), [false, false, false, false, false, false]),
         new NCR(typeof(MC), [ true, false, false, false, false, false]),

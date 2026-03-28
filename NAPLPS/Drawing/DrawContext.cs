@@ -177,6 +177,14 @@ public class DrawContext : IDisposable
             return;
         }
 
+        // ANSI X3.110: REPEAT can only repeat spacing characters from the ASCII,
+        // supplementary, DRCS, or mosaic sets. Non-spacing accents cannot be repeated.
+        // If the preceding character is not allowed, REPEAT is discarded.
+        if (_lastDisplayedChar.IsNonSpacing)
+        {
+            return;
+        }
+
         var repeatCount = repeatDrawable.GetRepeatCount(state);
         var charToRepeat = _lastDisplayedChar.AsciiCharacter;
 
@@ -249,31 +257,61 @@ public class DrawContext : IDisposable
     }
 
     /// <summary>
-    /// Shifts all pixels up by one text line height, clearing the bottom rows to black.
-    /// Used when scroll mode is active and pen reaches below field origin.
+    /// ANSI X3.110: Scrolls pixels up by one text line height.
+    /// If the cursor is within the active field, only the field region scrolls.
+    /// Otherwise, the entire display scrolls.
     /// </summary>
     private void ScrollImageUp(NaplpsState state)
     {
         var (_, lineHeightPx) = ConvertNormalizedToScreenScale(Size, 0, state.CharSize.Y * GetInterrowMultiplier(state.TextInterrowSpacing));
         int shiftPixels = Math.Max(1, Math.Abs(lineHeightPx));
 
-        Image.ProcessPixelRows(accessor =>
-        {
-            // Shift rows up
-            for (int y = 0; y < accessor.Height - shiftPixels; y++)
-            {
-                var srcRow = accessor.GetRowSpan(y + shiftPixels);
-                var dstRow = accessor.GetRowSpan(y);
-                srcRow.CopyTo(dstRow);
-            }
+        // Determine scroll region: active field if pen is inside it, otherwise full screen
+        bool fieldScoped = state.Field.Dimensions.X > 0 && state.Field.Dimensions.Y > 0;
 
-            // Clear bottom rows to black
-            for (int y = accessor.Height - shiftPixels; y < accessor.Height; y++)
+        if (fieldScoped)
+        {
+            var fieldOrigin = ConvertNormalizedToPoint(Size, state.Field.Origin.X, state.Field.Origin.Y + state.Field.Dimensions.Y);
+            var fieldEnd = ConvertNormalizedToPoint(Size, state.Field.Origin.X + state.Field.Dimensions.X, state.Field.Origin.Y);
+            int left = Math.Max(0, (int)fieldOrigin.X);
+            int top = Math.Max(0, (int)fieldOrigin.Y);
+            int right = Math.Min(Image.Width, (int)fieldEnd.X);
+            int bottom = Math.Min(Image.Height, (int)fieldEnd.Y);
+
+            Image.ProcessPixelRows(accessor =>
             {
-                var row = accessor.GetRowSpan(y);
-                row.Fill(new Rgba32(0, 0, 0, 255));
-            }
-        });
+                for (int y = top; y < bottom - shiftPixels; y++)
+                {
+                    var srcRow = accessor.GetRowSpan(y + shiftPixels);
+                    var dstRow = accessor.GetRowSpan(y);
+                    srcRow.Slice(left, right - left).CopyTo(dstRow.Slice(left, right - left));
+                }
+
+                for (int y = Math.Max(top, bottom - shiftPixels); y < bottom; y++)
+                {
+                    var row = accessor.GetRowSpan(y);
+                    row.Slice(left, right - left).Fill(new Rgba32(0, 0, 0, 255));
+                }
+            });
+        }
+        else
+        {
+            Image.ProcessPixelRows(accessor =>
+            {
+                for (int y = 0; y < accessor.Height - shiftPixels; y++)
+                {
+                    var srcRow = accessor.GetRowSpan(y + shiftPixels);
+                    var dstRow = accessor.GetRowSpan(y);
+                    srcRow.CopyTo(dstRow);
+                }
+
+                for (int y = accessor.Height - shiftPixels; y < accessor.Height; y++)
+                {
+                    var row = accessor.GetRowSpan(y);
+                    row.Fill(new Rgba32(0, 0, 0, 255));
+                }
+            });
+        }
     }
 
     private static float GetInterrowMultiplier(TextInterrowSpacing spacing) => spacing switch

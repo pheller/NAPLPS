@@ -68,6 +68,7 @@ public class AsciiCharCommand : NaplpsCommand
         if (!IsNonSpacing)
         {
             MovePen(state);
+            state.SyncAfterTextMove();
 
             // ANSI X3.110: "if the subsequent cursor movement would cause part of the
             // character field to be outside the unit screen or outside the active field,

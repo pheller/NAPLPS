@@ -434,8 +434,38 @@ public partial class NaplpsFormat
                     }
                     else if (controlCommand == Cancel)
                     {
-                        // Cancel all running macros and do not treat this as a queued command, if we're queuing...
-                        // Noop
+                        // ANSI X3.110: CAN terminates all currently executing macros immediately.
+                        // Effect is immediate — not queued.
+                        State.MacroBeingDefined = null;
+                        State.MacroBuffer.Clear();
+                        State.IsCancelRequested = true;
+                    }
+                    else if (controlCommand == Bell)
+                    {
+                        // ANSI X3.110: BEL triggers an audible or visual alert.
+                        State.BellCount++;
+                    }
+                    else if (controlCommand == ActivePositionSet)
+                    {
+                        // ANSI X3.110: APS (0x1C) sets cursor to row/column position.
+                        // Followed by two bytes: row (0x40-0x5F) and column (0x40-0x7F).
+                        if (!reader.IsEOF())
+                        {
+                            byte rowByte = reader.ReadByte();
+
+                            if (!reader.IsEOF())
+                            {
+                                byte colByte = reader.ReadByte();
+                                int row = (rowByte & 0x3F); // Strip header bits
+                                int col = (colByte & 0x3F);
+
+                                // Position pen: column * charWidth from field left, row * charHeight from field top
+                                var pen = State.Pen;
+                                pen.X = State.Field.Origin.X + col * State.CharSize.X;
+                                pen.Y = State.Field.Origin.Y + State.Field.Dimensions.Y - row * State.CharSize.Y;
+                                State.Pen = pen;
+                            }
+                        }
                     }
                     else if (controlCommand == ClearScreen)
                     {
@@ -497,16 +527,88 @@ public partial class NaplpsFormat
                     }
                     else if (controlCommand == ActivePositionForward)
                     {
-                        // Tab forward: advance pen one character width along text path
+                        // ANSI X3.110: Tab advances cursor along text path by one character width.
+                        // If the new position is outside the field, wrap to opposite edge + vertical tab.
                         var pen = State.Pen;
-                        pen.X += State.CharSize.X;
+                        float fieldRight = State.Field.Origin.X + State.Field.Dimensions.X;
+                        float fieldLeft = State.Field.Origin.X;
+
+                        switch (State.TextPath)
+                        {
+                            case TextPath.Right:
+                            {
+                                pen.X += State.CharSize.X;
+
+                                if (State.Field.Dimensions.X > 0 && pen.X > fieldRight)
+                                {
+                                    pen.X = fieldLeft;
+                                    pen.Y -= State.CharSize.Y;
+                                }
+                            }
+                            break;
+
+                            case TextPath.Left:
+                            {
+                                pen.X -= State.CharSize.X;
+
+                                if (State.Field.Dimensions.X > 0 && pen.X < fieldLeft)
+                                {
+                                    pen.X = fieldRight;
+                                    pen.Y -= State.CharSize.Y;
+                                }
+                            }
+                            break;
+
+                            default:
+                            {
+                                pen.X += State.CharSize.X;
+                            }
+                            break;
+                        }
+
                         State.Pen = pen;
                     }
                     else if (controlCommand == ActivePositionBackward)
                     {
-                        // Backspace: move pen one character width backward along text path
+                        // ANSI X3.110: Backspace moves cursor opposite to text path by one character width.
+                        // If the new position is outside the field, wrap to opposite edge + reverse vertical tab.
                         var pen = State.Pen;
-                        pen.X -= State.CharSize.X;
+                        float fieldRight = State.Field.Origin.X + State.Field.Dimensions.X;
+                        float fieldLeft = State.Field.Origin.X;
+
+                        switch (State.TextPath)
+                        {
+                            case TextPath.Right:
+                            {
+                                pen.X -= State.CharSize.X;
+
+                                if (State.Field.Dimensions.X > 0 && pen.X < fieldLeft)
+                                {
+                                    pen.X = fieldRight - State.CharSize.X;
+                                    pen.Y += State.CharSize.Y;
+                                }
+                            }
+                            break;
+
+                            case TextPath.Left:
+                            {
+                                pen.X += State.CharSize.X;
+
+                                if (State.Field.Dimensions.X > 0 && pen.X > fieldRight)
+                                {
+                                    pen.X = fieldLeft + State.CharSize.X;
+                                    pen.Y += State.CharSize.Y;
+                                }
+                            }
+                            break;
+
+                            default:
+                            {
+                                pen.X -= State.CharSize.X;
+                            }
+                            break;
+                        }
+
                         State.Pen = pen;
                     }
                     else if (controlCommand == ActivePositionHome)

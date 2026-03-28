@@ -9,7 +9,7 @@ public class SetColorCommand : NaplpsCommand
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValue;
 
-    public NaplpsColor Color;
+    public NaplpsColor Color { get; set; }
 
     public SetColorCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
