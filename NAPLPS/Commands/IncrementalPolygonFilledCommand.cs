@@ -139,11 +139,11 @@ public class IncrementalPolygonFilledCommand : GeometricDrawingCommandBase
 
     public struct MotionSegment
     {
-        public bool Draw;
-        public bool HasDx;
-        public bool HasDy;
-        public int Dx;
-        public int Dy;
-        public bool ReturnToLastKnown; // For filled polygon special behavior
+        public bool Draw { get; set; }
+        public bool HasDx { get; set; }
+        public bool HasDy { get; set; }
+        public int Dx { get; set; }
+        public int Dy { get; set; }
+        public bool ReturnToLastKnown { get; set; } // For filled polygon special behavior
     }
 }

@@ -38,6 +38,6 @@ public class NaplpsOperands : List<byte>
             throw new ArgumentOutOfRangeException(nameof(bitNumber), "Bit number must be between 1 and 8.");
         }
 
-        return (b & 1 << bitNumber - 1) != 0;
+        return (b & (1 << (bitNumber - 1))) != 0;
     }
 }

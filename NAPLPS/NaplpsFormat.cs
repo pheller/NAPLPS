@@ -134,9 +134,9 @@ public partial class NaplpsFormat
 
     public static NaplpsFormat FromFile(string fullpath)
     {
-        var file = File.OpenRead(fullpath);
+        var data = File.ReadAllBytes(fullpath);
 
-        return new NaplpsFormat(new BinaryReader(file));
+        return FromBytes(data);
     }
 
     public static NaplpsFormat New()
@@ -303,77 +303,9 @@ public partial class NaplpsFormat
                     Is7Bit = false;
                 }
 
-                // If we're in macro definition mode, buffer bytes until END
-                if (State.MacroBeingDefined != null)
+                // Buffered modes: macro/DRCS/texture definition consume bytes until END
+                if (HandleBufferedByte(opcode, reader, commands))
                 {
-                    // Check for END command (0x85 in C1 set, or via lookup)
-                    var cmdRef = State.InUseTable[opcode];
-                    if (cmdRef?.CommandType == typeof(ControlCommand) &&
-                        cmdRef.Parameters.Count == 1 &&
-                        (NaplpsControlCommands)cmdRef.Parameters[0] == End)
-                    {
-                        // End macro definition
-                        var macroName = State.MacroBeingDefined.Value;
-                        var macroType = State.MacroDefType;
-                        State.Macros[macroName] = [.. State.MacroBuffer];
-                        State.MacroBeingDefined = null;
-                        State.MacroBuffer.Clear();
-
-                        // If DEFP MACRO (type 1), execute the macro immediately
-                        if (macroType == 1 && State.Macros.TryGetValue(macroName, out var macroData))
-                        {
-                            // Execute macro by parsing its bytes
-                            using var macroStream = new MemoryStream(macroData);
-                            using var macroReader = new BinaryReader(macroStream);
-                            var macroCommands = ReadStream(macroReader);
-                            commands.AddRange(macroCommands);
-                        }
-                        continue;
-                    }
-
-                    // Buffer this byte as part of the macro
-                    State.MacroBuffer.Add(opcode);
-                    continue;
-                }
-
-                // If we're in DRCS definition mode, buffer bytes until END
-                if (State.DrcsStartCode != null)
-                {
-                    var cmdRef = State.InUseTable[opcode];
-
-                    if (cmdRef?.CommandType == typeof(ControlCommand) && cmdRef.Parameters.Count == 1 && (NaplpsControlCommands)cmdRef.Parameters[0] == End)
-                    {
-                        // End DRCS definition - parse the bitmap data
-                        ParseDrcsData(State.DrcsStartCode.Value, State.DrcsBuffer);
-                        State.DrcsStartCode = null;
-                        State.DrcsBuffer.Clear();
-                        continue;
-                    }
-
-                    // Buffer this byte as part of the DRCS data
-                    State.DrcsBuffer.Add(opcode);
-
-                    continue;
-                }
-
-                // If we're in texture definition mode, buffer bytes until END
-                if (State.TextureBeingDefined != null)
-                {
-                    var cmdRef = State.InUseTable[opcode];
-
-                    if (cmdRef?.CommandType == typeof(ControlCommand) && cmdRef.Parameters.Count == 1 && (NaplpsControlCommands)cmdRef.Parameters[0] == End)
-                    {
-                        // End texture definition - parse the pattern data
-                        ParseTextureData(State.TextureBeingDefined.Value, State.TextureBuffer);
-                        State.TextureBeingDefined = null;
-                        State.TextureBuffer.Clear();
-
-                        continue;
-                    }
-
-                    // Buffer this byte as part of the texture data
-                    State.TextureBuffer.Add(opcode);
-
                     continue;
                 }
 
@@ -382,28 +314,16 @@ public partial class NaplpsFormat
                 if (commandReference == null)
                 {
                     RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.UnknownOpcode, "Unknown opcode in InUseTable", opcode, reader.BaseStream.Position - 1);
-
                     continue;
                 }
 
                 var commandType = commandReference.CommandType ?? typeof(NaplpsCommand);
                 var commandParameters = commandReference.Parameters;
-
-                var operandType = commandReference.OperandType;
-                var additionalParameters = new NaplpsOperands();
-
-                if (operandType != NaplpsOperandType.None)
-                {
-                    while (IsValidNumericalDataNext(reader))
-                    {
-                        additionalParameters.Add(reader.ReadByte());
-                    }
-                }
+                var additionalParameters = ReadOperands(reader, commandReference.OperandType);
 
                 if (commandReference.CommandType == typeof(NumericalDataCommand))
                 {
                     RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.UnknownOpcode, "NumericalDataCommand reached unexpectedly", opcode, reader.BaseStream.Position);
-
                     continue;
                 }
 
@@ -412,394 +332,15 @@ public partial class NaplpsFormat
 
                 if (commandType == typeof(ControlCommand) && commandParameters.Count == 1)
                 {
-                    var controlCommand = (NaplpsControlCommands)commandParameters[0];
-
-                    if (controlCommand == Escape)
-                    {
-                        ControlCommandEscape(reader, additionalParameters);
-
-                        State.DoEscape(additionalParameters);
-                    }
-                    else if (controlCommand == NonSelectiveReset)
-                    {
-                        ControlCommandNonSelectiveReset(reader);
-                    }
-                    else if (controlCommand == ShiftIn)
-                    {
-                        State.DoShiftIn();
-                    }
-                    else if (controlCommand == ShiftOut)
-                    {
-                        State.DoShiftOut();
-                    }
-                    else if (controlCommand == Cancel)
-                    {
-                        // ANSI X3.110: CAN terminates all currently executing macros immediately.
-                        // Effect is immediate — not queued.
-                        State.MacroBeingDefined = null;
-                        State.MacroBuffer.Clear();
-                        State.IsCancelRequested = true;
-                    }
-                    else if (controlCommand == Bell)
-                    {
-                        // ANSI X3.110: BEL triggers an audible or visual alert.
-                        State.BellCount++;
-                    }
-                    else if (controlCommand == ActivePositionSet)
-                    {
-                        // ANSI X3.110: APS (0x1C) sets cursor to row/column position.
-                        // Followed by two bytes: row (0x40-0x5F) and column (0x40-0x7F).
-                        if (!reader.IsEOF())
-                        {
-                            byte rowByte = reader.ReadByte();
-
-                            if (!reader.IsEOF())
-                            {
-                                byte colByte = reader.ReadByte();
-                                int row = (rowByte & 0x3F); // Strip header bits
-                                int col = (colByte & 0x3F);
-
-                                // Position pen: column * charWidth from field left, row * charHeight from field top
-                                var pen = State.Pen;
-                                pen.X = State.Field.Origin.X + col * State.CharSize.X;
-                                pen.Y = State.Field.Origin.Y + State.Field.Dimensions.Y - row * State.CharSize.Y;
-                                State.Pen = pen;
-                            }
-                        }
-                    }
-                    else if (controlCommand == ClearScreen)
-                    {
-                        // ANSI X3.110: Clear screen to nominal black in modes 0/1,
-                        // background color in mode 2. Move cursor to upper left.
-                        State.Pen = new Vector3(0f, 0.75f - State.CharSize.Y, 0f);
-                    }
-                    else if (controlCommand == ActivePositionDown)
-                    {
-                        // ANSI X3.110 §5.3.2.3.6: After an automatic APR+APD, an explicit
-                        // APR+APD (or APD+APR) is a null operation. Suppress the APD and
-                        // clear the flag (the APR was already a no-op since we're at field origin).
-                        if (State.AutoWrapJustOccurred)
-                        {
-                            State.AutoWrapJustOccurred = false;
-                        }
-                        else
-                        {
-                            // Move pen down one interrow spacing (NAPLPS Y-up, so subtract)
-                            var pen = State.Pen;
-                            var newY = pen.Y - State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
-
-                            if (State.IsScrollMode && newY < State.Field.Origin.Y)
-                            {
-                                // Scroll: clamp pen to bottom of field and flag scroll event
-                                pen.Y = State.Field.Origin.Y;
-                                State.ScrollEventOccurred = true;
-                            }
-                            else
-                            {
-                                pen.Y = newY;
-                                State.ScrollEventOccurred = false;
-                            }
-                            State.Pen = pen;
-                        }
-                    }
-                    else if (controlCommand == ActivePositionUp)
-                    {
-                        // Move pen up one interrow spacing
-                        var pen = State.Pen;
-                        pen.Y += State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
-                        State.Pen = pen;
-                    }
-                    else if (controlCommand == ActivePositionReturn)
-                    {
-                        if (State.AutoWrapJustOccurred)
-                        {
-                            // ANSI X3.110 §5.3.2.3.6: Part of the explicit APR+APD pair
-                            // after auto-wrap — execute as null operation. Keep the flag
-                            // set so the paired APD is also suppressed.
-                        }
-                        else
-                        {
-                            // Carriage return: move pen X to left edge of active field
-                            var pen = State.Pen;
-                            pen.X = State.Field.Origin.X;
-                            State.Pen = pen;
-                        }
-                    }
-                    else if (controlCommand == ActivePositionForward)
-                    {
-                        // ANSI X3.110: Tab advances cursor along text path by one character width.
-                        // If the new position is outside the field, wrap to opposite edge + vertical tab.
-                        var pen = State.Pen;
-                        float fieldRight = State.Field.Origin.X + State.Field.Dimensions.X;
-                        float fieldLeft = State.Field.Origin.X;
-
-                        switch (State.TextPath)
-                        {
-                            case TextPath.Right:
-                            {
-                                pen.X += State.CharSize.X;
-
-                                if (State.Field.Dimensions.X > 0 && pen.X > fieldRight)
-                                {
-                                    pen.X = fieldLeft;
-                                    pen.Y -= State.CharSize.Y;
-                                }
-                            }
-                            break;
-
-                            case TextPath.Left:
-                            {
-                                pen.X -= State.CharSize.X;
-
-                                if (State.Field.Dimensions.X > 0 && pen.X < fieldLeft)
-                                {
-                                    pen.X = fieldRight;
-                                    pen.Y -= State.CharSize.Y;
-                                }
-                            }
-                            break;
-
-                            default:
-                            {
-                                pen.X += State.CharSize.X;
-                            }
-                            break;
-                        }
-
-                        State.Pen = pen;
-                    }
-                    else if (controlCommand == ActivePositionBackward)
-                    {
-                        // ANSI X3.110: Backspace moves cursor opposite to text path by one character width.
-                        // If the new position is outside the field, wrap to opposite edge + reverse vertical tab.
-                        var pen = State.Pen;
-                        float fieldRight = State.Field.Origin.X + State.Field.Dimensions.X;
-                        float fieldLeft = State.Field.Origin.X;
-
-                        switch (State.TextPath)
-                        {
-                            case TextPath.Right:
-                            {
-                                pen.X -= State.CharSize.X;
-
-                                if (State.Field.Dimensions.X > 0 && pen.X < fieldLeft)
-                                {
-                                    pen.X = fieldRight - State.CharSize.X;
-                                    pen.Y += State.CharSize.Y;
-                                }
-                            }
-                            break;
-
-                            case TextPath.Left:
-                            {
-                                pen.X += State.CharSize.X;
-
-                                if (State.Field.Dimensions.X > 0 && pen.X > fieldRight)
-                                {
-                                    pen.X = fieldLeft + State.CharSize.X;
-                                    pen.Y += State.CharSize.Y;
-                                }
-                            }
-                            break;
-
-                            default:
-                            {
-                                pen.X -= State.CharSize.X;
-                            }
-                            break;
-                        }
-
-                        State.Pen = pen;
-                    }
-                    else if (controlCommand == ActivePositionHome)
-                    {
-                        // Move pen to top-left of active field (origin X, top Y minus one char height)
-                        var pen = State.Pen;
-                        pen.X = State.Field.Origin.X;
-                        pen.Y = State.Field.Origin.Y + State.Field.Dimensions.Y - State.CharSize.Y;
-                        State.Pen = pen;
-                    }
-                    // C1 Control Commands
-                    else if (controlCommand == ReverseVideo)
-                    {
-                        State.IsReverseVideo = true;
-                    }
-                    else if (controlCommand == NormalVideo)
-                    {
-                        State.IsReverseVideo = false;
-                    }
-                    else if (controlCommand == SmallText)
-                    {
-                        State.TextSizeMode = 1;
-                        // ANSI X3.110: 1/80 wide x 5/128 high (80x19 screen)
-                        State.CharSize = new Vector2(1.0f / 80.0f, 5.0f / 128.0f);
-                    }
-                    else if (controlCommand == MedText)
-                    {
-                        State.TextSizeMode = 2;
-                        // ANSI X3.110: 1/32 wide x 3/64 high (32x15 screen)
-                        State.CharSize = new Vector2(1.0f / 32.0f, 3.0f / 64.0f);
-                    }
-                    else if (controlCommand == NormalText)
-                    {
-                        State.TextSizeMode = 0;
-                        // Normal: default size (1/40 x 5/128)
-                        State.CharSize = new Vector2(1.0f / 40.0f, 5.0f / 128.0f);
-                    }
-                    else if (controlCommand == DoubleHeight)
-                    {
-                        State.TextSizeMode = 3;
-                        // Double height: normal width, 2x height
-                        State.CharSize = new Vector2(1.0f / 40.0f, 10.0f / 128.0f);
-                    }
-                    else if (controlCommand == DoubleSize)
-                    {
-                        State.TextSizeMode = 4;
-                        // Double size: 2x width and 2x height
-                        State.CharSize = new Vector2(2.0f / 40.0f, 10.0f / 128.0f);
-                    }
-                    else if (controlCommand == UnderLineStart)
-                    {
-                        State.IsUnderline = true;
-                    }
-                    else if (controlCommand == UnderLineStop)
-                    {
-                        State.IsUnderline = false;
-                    }
-                    else if (controlCommand == BlinkStart)
-                    {
-                        State.IsBlinkMode = true;
-                    }
-                    else if (controlCommand == BlinkStop)
-                    {
-                        State.IsBlinkMode = false;
-                    }
-                    else if (controlCommand == ScrollOn)
-                    {
-                        State.IsScrollMode = true;
-                    }
-                    else if (controlCommand == ScrollOff)
-                    {
-                        State.IsScrollMode = false;
-                    }
-                    else if (controlCommand == WordWrapOn)
-                    {
-                        State.IsWordWrapMode = true;
-                    }
-                    else if (controlCommand == WordWrapOff)
-                    {
-                        State.IsWordWrapMode = false;
-                    }
-                    else if (controlCommand == Protect)
-                    {
-                        State.IsProtectMode = true;
-                    }
-                    else if (controlCommand == Unprotect)
-                    {
-                        State.IsProtectMode = false;
-                    }
-                    // Macro definition commands
-                    else if (controlCommand == DefMacro)
-                    {
-                        // Read macro name from operands
-                        if (additionalParameters.Count > 0)
-                        {
-                            State.MacroBeingDefined = (char)additionalParameters[0];
-                            State.MacroDefType = 0; // Standard macro
-                            State.MacroBuffer.Clear();
-                        }
-                    }
-                    else if (controlCommand == DefPMacro)
-                    {
-                        // Read macro name from operands - execute after definition
-                        if (additionalParameters.Count > 0)
-                        {
-                            State.MacroBeingDefined = (char)additionalParameters[0];
-                            State.MacroDefType = 1; // Execute after definition
-                            State.MacroBuffer.Clear();
-                        }
-                    }
-                    else if (controlCommand == DefTMacro)
-                    {
-                        // Transmit macro - sends content to host when invoked
-                        if (additionalParameters.Count > 0)
-                        {
-                            State.MacroBeingDefined = (char)additionalParameters[0];
-                            State.MacroDefType = 2; // Transmit macro
-                            State.MacroBuffer.Clear();
-                        }
-                    }
-                    else if (controlCommand == SingleShiftTwo)
-                    {
-                        // SS2 invokes a macro - next byte is macro name
-                        if (additionalParameters.Count > 0)
-                        {
-                            var macroName = (char)additionalParameters[0];
-                            if (State.Macros.TryGetValue(macroName, out var macroData))
-                            {
-                                // Execute macro by parsing its bytes
-                                using var macroStream = new MemoryStream(macroData);
-                                using var macroReader = new BinaryReader(macroStream);
-                                var macroCommands = ReadStream(macroReader);
-                                commands.AddRange(macroCommands);
-                            }
-                        }
-                    }
-                    else if (controlCommand == DefDRCS)
-                    {
-                        // Start DRCS definition - first operand is starting character code
-                        if (additionalParameters.Count > 0)
-                        {
-                            State.DrcsStartCode = additionalParameters[0];
-                            State.DrcsBuffer.Clear();
-                        }
-                    }
-                    else if (controlCommand == DefTexture)
-                    {
-                        // Start texture pattern definition
-                        // First operand specifies which mask (A=0, B=1, C=2, D=3)
-                        if (additionalParameters.Count > 0)
-                        {
-                            State.TextureBeingDefined = additionalParameters[0];
-                            State.TextureBuffer.Clear();
-                        }
-                    }
-                    else if (controlCommand == Repeat)
-                    {
-                        // Repeat command: read the count byte and store it in operands
-                        // Actual repetition happens at render time
-                        if (!reader.IsEOF())
-                        {
-                            var countByte = reader.ReadByte();
-                            additionalParameters.Add(countByte);
-                        }
-                    }
-                    // RepeatToEOL doesn't need special handling here - count is calculated at render time
+                    HandleControlCommand((NaplpsControlCommands)commandParameters[0], reader, additionalParameters, commands);
                 }
 
-                var finalCommandParams = commandParameters.Concat([State, opcode, additionalParameters]).ToArray();
+                var command = TryInstantiateCommand(commandType, commandParameters, opcode, additionalParameters, reader);
 
-                NaplpsCommand command;
-
-                try
+                if (command != null)
                 {
-                    if (Activator.CreateInstance(commandType, finalCommandParams) is not NaplpsCommand cmd)
-                    {
-                        RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.CommandInstantiationFailed, $"Failed to instantiate {commandType.Name}", opcode, reader.BaseStream.Position);
-
-                        continue;
-                    }
-
-                    command = cmd;
+                    commands.Add(new NaplpsSequence(currentState, command));
                 }
-                catch (System.Reflection.TargetInvocationException ex)
-                {
-                    RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.CommandInstantiationFailed, $"{commandType.Name} constructor threw: {ex.InnerException?.Message ?? ex.Message}", opcode, reader.BaseStream.Position);
-
-                    continue;
-                }
-
-                commands.Add(new NaplpsSequence(currentState, command));
             }
         }
         catch (EndOfStreamException)
@@ -808,6 +349,418 @@ public partial class NaplpsFormat
         }
 
         return commands;
+    }
+
+    /// <summary>
+    /// Handles bytes while in a buffered definition mode (macro, DRCS, texture).
+    /// Returns true if the byte was consumed by the buffer, false if normal processing should continue.
+    /// </summary>
+    private bool HandleBufferedByte(byte opcode, BinaryReader reader, List<NaplpsSequence> commands)
+    {
+        // If we're in macro definition mode, buffer bytes until END
+        if (State.MacroBeingDefined != null)
+        {
+            if (IsEndCommand(opcode))
+            {
+                // End macro definition
+                var macroName = State.MacroBeingDefined.Value;
+                var macroType = State.MacroDefType;
+                State.Macros[macroName] = [.. State.MacroBuffer];
+                State.MacroBeingDefined = null;
+                State.MacroBuffer.Clear();
+
+                // If DEFP MACRO (type 1), execute the macro immediately
+                if (macroType == 1 && State.Macros.TryGetValue(macroName, out var macroData))
+                {
+                    // Execute macro by parsing its bytes
+                    using var macroStream = new MemoryStream(macroData);
+                    using var macroReader = new BinaryReader(macroStream);
+                    commands.AddRange(ReadStream(macroReader));
+                }
+            }
+            else
+            {
+                // Buffer this byte as part of the macro
+                State.MacroBuffer.Add(opcode);
+            }
+
+            return true;
+        }
+
+        // If we're in DRCS definition mode, buffer bytes until END
+        if (State.DrcsStartCode != null)
+        {
+            if (IsEndCommand(opcode))
+            {
+                // End DRCS definition - parse the bitmap data
+                ParseDrcsData(State.DrcsStartCode.Value, State.DrcsBuffer);
+                State.DrcsStartCode = null;
+                State.DrcsBuffer.Clear();
+            }
+            else
+            {
+                // Buffer this byte as part of the DRCS data
+                State.DrcsBuffer.Add(opcode);
+            }
+
+            return true;
+        }
+
+        // If we're in texture definition mode, buffer bytes until END
+        if (State.TextureBeingDefined != null)
+        {
+            if (IsEndCommand(opcode))
+            {
+                // End texture definition - parse the pattern data
+                ParseTextureData(State.TextureBeingDefined.Value, State.TextureBuffer);
+                State.TextureBeingDefined = null;
+                State.TextureBuffer.Clear();
+            }
+            else
+            {
+                State.TextureBuffer.Add(opcode);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if the given opcode maps to the END control command.
+    /// </summary>
+    private bool IsEndCommand(byte opcode)
+    {
+        var cmdRef = State.InUseTable[opcode];
+
+        return cmdRef?.CommandType == typeof(ControlCommand) &&
+               cmdRef.Parameters.Count == 1 &&
+               (NaplpsControlCommands)cmdRef.Parameters[0] == End;
+    }
+
+    /// <summary>
+    /// Reads operand bytes following a command opcode.
+    /// </summary>
+    private NaplpsOperands ReadOperands(BinaryReader reader, NaplpsOperandType operandType)
+    {
+        var operands = new NaplpsOperands();
+
+        if (operandType != NaplpsOperandType.None)
+        {
+            while (IsValidNumericalDataNext(reader))
+            {
+                operands.Add(reader.ReadByte());
+            }
+        }
+
+        return operands;
+    }
+
+    /// <summary>
+    /// Dispatches a control command to the appropriate handler.
+    /// </summary>
+    private void HandleControlCommand(NaplpsControlCommands controlCommand, BinaryReader reader, NaplpsOperands additionalParameters, List<NaplpsSequence> commands)
+    {
+        // Core C0 controls
+        if (controlCommand == Escape)
+        {
+            ControlCommandEscape(reader, additionalParameters);
+            State.DoEscape(additionalParameters);
+        }
+        else if (controlCommand == NonSelectiveReset)
+        {
+            ControlCommandNonSelectiveReset(reader);
+        }
+        else if (controlCommand == ShiftIn)
+        {
+            State.DoShiftIn();
+        }
+        else if (controlCommand == ShiftOut)
+        {
+            State.DoShiftOut();
+        }
+        else if (controlCommand == Cancel)
+        {
+            // ANSI X3.110: CAN terminates all currently executing macros immediately.
+            // Effect is immediate — not queued.
+            State.MacroBeingDefined = null;
+            State.MacroBuffer.Clear();
+            State.IsCancelRequested = true;
+        }
+        else if (controlCommand == Bell)
+        {
+            // ANSI X3.110: BEL triggers an audible or visual alert.
+            State.BellCount++;
+        }
+        // Cursor positioning
+        else if (controlCommand == ActivePositionSet)
+        {
+            // ANSI X3.110: APS (0x1C) sets cursor to row/column position.
+            HandleActivePositionSet(reader);
+        }
+        else if (controlCommand == ClearScreen)
+        {
+            // ANSI X3.110: Clear screen to nominal black in modes 0/1,
+            // background color in mode 2. Move cursor to upper left.
+            State.Pen = new Vector3(0f, 0.75f - State.CharSize.Y, 0f);
+        }
+        else if (controlCommand == ActivePositionDown)
+        {
+            HandleActivePositionDown();
+        }
+        else if (controlCommand == ActivePositionUp)
+        {
+            var pen = State.Pen;
+            pen.Y += State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
+            State.Pen = pen;
+        }
+        else if (controlCommand == ActivePositionReturn)
+        {
+            HandleActivePositionReturn();
+        }
+        else if (controlCommand == ActivePositionForward)
+        {
+            HandleActivePositionForward();
+        }
+        else if (controlCommand == ActivePositionBackward)
+        {
+            HandleActivePositionBackward();
+        }
+        else if (controlCommand == ActivePositionHome)
+        {
+            var pen = State.Pen;
+            pen.X = State.Field.Origin.X;
+            pen.Y = State.Field.Origin.Y + State.Field.Dimensions.Y - State.CharSize.Y;
+            State.Pen = pen;
+        }
+        // Text attributes
+        else if (controlCommand == ReverseVideo) { State.IsReverseVideo = true; }
+        else if (controlCommand == NormalVideo) { State.IsReverseVideo = false; }
+        else if (controlCommand == UnderLineStart) { State.IsUnderline = true; }
+        else if (controlCommand == UnderLineStop) { State.IsUnderline = false; }
+        else if (controlCommand == BlinkStart) { State.IsBlinkMode = true; }
+        else if (controlCommand == BlinkStop) { State.IsBlinkMode = false; }
+        else if (controlCommand == ScrollOn) { State.IsScrollMode = true; }
+        else if (controlCommand == ScrollOff) { State.IsScrollMode = false; }
+        else if (controlCommand == WordWrapOn) { State.IsWordWrapMode = true; }
+        else if (controlCommand == WordWrapOff) { State.IsWordWrapMode = false; }
+        else if (controlCommand == Protect) { State.IsProtectMode = true; }
+        else if (controlCommand == Unprotect) { State.IsProtectMode = false; }
+        // Text size
+        else if (controlCommand == SmallText) { State.TextSizeMode = 1; State.CharSize = new Vector2(1.0f / 80.0f, 5.0f / 128.0f); }
+        else if (controlCommand == MedText) { State.TextSizeMode = 2; State.CharSize = new Vector2(1.0f / 32.0f, 3.0f / 64.0f); }
+        else if (controlCommand == NormalText) { State.TextSizeMode = 0; State.CharSize = new Vector2(1.0f / 40.0f, 5.0f / 128.0f); }
+        else if (controlCommand == DoubleHeight) { State.TextSizeMode = 3; State.CharSize = new Vector2(1.0f / 40.0f, 10.0f / 128.0f); }
+        else if (controlCommand == DoubleSize) { State.TextSizeMode = 4; State.CharSize = new Vector2(2.0f / 40.0f, 10.0f / 128.0f); }
+        // Macro/DRCS/texture definitions
+        else if (controlCommand == DefMacro) { StartMacroDefinition(additionalParameters, 0); }
+        else if (controlCommand == DefPMacro) { StartMacroDefinition(additionalParameters, 1); }
+        else if (controlCommand == DefTMacro) { StartMacroDefinition(additionalParameters, 2); }
+        else if (controlCommand == SingleShiftTwo) { ExecuteMacro(additionalParameters, commands); }
+        else if (controlCommand == DefDRCS) { if (additionalParameters.Count > 0) { State.DrcsStartCode = additionalParameters[0]; State.DrcsBuffer.Clear(); } }
+        else if (controlCommand == DefTexture) { if (additionalParameters.Count > 0) { State.TextureBeingDefined = additionalParameters[0]; State.TextureBuffer.Clear(); } }
+        else if (controlCommand == Repeat)
+        {
+            // Repeat command: read the count byte and store it in operands
+            // Actual repetition happens at render time
+            if (!reader.IsEOF())
+            {
+                additionalParameters.Add(reader.ReadByte());
+            }
+        }
+        // RepeatToEOL doesn't need special handling here - count is calculated at render time
+    }
+
+    private void HandleActivePositionSet(BinaryReader reader)
+    {
+        // Followed by two bytes: row (0x40-0x5F) and column (0x40-0x7F).
+        if (!reader.IsEOF())
+        {
+            byte rowByte = reader.ReadByte();
+
+            if (!reader.IsEOF())
+            {
+                byte colByte = reader.ReadByte();
+                int row = (rowByte & 0x3F); // Strip header bits
+                int col = (colByte & 0x3F);
+
+                // Position pen: column * charWidth from field left, row * charHeight from field top
+                var pen = State.Pen;
+                pen.X = State.Field.Origin.X + col * State.CharSize.X;
+                pen.Y = State.Field.Origin.Y + State.Field.Dimensions.Y - row * State.CharSize.Y;
+                State.Pen = pen;
+            }
+        }
+    }
+
+    private void HandleActivePositionDown()
+    {
+        if (State.AutoWrapJustOccurred)
+        {
+            State.AutoWrapJustOccurred = false;
+            return;
+        }
+
+        var pen = State.Pen;
+        var newY = pen.Y - State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
+
+        if (State.IsScrollMode && newY < State.Field.Origin.Y)
+        {
+            pen.Y = State.Field.Origin.Y;
+            State.ScrollEventOccurred = true;
+        }
+        else
+        {
+            pen.Y = newY;
+            State.ScrollEventOccurred = false;
+        }
+
+        State.Pen = pen;
+    }
+
+    private void HandleActivePositionReturn()
+    {
+        if (!State.AutoWrapJustOccurred)
+        {
+            var pen = State.Pen;
+            pen.X = State.Field.Origin.X;
+            State.Pen = pen;
+        }
+    }
+
+    private void HandleActivePositionForward()
+    {
+        var pen = State.Pen;
+        float fieldRight = State.Field.Origin.X + State.Field.Dimensions.X;
+        float fieldLeft = State.Field.Origin.X;
+
+        switch (State.TextPath)
+        {
+            case TextPath.Right:
+            {
+                pen.X += State.CharSize.X;
+
+                if (State.Field.Dimensions.X > 0 && pen.X > fieldRight)
+                {
+                    pen.X = fieldLeft;
+                    pen.Y -= State.CharSize.Y;
+                }
+            }
+            break;
+
+            case TextPath.Left:
+            {
+                pen.X -= State.CharSize.X;
+
+                if (State.Field.Dimensions.X > 0 && pen.X < fieldLeft)
+                {
+                    pen.X = fieldRight;
+                    pen.Y -= State.CharSize.Y;
+                }
+            }
+            break;
+
+            default:
+            {
+                pen.X += State.CharSize.X;
+            }
+            break;
+        }
+
+        State.Pen = pen;
+    }
+
+    private void HandleActivePositionBackward()
+    {
+        var pen = State.Pen;
+        float fieldRight = State.Field.Origin.X + State.Field.Dimensions.X;
+        float fieldLeft = State.Field.Origin.X;
+
+        switch (State.TextPath)
+        {
+            case TextPath.Right:
+            {
+                pen.X -= State.CharSize.X;
+
+                if (State.Field.Dimensions.X > 0 && pen.X < fieldLeft)
+                {
+                    pen.X = fieldRight - State.CharSize.X;
+                    pen.Y += State.CharSize.Y;
+                }
+            }
+            break;
+
+            case TextPath.Left:
+            {
+                pen.X += State.CharSize.X;
+
+                if (State.Field.Dimensions.X > 0 && pen.X > fieldRight)
+                {
+                    pen.X = fieldLeft + State.CharSize.X;
+                    pen.Y += State.CharSize.Y;
+                }
+            }
+            break;
+
+            default:
+            {
+                pen.X -= State.CharSize.X;
+            }
+            break;
+        }
+
+        State.Pen = pen;
+    }
+
+    private void StartMacroDefinition(NaplpsOperands operands, byte macroType)
+    {
+        if (operands.Count > 0)
+        {
+            State.MacroBeingDefined = (char)operands[0];
+            State.MacroDefType = macroType;
+            State.MacroBuffer.Clear();
+        }
+    }
+
+    private void ExecuteMacro(NaplpsOperands operands, List<NaplpsSequence> commands)
+    {
+        if (operands.Count > 0)
+        {
+            var macroName = (char)operands[0];
+
+            if (State.Macros.TryGetValue(macroName, out var macroData))
+            {
+                using var macroStream = new MemoryStream(macroData);
+                using var macroReader = new BinaryReader(macroStream);
+                commands.AddRange(ReadStream(macroReader));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Attempts to instantiate a command from its type and parameters.
+    /// Returns null if instantiation fails.
+    /// </summary>
+    private NaplpsCommand? TryInstantiateCommand(Type commandType, List<object> commandParameters, byte opcode, NaplpsOperands additionalParameters, BinaryReader reader)
+    {
+        var finalCommandParams = commandParameters.Concat([State, opcode, additionalParameters]).ToArray();
+
+        try
+        {
+            if (Activator.CreateInstance(commandType, finalCommandParams) is not NaplpsCommand cmd)
+            {
+                RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.CommandInstantiationFailed, $"Failed to instantiate {commandType.Name}", opcode, reader.BaseStream.Position);
+                return null;
+            }
+
+            return cmd;
+        }
+        catch (System.Reflection.TargetInvocationException ex)
+        {
+            RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.CommandInstantiationFailed, $"{commandType.Name} constructor threw: {ex.InnerException?.Message ?? ex.Message}", opcode, reader.BaseStream.Position);
+            return null;
+        }
     }
 
     private bool IsValidNumericalDataNext(BinaryReader reader)

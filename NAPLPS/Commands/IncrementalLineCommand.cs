@@ -173,8 +173,8 @@ public class IncrementalLineCommand : GeometricDrawingCommandBase
 
     public struct MotionSegment
     {
-        public bool Draw;   // Whether to draw a line (or just move)
-        public float Dx;    // Delta X displacement for this segment
-        public float Dy;    // Delta Y displacement for this segment
+        public bool Draw { get; set; }   // Whether to draw a line (or just move)
+        public float Dx { get; set; }    // Delta X displacement for this segment
+        public float Dy { get; set; }    // Delta Y displacement for this segment
     }
 }

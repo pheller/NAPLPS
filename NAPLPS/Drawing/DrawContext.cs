@@ -26,9 +26,9 @@ public class DrawContext : IDisposable
 
     public event Action? OnImageUpdated;
 
-    public uint CurrentIndex;
+    public uint CurrentIndex { get; set; }
 
-    public uint TotalFrames;
+    public uint TotalFrames { get; set; }
 
     /// <summary>
     /// When true, rendering uses the final parsed state's ColorMap as a live palette.
@@ -51,6 +51,49 @@ public class DrawContext : IDisposable
 
     public void Render(uint sequenceNumber = uint.MaxValue)
     {
+        BeginRender();
+
+        foreach (var (command, state) in NAPLPS.Commands)
+        {
+            RenderCommand(command, state);
+
+            if (CurrentIndex == sequenceNumber)
+            {
+                break;
+            }
+
+            CurrentIndex++;
+        }
+
+        EndRender();
+        OnImageUpdated?.Invoke();
+    }
+
+    public async Task RenderAsync(CancellationToken cancellationToken, uint delay)
+    {
+        BeginRender();
+
+        foreach (var sequence in NAPLPS.Commands)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var (command, state) = sequence;
+            var drawable = RenderCommand(command, state);
+
+            OnImageUpdated?.Invoke();
+            CurrentIndex++;
+
+            if (drawable != null)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(delay), cancellationToken);
+            }
+        }
+
+        EndRender();
+    }
+
+    private void BeginRender()
+    {
         CurrentIndex = 0;
         _lastDisplayedChar = null;
 
@@ -61,113 +104,48 @@ public class DrawContext : IDisposable
         // all previously drawn objects using that palette index. Always use the final
         // parsed state's palette for color resolution in modes 1 and 2.
         Drawable.LivePalette = NAPLPS.State.ColorMap;
-
-        foreach (var sequence in NAPLPS.Commands)
-        {
-            var (command, state) = sequence;
-
-            // Handle scroll: shift image pixels up when scroll event occurs
-            if (state.ScrollEventOccurred)
-            {
-                ScrollImageUp(state);
-            }
-
-            var drawable = ConvertToDrawable(command, state);
-
-            // Track last displayed character for Repeat (skip discarded chars from word wrap)
-            if (command is AsciiCharCommand asciiChar && !asciiChar.IsDiscarded)
-            {
-                _lastDisplayedChar = asciiChar;
-            }
-
-            // Handle Repeat specially
-            if (drawable is DrawableRepeat repeatDrawable)
-            {
-                RenderRepeat(repeatDrawable, state);
-            }
-            else
-            {
-                drawable?.Draw(Image, state, Size);
-            }
-
-            if (CurrentIndex == sequenceNumber)
-            {
-                break;
-            }
-
-            CurrentIndex++;
-        }
-
-        if (CurrentIndex >= TotalFrames)
-        {
-            CurrentIndex = TotalFrames;
-        }
-
-        Drawable.LivePalette = null;
-
-        OnImageUpdated?.Invoke();
     }
 
-    public async Task RenderAsync(CancellationToken cancellationToken, uint delay)
+    private void EndRender()
     {
-        CurrentIndex = 0;
-        _lastDisplayedChar = null;
-
-        // Clear canvas (important for loop restarts)
-        Image.Mutate(ctx => ctx.Fill(ISColor.Black));
-
-        // NAPLPS CLUT: always use final palette for color resolution
-        Drawable.LivePalette = NAPLPS.State.ColorMap;
-
-        foreach (var sequence in NAPLPS.Commands)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            var (command, state) = sequence;
-
-            // Handle scroll: shift image pixels up when scroll event occurs
-            if (state.ScrollEventOccurred)
-            {
-                ScrollImageUp(state);
-            }
-
-            var drawable = ConvertToDrawable(command, state);
-
-            // Track last displayed character for Repeat (skip discarded chars from word wrap)
-            if (command is AsciiCharCommand asciiChar && !asciiChar.IsDiscarded)
-            {
-                _lastDisplayedChar = asciiChar;
-            }
-
-            // Handle Repeat specially
-            if (drawable is DrawableRepeat repeatDrawable)
-            {
-                RenderRepeat(repeatDrawable, state);
-            }
-            else
-            {
-                drawable?.Draw(Image, state, Size);
-            }
-
-            OnImageUpdated?.Invoke();
-
-            CurrentIndex++;
-
-            if (drawable != null)
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(delay), cancellationToken); // TODO: Calculate the delay
-            }
-        }
-
         if (CurrentIndex >= TotalFrames)
         {
             CurrentIndex = TotalFrames;
         }
 
         Drawable.LivePalette = null;
+    }
+
+    /// <summary>
+    /// Renders a single command. Returns the drawable if one was created (for delay timing).
+    /// </summary>
+    private IDrawable? RenderCommand(NaplpsCommand command, NaplpsState state)
+    {
+        // Handle scroll: shift image pixels up when scroll event occurs
+        if (state.ScrollEventOccurred)
+        {
+            ScrollImageUp(state);
+        }
+
+        var drawable = ConvertToDrawable(command, state);
+
+        // Track last displayed character for Repeat (skip discarded chars from word wrap)
+        if (command is AsciiCharCommand asciiChar && !asciiChar.IsDiscarded)
+        {
+            _lastDisplayedChar = asciiChar;
+        }
+
+        // Handle Repeat specially
+        if (drawable is DrawableRepeat repeatDrawable)
+        {
+            RenderRepeat(repeatDrawable, state);
+        }
+        else
+        {
+            drawable?.Draw(Image, state, Size);
+        }
+
+        return drawable;
     }
 
     private void RenderRepeat(DrawableRepeat repeatDrawable, NaplpsState state)
@@ -363,7 +341,6 @@ public class DrawContext : IDisposable
 
     public void SaveAsPng(string filepath)
     {
-        // TODO: Reset the image??
         Render();
         Image.SaveAsPng(filepath);
     }
@@ -505,36 +482,12 @@ public class DrawContext : IDisposable
         // Incremental rendering: single pass through commands, drawing each on top
         // of the existing canvas. O(n) instead of O(n²). Safe because LivePalette
         // uses the final parsed palette — color resolution is order-independent.
-        Image.Mutate(ctx => ctx.Fill(ISColor.Black));
-        Drawable.LivePalette = NAPLPS.State.ColorMap;
-
-        CurrentIndex = 0;
-        _lastDisplayedChar = null;
+        BeginRender();
 
         foreach (var sequence in NAPLPS.Commands)
         {
-            var (command, state) = sequence;
-
-            if (state.ScrollEventOccurred)
-            {
-                ScrollImageUp(state);
-            }
-
-            var drawable = ConvertToDrawable(command, state);
-
-            if (command is AsciiCharCommand asciiChar && !asciiChar.IsDiscarded)
-            {
-                _lastDisplayedChar = asciiChar;
-            }
-
-            if (drawable is DrawableRepeat repeatDrawable)
-            {
-                RenderRepeat(repeatDrawable, state);
-            }
-            else
-            {
-                drawable?.Draw(Image, state, Size);
-            }
+            var (cmd, cmdState) = sequence;
+            var drawable = RenderCommand(cmd, cmdState);
 
             // Only check for frame changes when something was actually drawn
             if (drawable != null)

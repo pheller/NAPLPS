@@ -24,6 +24,5 @@ public abstract class PointCommand : FillableGeometricDrawingCommandBase
             }
         }
 
-        // IsVisible = opcode == POINT_ABS || opcode == POINT_REL;
     }
 }

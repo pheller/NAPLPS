@@ -73,11 +73,9 @@ public class DrcsCommandTests
     [TestMethod]
     public void DrcsFile_RawBitmapFallback()
     {
-        // Test that files using raw bitmap DRCS data (legacy format)
-        // still parse correctly via the fallback path.
-        // Create a minimal NAPLPS stream: ShiftOut + DEF DRCS + char code + bitmap data + END
-
-        // This tests the integrated parsing, so use NaplpsFormat
+        // Verify that NaplpsFormat.FromBytes doesn't crash on minimal streams.
+        // A bare-minimum NAPLPS stream may not produce DRCS characters,
+        // but it must not throw unhandled exceptions.
         var bytes = new byte[]
         {
             0x0E,       // Shift Out (PDI into GL)
@@ -88,16 +86,10 @@ public class DrcsCommandTests
             0x1B, 0x45, // ESC + END (C1 code 0x85 in 7-bit = ESC 0x45)
         };
 
-        try
-        {
-            var nap = NaplpsFormat.FromBytes(bytes);
-            // If DRCS parsed, there should be a character defined
-            // (May or may not succeed depending on how the parser handles this minimal stream)
-        }
-        catch
-        {
-            // Parsing minimal streams may fail — that's acceptable for this test
-        }
+        var nap = NaplpsFormat.FromBytes(bytes);
+
+        Assert.IsNotNull(nap);
+        Assert.IsNotNull(nap.State);
     }
 
     [TestMethod]

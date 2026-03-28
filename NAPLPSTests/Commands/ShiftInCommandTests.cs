@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSTests.Commands;
 
@@ -6,48 +6,20 @@ namespace NAPLPSTests.Commands;
 public class ShiftInCommandTests
 {
     [TestMethod]
-    public void Defaults()
+    public void ShiftIn_SwitchesGLToPrimaryCharSet()
     {
-        //var shiftInCommand = new ShiftInCommand(new(), []);
+        var state = new NaplpsState();
 
-        //Assert.IsNotNull(shiftInCommand);
+        // ShiftIn (0x0F) should switch GL back to the primary character set
+        // After ShiftOut puts PDI into GL, ShiftIn restores it
+        state.DoShiftOut(); // First shift out to PDI
 
-        //Assert.IsTrue(shiftInCommand.IsValid);
-    }
+        state.DoShiftIn(); // Now shift back
 
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n163/mode/1up?view=theater
-    /// </summary>
-    [TestMethod]
-    public void ByteMagazineMarch1983Page163Road()
-    {
-        // const string asciiString = "ROAD";
-
-        //var shiftInCommand = new ShiftInCommand(new(), [0x52, 0x4F, 0x41, 0x44]);
-
-        //Assert.IsNotNull(shiftInCommand);
-
-        //Assert.IsTrue(shiftInCommand.IsValid);
-
-        //Assert.AreEqual(shiftInCommand.Text.Length, asciiString.Length);
-        //Assert.AreEqual(shiftInCommand.Text, asciiString);
-    }
-
-    /// <summary>
-    /// Based on https://archive.org/details/byte-magazine-1983-03/page/n164/mode/1up?view=theater
-    /// </summary>
-    [TestMethod]
-    public void ByteMagazineMarch1983Page164Figure1()
-    {
-        // const string asciiString = "Figure 1";
-
-        //var shiftInCommand = new ShiftInCommand(new(), [0x46, 0x69, 0x67, 0x75, 0x72, 0x65, 0x20, 0x31]);
-
-        //Assert.IsNotNull(shiftInCommand);
-
-        //Assert.IsTrue(shiftInCommand.IsValid);
-
-        //Assert.AreEqual(shiftInCommand.Text.Length, asciiString.Length);
-        //Assert.AreEqual(shiftInCommand.Text, asciiString);
+        // Verify GL is back to primary character set (ASCII)
+        // The InUseTable at position 0x41 ('A') should be an AsciiCharCommand
+        var entry = state.InUseTable[0x41];
+        Assert.IsNotNull(entry);
+        Assert.AreEqual(typeof(AsciiCharCommand), entry.CommandType);
     }
 }

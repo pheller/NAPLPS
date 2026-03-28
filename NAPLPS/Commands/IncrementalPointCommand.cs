@@ -128,10 +128,10 @@ public class IncrementalPointCommand : NaplpsCommand
 
     public struct PixelData
     {
-        public bool IsRepositioning;
-        public int RepositionCode; // 1=dy, 2=dx, 3=dx+dy
-        public int ColorValue;
-        public int DeltaX;
-        public int DeltaY;
+        public bool IsRepositioning { get; set; }
+        public int RepositionCode { get; set; } // 1=dy, 2=dx, 3=dx+dy
+        public int ColorValue { get; set; }
+        public int DeltaX { get; set; }
+        public int DeltaY { get; set; }
     }
 }

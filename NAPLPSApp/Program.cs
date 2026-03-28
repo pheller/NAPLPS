@@ -213,10 +213,79 @@ sealed class Program
         if (args.Length < 2)
         {
             Console.Error.WriteLine("Error: No input file specified.");
-            Console.Error.WriteLine("Usage: NAPLPSApp export <file|--batch dir> [output] [--format=png|gif] [--size=WxH] [--stdout]");
+            Console.Error.WriteLine("Usage: NAPLPSApp export <file|--batch dir> [output] [--format=png|gif|apng] [--size=WxH] [--stdout]");
             return 1;
         }
 
+        var opts = ParseExportArgs(args, out var parseError);
+
+        if (parseError != null)
+        {
+            Console.Error.WriteLine(parseError);
+            return 1;
+        }
+
+        if (!ParseSize(opts.Size, out var width, out var height))
+        {
+            Console.Error.WriteLine($"Error: Invalid size format: {opts.Size}. Expected WxH (e.g., 1024x768)");
+            return 1;
+        }
+
+        if (opts.Batch)
+        {
+            return HandleBatchExport(opts.InputFile, opts.OutputDir, opts.Format, width, height, opts.Loop, opts.Delay);
+        }
+
+        var outputFile = opts.OutputFile;
+
+        if (!opts.UseStdout && outputFile == null)
+        {
+            outputFile = IOPath.ChangeExtension(opts.InputFile, opts.Format);
+        }
+
+        if (!File.Exists(opts.InputFile))
+        {
+            Console.Error.WriteLine($"Error: File not found: {opts.InputFile}");
+            return 1;
+        }
+
+        try
+        {
+            var naplps = NaplpsFormat.FromFile(opts.InputFile);
+            using var drawContext = new DrawContext(naplps, new SixLabors.ImageSharp.Size(width, height));
+
+            if (opts.PaletteAnim)
+            {
+                return ExportPaletteAnimGif(drawContext, outputFile, opts.UseStdout, opts.Loop, opts.Delay, opts.PaletteFrames);
+            }
+            else if (opts.Format == "apng")
+            {
+                return ExportApng(drawContext, outputFile, opts.UseStdout, opts.Delay);
+            }
+            else if (opts.Format == "gif")
+            {
+                return ExportGif(drawContext, outputFile, opts.UseStdout, opts.Loop, opts.Delay);
+            }
+            else
+            {
+                return ExportPng(drawContext, outputFile, opts.UseStdout);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: Failed to export file: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private record ExportOptions(
+        string InputFile, string? OutputFile, string? OutputDir,
+        string Format, string Size, bool UseStdout, bool Loop,
+        bool Batch, bool PaletteAnim, int PaletteFrames, int Delay);
+
+    private static ExportOptions ParseExportArgs(string[] args, out string? error)
+    {
+        error = null;
         var inputFile = args[1];
         string? outputFile = null;
         string? outputDir = null;
@@ -226,8 +295,8 @@ sealed class Program
         var loop = false;
         var batch = false;
         var paletteAnim = false;
-        var paletteFrames = 120; // Default ~2 seconds at 60fps
-        var delay = 5; // Default frame delay in 1/100s of a second
+        var paletteFrames = 120;
+        var delay = 5;
 
         for (int i = 2; i < args.Length; i++)
         {
@@ -246,7 +315,7 @@ sealed class Program
             else if (args[i] == "--palette-anim")
             {
                 paletteAnim = true;
-                format = "gif"; // Force GIF for animation
+                format = "gif";
             }
             else if (args[i].StartsWith("--format="))
             {
@@ -264,16 +333,16 @@ sealed class Program
             {
                 if (!int.TryParse(args[i]["--delay=".Length..], out delay) || delay < 1)
                 {
-                    Console.Error.WriteLine($"Error: Invalid delay value. Expected positive integer.");
-                    return 1;
+                    error = "Error: Invalid delay value. Expected positive integer.";
+                    break;
                 }
             }
             else if (args[i].StartsWith("--frames="))
             {
                 if (!int.TryParse(args[i]["--frames=".Length..], out paletteFrames) || paletteFrames < 1)
                 {
-                    Console.Error.WriteLine($"Error: Invalid frames value. Expected positive integer.");
-                    return 1;
+                    error = "Error: Invalid frames value. Expected positive integer.";
+                    break;
                 }
             }
             else if (!args[i].StartsWith("--") && !args[i].StartsWith("-"))
@@ -282,56 +351,7 @@ sealed class Program
             }
         }
 
-        if (!ParseSize(size, out var width, out var height))
-        {
-            Console.Error.WriteLine($"Error: Invalid size format: {size}. Expected WxH (e.g., 1024x768)");
-            return 1;
-        }
-
-        // Batch mode
-        if (batch)
-        {
-            return HandleBatchExport(inputFile, outputDir, format, width, height, loop, delay);
-        }
-
-        if (!useStdout && outputFile == null)
-        {
-            outputFile = IOPath.ChangeExtension(inputFile, format);
-        }
-
-        if (!File.Exists(inputFile))
-        {
-            Console.Error.WriteLine($"Error: File not found: {inputFile}");
-            return 1;
-        }
-
-        try
-        {
-            var naplps = NaplpsFormat.FromFile(inputFile);
-            using var drawContext = new DrawContext(naplps, new SixLabors.ImageSharp.Size(width, height));
-
-            if (paletteAnim)
-            {
-                return ExportPaletteAnimGif(drawContext, outputFile, useStdout, loop, delay, paletteFrames);
-            }
-            else if (format == "apng")
-            {
-                return ExportApng(drawContext, outputFile, useStdout, delay);
-            }
-            else if (format == "gif")
-            {
-                return ExportGif(drawContext, outputFile, useStdout, loop, delay);
-            }
-            else
-            {
-                return ExportPng(drawContext, outputFile, useStdout);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Error: Failed to export file: {ex.Message}");
-            return 1;
-        }
+        return new ExportOptions(inputFile, outputFile, outputDir, format, size, useStdout, loop, batch, paletteAnim, paletteFrames, delay);
     }
 
     private static int HandleBatchExport(string inputDir, string? outputDir, string format, int width, int height, bool loop, int delay)
@@ -493,7 +513,7 @@ sealed class Program
         }
     }
 
-    private static bool ParseSize(string size, out int width, out int height)
+    internal static bool ParseSize(string size, out int width, out int height)
     {
         width = 0; height = 0;
         var parts = size.Split('x');

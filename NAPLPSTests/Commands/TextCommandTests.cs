@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 namespace NAPLPSTests.Commands;
 
@@ -6,64 +6,32 @@ namespace NAPLPSTests.Commands;
 public class TextCommandTests
 {
     [TestMethod]
-    public void Defaults()
+    public void TextCommand_SetsTextPath()
     {
-        //var textCommand = new TextCommand(new(), []);
+        // TEXT PDI with path=Down: byte 1 bit 3,2 = 11 → 0x4C
+        var command = new TextCommand(new(), 0xA3, new NaplpsOperands([0x4C]));
 
-        //Assert.IsNotNull(textCommand);
-
-        //Assert.IsFalse(textCommand.IsValid);
+        Assert.AreEqual(TextCommand.TextPath.Down, command.State.TextPath);
     }
 
-    /// <summary>https://archive.org/details/byte-magazine-1983-03/page/n163/mode/1up?view=theater</summary>
     [TestMethod]
-    public void ByteMagazineMarch1983Page162()
+    public void TextCommand_DefaultSpacing()
     {
-        //var textCommand = new TextCommand(new(), [0x4C]);
+        var command = new TextCommand(new(), 0xA3, new NaplpsOperands([0x40]));
 
-        //Assert.IsNotNull(textCommand);
-
-        //Assert.IsTrue(textCommand.IsValid);
-
-        //Assert.AreEqual(TextRotation.Zero, textCommand.State.TextRotation);
-        //Assert.AreEqual(TextPath.Down, textCommand.State.TextPath);
-        //Assert.AreEqual(TextSpacing.One, textCommand.State.TextSpacing);
-
-        //Assert.AreEqual(TextInterrowSpacing.One, textCommand.State.TextInterrowSpacing);
-        //Assert.AreEqual(TextMoveAttributes.MoveTogether, textCommand.State.TextMoveAttributes);
-        //Assert.AreEqual(TextCursorStyle.Underscore, textCommand.State.TextCursorStyle);
-
-        //var defaults = new Vector2(1.0f / 40.0f, 5.0f / 128.0f);
-
-        //Assert.AreEqual(defaults.X, textCommand.State.TextFieldSize.X);
-        //Assert.AreEqual(defaults.Y, textCommand.State.TextFieldSize.Y);
+        Assert.AreEqual(TextCommand.TextSpacing.One, command.State.TextSpacing);
     }
 
-    /// <summary>https://archive.org/details/byte-magazine-1983-03/page/n164/mode/1up?view=theater</summary>
     [TestMethod]
-    public void ByteMagazineMarch1983Page163()
+    public void TextCommand_SetsCharSize()
     {
-        //const float x = .046875f;
-        //const float y = .078125f;
+        // TEXT PDI with operand bytes that include char size vertices
+        // Byte 1: 0x40 = all defaults, plus additional multi-value bytes for size
+        var state = new NaplpsState();
+        var command = new TextCommand(state, 0xA3, new NaplpsOperands([0x40, 0x40, 0x40, 0x4A, 0x64]));
 
-        //var textCommand = new TextCommand(new(), [0x40, 0x40, 0x40, 0x4A, 0x64]);
-
-        //Assert.IsNotNull(textCommand);
-
-        //Assert.IsTrue(textCommand.IsValid);
-
-        //Assert.AreEqual(x, textCommand.Vertices[0].X);
-        //Assert.AreEqual(y, textCommand.Vertices[0].Y);
-
-        //Assert.AreEqual(TextRotation.Zero, textCommand.State.TextRotation);
-        //Assert.AreEqual(TextPath.Right, textCommand.State.TextPath);
-        //Assert.AreEqual(TextSpacing.One, textCommand.State.TextSpacing);
-
-        //Assert.AreEqual(TextInterrowSpacing.One, textCommand.State.TextInterrowSpacing);
-        //Assert.AreEqual(TextMoveAttributes.MoveTogether, textCommand.State.TextMoveAttributes);
-        //Assert.AreEqual(TextCursorStyle.Underscore, textCommand.State.TextCursorStyle);
-
-        //Assert.AreEqual(x, textCommand.State.TextFieldSize.X);
-        //Assert.AreEqual(y, textCommand.State.TextFieldSize.Y);
+        // CharSize should have been updated from the vertex data
+        Assert.IsTrue(state.CharSize.X > 0);
+        Assert.IsTrue(state.CharSize.Y > 0);
     }
 }

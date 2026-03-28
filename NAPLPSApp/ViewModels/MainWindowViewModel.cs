@@ -9,7 +9,7 @@ using NAPLPSApp.Editor.Tools;
 
 namespace NAPLPSApp.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private const string DEFAULT_APP_NAME = "NAPLPS Toolbox";
 
@@ -966,8 +966,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         loadedFile = NaplpsFormat.New();
 
-        IsFileLoaded = true;
-
         loadedFilePath = DEFAULT_NEW_FILE_NAME;
 
         BuildDrawContext();
@@ -1197,11 +1195,6 @@ public partial class MainWindowViewModel : ViewModelBase
         CurrentFrame = (int)drawContext.CurrentIndex + 1;
     }
 
-    private void FileSave(string filePath)
-    {
-        loadedFile?.Save(filePath);
-    }
-
     private async Task UpdateCanvas()
     {
         if (loadedFile == null)
@@ -1280,18 +1273,19 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private (int, int) GetSize()
     {
-        var parts = CanvasSize.Split('x');
-
-        if (parts.Length != 2)
+        if (!Program.ParseSize(CanvasSize, out var width, out var height))
         {
-            throw new ApplicationException("Malformed CanvasSize!");
-        }
-
-        if (!int.TryParse(parts[0], out int width) || !int.TryParse(parts[1], out int height))
-        {
-            throw new ApplicationException("Malformed CanvasSize!");
+            throw new InvalidOperationException("Malformed CanvasSize!");
         }
 
         return (width, height);
+    }
+
+    public void Dispose()
+    {
+        drawContext?.Dispose();
+        renderLock.Dispose();
+        blinkTimer?.Stop();
+        GC.SuppressFinalize(this);
     }
 }
