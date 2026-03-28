@@ -29,9 +29,10 @@ public class Drawable
     /// When set, color resolution uses this palette instead of the per-command state's ColorMap.
     /// This enables palette animation (blink, palette cycling) — modifications to LivePalette
     /// are immediately visible on re-render without changing historical state snapshots.
-    /// Rendering is single-threaded, so a static property is safe here.
+    /// ThreadStatic ensures each thread gets its own palette for safe parallel rendering.
     /// </summary>
-    public static Dictionary<byte, NaplpsColor>? LivePalette { get; set; }
+    [ThreadStatic]
+    public static Dictionary<byte, NaplpsColor>? LivePalette;
 
     private readonly NaplpsCommand _baseCommand;
     private readonly NaplpsState _state;

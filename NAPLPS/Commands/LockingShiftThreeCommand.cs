@@ -10,6 +10,6 @@ public class LockingShiftThreeCommand : EscCommand
         //State.GLeft = 3;
         State.InLockingManner = true;
 
-        // Debugger.Break();
+        State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Locking shift three command encountered", opcode);
     }
 }

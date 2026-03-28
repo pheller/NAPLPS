@@ -33,6 +33,13 @@ public abstract class PolygonCommand : FillableGeometricDrawingCommandBase
         }
         else
         {
+            if (operands.Count < State.MultiByteValue)
+            {
+                State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Polygon set command has fewer operands than MultiByteValue requires", opcode);
+                IsValid = false;
+                return;
+            }
+
             StartPoint = ProcessVertices(operands[..State.MultiByteValue]).FirstOrDefault();
 
             SetPen(StartPoint);

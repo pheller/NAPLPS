@@ -143,6 +143,21 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<PaletteColor> paletteColors = [];
 
+    [ObservableProperty]
+    private ObservableCollection<DiagnosticItem> diagnosticItems = [];
+
+    [ObservableProperty]
+    private bool hasDiagnostics;
+
+    [ObservableProperty]
+    private int errorCount;
+
+    [ObservableProperty]
+    private int warningCount;
+
+    [ObservableProperty]
+    private bool isDiagnosticsPanelVisible;
+
     public string TitleBarDisplay => IsFileDirty ? $"*{TitleBar}" : TitleBar;
 
     public bool IsSelectToolActive => ActiveTool is SelectTool;
@@ -1016,10 +1031,15 @@ public partial class MainWindowViewModel : ViewModelBase
         sequenceWindow?.Close();
         sequenceWindow = null;
 
+        propertiesWindow?.Close();
+        propertiesWindow = null;
+
         undoManager.Clear();
 
         loadedFile = null;
         loadedFilePath = string.Empty;
+
+        ClearDiagnostics();
 
         FileName = DEFAULT_NO_FILE_NAME;
 
@@ -1047,6 +1067,8 @@ public partial class MainWindowViewModel : ViewModelBase
             BitWidth = loadedFile.Is7Bit ? "7-Bit" : "8-Bit";
             FileSystemType = loadedFile.SystemType.ToString();
 
+            UpdateDiagnostics(loadedFile);
+
             await UpdateCanvas();
         }
         catch (Exception ex)
@@ -1056,6 +1078,98 @@ public partial class MainWindowViewModel : ViewModelBase
                 await MessageBoxManager.GetMessageBoxStandard("Error", $"Failed to load file: {ex.Message}").ShowAsync();
             }
         }
+    }
+
+    private void UpdateDiagnostics(NaplpsFormat naplps)
+    {
+        var items = new ObservableCollection<DiagnosticItem>();
+
+        foreach (var error in naplps.Errors)
+        {
+            var details = "";
+
+            if (error.Opcode.HasValue)
+            {
+                details += $"Opcode: 0x{error.Opcode.Value:X2}";
+            }
+
+            if (error.StreamPosition.HasValue)
+            {
+                if (details.Length > 0)
+                {
+                    details += " | ";
+                }
+
+                details += $"Position: {error.StreamPosition.Value}";
+            }
+
+            items.Add(new DiagnosticItem
+            {
+                IsError = error.Severity == NaplpsErrorSeverity.Error,
+                Severity = error.Severity.ToString(),
+                Type = error.Type.ToString(),
+                Message = error.Message,
+                Details = details
+            });
+        }
+
+        DiagnosticItems = items;
+        ErrorCount = items.Count(i => i.IsError);
+        WarningCount = items.Count(i => !i.IsError);
+        HasDiagnostics = items.Count > 0;
+        IsDiagnosticsPanelVisible = HasDiagnostics;
+    }
+
+    private void ClearDiagnostics()
+    {
+        DiagnosticItems = [];
+        ErrorCount = 0;
+        WarningCount = 0;
+        HasDiagnostics = false;
+        IsDiagnosticsPanelVisible = false;
+    }
+
+    private Window? propertiesWindow;
+
+    [RelayCommand]
+    private void Properties()
+    {
+        ShowPropertiesWindow(0);
+    }
+
+    [RelayCommand]
+    private void ShowDiagnostics()
+    {
+        ShowPropertiesWindow(1);
+    }
+
+    private void ShowPropertiesWindow(int startTab)
+    {
+        if (loadedFile == null || App.MainWindow == null)
+        {
+            return;
+        }
+
+        if (propertiesWindow != null)
+        {
+            if (propertiesWindow.DataContext is PropertiesWindowViewModel existingVm)
+            {
+                existingVm.SelectedTabIndex = startTab;
+            }
+
+            propertiesWindow.Activate();
+            return;
+        }
+
+        var vm = PropertiesWindowViewModel.FromFile(loadedFile, loadedFilePath, DiagnosticItems, startTab);
+
+        propertiesWindow = new PropertiesWindow
+        {
+            DataContext = vm
+        };
+
+        propertiesWindow.Closed += (_, _) => propertiesWindow = null;
+        propertiesWindow.Show(App.MainWindow);
     }
 
     private void BuildDrawContext()

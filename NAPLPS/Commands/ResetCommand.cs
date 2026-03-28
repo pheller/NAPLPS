@@ -46,12 +46,12 @@ public class ResetCommand : NaplpsCommand
 		/*	ignored. */
         if (operands.Count == 0)
         {
-            // Debugger.Break();
+            State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Reset command received with no operands, padding with defaults", opcode);
             Operands.AddRange([0, 0]);
         }
         else if (operands.Count == 1)
         {
-            // Debugger.Break();
+            State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Reset command received with only 1 operand, padding with default", opcode);
             Operands.Add(0);
         }
 

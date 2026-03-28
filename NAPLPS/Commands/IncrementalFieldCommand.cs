@@ -34,6 +34,11 @@ public class IncrementalFieldCommand : GeometricDrawingCommandBase
             Dimensions = vertices[1];
         }
 
+        // Field dimensions are sizes — take absolute value.
+        // In NAPLPS signed-fraction encoding, -1.0 (sign bit set, value bits zero)
+        // represents "full unit screen extent" when used as a dimension.
+        Dimensions = new Vector3(Math.Abs(Dimensions.X), Math.Abs(Dimensions.Y), Math.Abs(Dimensions.Z));
+
         state.Field = new NaplpsField(Origin, Dimensions);
 
         // Position pen at the top of the field.

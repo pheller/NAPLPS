@@ -1,0 +1,556 @@
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Text;
+using NAPLPS.Drawing;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
+namespace NAPLPSTests.Visual;
+
+public enum VisualTestStatus
+{
+    Pass,
+    Fail,
+    New,
+    Error
+}
+
+public record VisualTestResult(
+    string RelativePath,
+    VisualTestStatus Status,
+    string? BaselinePath,
+    string? ActualPath,
+    string? DiffHtmlPath,
+    int FrameCount,
+    int DiffFrameCount,
+    long TotalDiffPixels,
+    string? ErrorMessage
+);
+
+public record FrameDiffResult(
+    int FrameIndex,
+    long DiffPixelCount,
+    long TotalPixels,
+    Image<Rgba32>? DiffImage
+);
+
+public record ComparisonResult(
+    bool AreIdentical,
+    int BaselineFrameCount,
+    int ActualFrameCount,
+    List<FrameDiffResult> FrameDiffs,
+    long TotalDiffPixels
+);
+
+public static class VisualTestContext
+{
+    public const int CanvasWidth = 1024;
+    public const int CanvasHeight = 768;
+
+    private static readonly string[] SkipExtensions = [".jpg", ".png", ".txt", ".exe"];
+
+    public static readonly ConcurrentDictionary<string, VisualTestResult> Results = new();
+
+    public static string SourceDir { get; } = ResolveSourceDir();
+
+    public static string BaselinesDir => Path.Combine(SourceDir, "Visual", "Baselines");
+
+    public static string OutputDir { get; set; } = Path.Combine(AppContext.BaseDirectory, "VisualRegression");
+
+    public static string ActualsDir => Path.Combine(OutputDir, "Actuals");
+
+    public static string DiffsDir => Path.Combine(OutputDir, "Diffs");
+
+    public static string ReportPath => Path.Combine(OutputDir, "VisualRegressionReport.html");
+
+    public static string ExamplesDir => Path.Combine(AppContext.BaseDirectory, "examples");
+
+    public static IEnumerable<string> DiscoverExampleFiles()
+    {
+        return Directory.GetFiles(ExamplesDir, "*", SearchOption.AllDirectories)
+            .Where(f => !SkipExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+            .Select(f => Path.GetRelativePath(ExamplesDir, f))
+            .OrderBy(f => f);
+    }
+
+    public static string GetBaselinePath(string relativePath)
+    {
+        return Path.Combine(BaselinesDir, relativePath + ".apng");
+    }
+
+    public static string GetActualPath(string relativePath)
+    {
+        return Path.Combine(ActualsDir, relativePath + ".apng");
+    }
+
+    public static string GetDiffHtmlPath(string relativePath)
+    {
+        return Path.Combine(DiffsDir, relativePath + ".diff.html");
+    }
+
+    public static void EnsureDirectories()
+    {
+        Directory.CreateDirectory(ActualsDir);
+        Directory.CreateDirectory(DiffsDir);
+    }
+
+    public static void CleanOutputDirs()
+    {
+        if (Directory.Exists(ActualsDir))
+        {
+            Directory.Delete(ActualsDir, true);
+        }
+
+        if (Directory.Exists(DiffsDir))
+        {
+            Directory.Delete(DiffsDir, true);
+        }
+
+        EnsureDirectories();
+    }
+
+    public static Image<Rgba32> RenderApng(string exampleFilePath)
+    {
+        var naplps = NaplpsFormat.FromFile(exampleFilePath);
+
+        using var drawContext = new DrawContext(naplps, new SixLabors.ImageSharp.Size(CanvasWidth, CanvasHeight));
+
+        return drawContext.RenderToApng();
+    }
+
+    public static ComparisonResult CompareApngs(string baselinePath, string actualPath)
+    {
+        using var baseline = Image.Load<Rgba32>(baselinePath);
+        using var actual = Image.Load<Rgba32>(actualPath);
+
+        var baselineCount = baseline.Frames.Count;
+        var actualCount = actual.Frames.Count;
+        var maxFrames = Math.Max(baselineCount, actualCount);
+        var frameDiffs = new List<FrameDiffResult>();
+        long totalDiffPixels = 0;
+        bool allIdentical = baselineCount == actualCount;
+
+        for (int i = 0; i < maxFrames; i++)
+        {
+            if (i >= baselineCount || i >= actualCount)
+            {
+                var missingFramePixels = (long)CanvasWidth * CanvasHeight;
+                totalDiffPixels += missingFramePixels;
+                frameDiffs.Add(new FrameDiffResult(i, missingFramePixels, missingFramePixels, null));
+                allIdentical = false;
+                continue;
+            }
+
+            var diff = CompareFrames(baseline.Frames[i], actual.Frames[i]);
+            frameDiffs.Add(diff);
+            totalDiffPixels += diff.DiffPixelCount;
+
+            if (diff.DiffPixelCount > 0)
+            {
+                allIdentical = false;
+            }
+        }
+
+        return new ComparisonResult(allIdentical, baselineCount, actualCount, frameDiffs, totalDiffPixels);
+    }
+
+    private static FrameDiffResult CompareFrames(ImageFrame<Rgba32> baselineFrame, ImageFrame<Rgba32> actualFrame)
+    {
+        int width = baselineFrame.Width;
+        int height = baselineFrame.Height;
+        long diffCount = 0;
+        long totalPixels = (long)width * height;
+
+        var diffImage = new Image<Rgba32>(width, height);
+
+        baselineFrame.ProcessPixelRows(actualFrame, diffImage.Frames.RootFrame, (bAccessor, aAccessor, dAccessor) =>
+        {
+            for (int y = 0; y < height; y++)
+            {
+                var bRow = bAccessor.GetRowSpan(y);
+                var aRow = aAccessor.GetRowSpan(y);
+                var dRow = dAccessor.GetRowSpan(y);
+
+                for (int x = 0; x < width; x++)
+                {
+                    if (bRow[x] != aRow[x])
+                    {
+                        Interlocked.Increment(ref diffCount);
+                        dRow[x] = new Rgba32(255, 0, 255, 255);
+                    }
+                    else
+                    {
+                        var p = bRow[x];
+                        dRow[x] = new Rgba32((byte)(p.R / 4), (byte)(p.G / 4), (byte)(p.B / 4), 255);
+                    }
+                }
+            }
+        });
+
+        return new FrameDiffResult(0, diffCount, totalPixels, diffCount > 0 ? diffImage : null);
+    }
+
+    public static void GenerateDiffHtml(string relativePath, ComparisonResult comparison, string baselinePath, string actualPath, string outputPath)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html><head><meta charset='utf-8'>");
+        sb.AppendLine($"<title>Diff: {HtmlEncode(relativePath)}</title>");
+        sb.AppendLine("<style>");
+        sb.AppendLine(DiffPageCss());
+        sb.AppendLine("</style></head><body>");
+        sb.AppendLine($"<h1>Visual Diff: {HtmlEncode(relativePath)}</h1>");
+        sb.AppendLine($"<div class='summary'>Baseline frames: {comparison.BaselineFrameCount} | Actual frames: {comparison.ActualFrameCount} | Diff pixels: {comparison.TotalDiffPixels:N0}</div>");
+
+        sb.AppendLine("<div class='tabs'>");
+        sb.AppendLine("<button class='tab active' onclick='setView(\"sidebyside\")'>Side by Side</button>");
+        sb.AppendLine("<button class='tab' onclick='setView(\"overlay\")'>Overlay</button>");
+        sb.AppendLine("<button class='tab' onclick='setView(\"toggle\")'>Toggle</button>");
+        sb.AppendLine("</div>");
+
+        var baselineFrames = ExtractFramesAsBase64(baselinePath);
+        var actualFrames = ExtractFramesAsBase64(actualPath);
+        var diffFrames = new List<string>();
+
+        foreach (var fd in comparison.FrameDiffs)
+        {
+            if (fd.DiffImage != null)
+            {
+                diffFrames.Add(ImageToBase64(fd.DiffImage));
+                fd.DiffImage.Dispose();
+            }
+            else
+            {
+                diffFrames.Add("");
+            }
+        }
+
+        sb.AppendLine("<script>");
+        sb.AppendLine($"const baselineFrames = {JsonArrayFromList(baselineFrames)};");
+        sb.AppendLine($"const actualFrames = {JsonArrayFromList(actualFrames)};");
+        sb.AppendLine($"const diffFrames = {JsonArrayFromList(diffFrames)};");
+        sb.AppendLine($"const frameDiffs = [{string.Join(",", comparison.FrameDiffs.Select(f => f.DiffPixelCount))}];");
+        sb.AppendLine($"const frameTotals = [{string.Join(",", comparison.FrameDiffs.Select(f => f.TotalPixels))}];");
+        sb.AppendLine($"let currentFrame = 0;");
+        sb.AppendLine($"let currentView = 'sidebyside';");
+        sb.AppendLine(DiffPageJs());
+        sb.AppendLine("</script>");
+
+        sb.AppendLine("<div class='frame-nav'>");
+        sb.AppendLine("<button onclick='prevFrame()'>Prev</button>");
+        sb.AppendLine("<span id='frameCounter'>Frame 1 / 1</span>");
+        sb.AppendLine("<button onclick='nextFrame()'>Next</button>");
+        sb.AppendLine("<span id='frameStats'></span>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("<div id='viewer' class='viewer'></div>");
+        sb.AppendLine("<script>updateView();</script>");
+        sb.AppendLine("</body></html>");
+
+        System.IO.File.WriteAllText(outputPath, sb.ToString());
+    }
+
+    public static void GenerateReport(ConcurrentDictionary<string, VisualTestResult> results)
+    {
+        Directory.CreateDirectory(OutputDir);
+
+        var sorted = results.Values.OrderBy(r => r.Status).ThenBy(r => r.RelativePath).ToList();
+        var passed = sorted.Count(r => r.Status == VisualTestStatus.Pass);
+        var failed = sorted.Count(r => r.Status == VisualTestStatus.Fail);
+        var newCount = sorted.Count(r => r.Status == VisualTestStatus.New);
+        var errors = sorted.Count(r => r.Status == VisualTestStatus.Error);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html><head><meta charset='utf-8'>");
+        sb.AppendLine("<title>Visual Regression Report</title>");
+        sb.AppendLine("<style>");
+        sb.AppendLine(ReportCss());
+        sb.AppendLine("</style></head><body>");
+
+        sb.AppendLine("<h1>Visual Regression Report</h1>");
+        sb.AppendLine($"<div class='timestamp'>Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}</div>");
+
+        sb.AppendLine("<div class='stats'>");
+        sb.AppendLine($"<span class='stat pass'>{passed} Passed</span>");
+        sb.AppendLine($"<span class='stat fail'>{failed} Failed</span>");
+        sb.AppendLine($"<span class='stat new'>{newCount} New</span>");
+        if (errors > 0)
+        {
+            sb.AppendLine($"<span class='stat error'>{errors} Errors</span>");
+        }
+        sb.AppendLine($"<span class='stat total'>{sorted.Count} Total</span>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("<div class='filters'>");
+        sb.AppendLine("<button class='filter active' onclick='filterBy(\"all\")'>All</button>");
+        sb.AppendLine("<button class='filter' onclick='filterBy(\"pass\")'>Passed</button>");
+        sb.AppendLine("<button class='filter' onclick='filterBy(\"fail\")'>Failed</button>");
+        sb.AppendLine("<button class='filter' onclick='filterBy(\"new\")'>New</button>");
+        if (errors > 0)
+        {
+            sb.AppendLine("<button class='filter' onclick='filterBy(\"error\")'>Errors</button>");
+        }
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("<table id='results'>");
+        sb.AppendLine("<thead><tr><th>Status</th><th>File</th><th>Frames</th><th>Diff Pixels</th><th>Details</th></tr></thead>");
+        sb.AppendLine("<tbody>");
+
+        foreach (var result in sorted)
+        {
+            var statusClass = result.Status.ToString().ToLowerInvariant();
+            var statusIcon = result.Status switch
+            {
+                VisualTestStatus.Pass => "&#10004;",
+                VisualTestStatus.Fail => "&#10008;",
+                VisualTestStatus.New => "&#9733;",
+                VisualTestStatus.Error => "&#9888;",
+                _ => "?"
+            };
+
+            sb.AppendLine($"<tr class='row {statusClass}' data-status='{statusClass}'>");
+            sb.AppendLine($"<td class='status {statusClass}'>{statusIcon}</td>");
+            sb.AppendLine($"<td>{HtmlEncode(result.RelativePath)}</td>");
+            sb.AppendLine($"<td>{result.FrameCount}</td>");
+            sb.AppendLine($"<td>{(result.TotalDiffPixels > 0 ? result.TotalDiffPixels.ToString("N0") : "")}</td>");
+
+            if (result.Status == VisualTestStatus.Fail && result.DiffHtmlPath != null)
+            {
+                var diffRelative = Path.GetRelativePath(OutputDir, result.DiffHtmlPath);
+                sb.AppendLine($"<td><a href='{HtmlEncode(diffRelative.Replace('\\', '/'))}'>View Diff</a></td>");
+            }
+            else if (result.Status == VisualTestStatus.Error)
+            {
+                sb.AppendLine($"<td>{HtmlEncode(result.ErrorMessage ?? "")}</td>");
+            }
+            else
+            {
+                sb.AppendLine("<td></td>");
+            }
+
+            sb.AppendLine("</tr>");
+        }
+
+        sb.AppendLine("</tbody></table>");
+
+        if (failed > 0 || newCount > 0)
+        {
+            sb.AppendLine("<div class='accept-section'>");
+            sb.AppendLine("<h2>Accept Baselines</h2>");
+
+            if (newCount > 0)
+            {
+                sb.AppendLine("<h3>Accept All New</h3>");
+                sb.AppendLine("<pre class='command'>powershell -File accept-baselines.ps1 -NewOnly</pre>");
+            }
+
+            if (failed > 0)
+            {
+                sb.AppendLine("<h3>Accept All Changed</h3>");
+                sb.AppendLine("<pre class='command'>powershell -File accept-baselines.ps1 -All</pre>");
+            }
+
+            sb.AppendLine("<h3>Git Commands</h3>");
+            sb.AppendLine($"<pre class='command'>git add NAPLPSTests/Visual/Baselines/\ngit commit -m \"Update visual regression baselines\"</pre>");
+            sb.AppendLine("</div>");
+        }
+
+        sb.AppendLine("<script>");
+        sb.AppendLine(ReportJs());
+        sb.AppendLine("</script>");
+        sb.AppendLine("</body></html>");
+
+        System.IO.File.WriteAllText(ReportPath, sb.ToString());
+    }
+
+    private static string ResolveSourceDir([CallerFilePath] string? callerPath = null)
+    {
+        return Path.GetDirectoryName(Path.GetDirectoryName(callerPath!))!;
+    }
+
+    private static List<string> ExtractFramesAsBase64(string apngPath)
+    {
+        var frames = new List<string>();
+
+        using var image = Image.Load<Rgba32>(apngPath);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            using var singleFrame = new Image<Rgba32>(image.Width, image.Height);
+
+            singleFrame.Frames.RootFrame.ProcessPixelRows(image.Frames[i], (dst, src) =>
+            {
+                for (int y = 0; y < dst.Height; y++)
+                {
+                    src.GetRowSpan(y).CopyTo(dst.GetRowSpan(y));
+                }
+            });
+
+            frames.Add(ImageToBase64(singleFrame));
+        }
+
+        return frames;
+    }
+
+    private static string ImageToBase64(Image<Rgba32> image)
+    {
+        using var ms = new MemoryStream();
+        image.SaveAsPng(ms);
+        return Convert.ToBase64String(ms.ToArray());
+    }
+
+    private static string HtmlEncode(string text)
+    {
+        return System.Net.WebUtility.HtmlEncode(text);
+    }
+
+    private static string JsonArrayFromList(List<string> items)
+    {
+        var sb = new StringBuilder("[");
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(',');
+            }
+
+            sb.Append('"');
+            sb.Append(items[i]);
+            sb.Append('"');
+        }
+
+        sb.Append(']');
+        return sb.ToString();
+    }
+
+    private static string ReportCss() => """
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; background: #0d1117; color: #c9d1d9; }
+        h1 { margin-bottom: 8px; color: #f0f6fc; }
+        .timestamp { color: #8b949e; margin-bottom: 16px; }
+        .stats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .stat { padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 14px; }
+        .stat.pass { background: #0d2818; color: #3fb950; }
+        .stat.fail { background: #3d1417; color: #f85149; }
+        .stat.new { background: #2e2a00; color: #d29922; }
+        .stat.error { background: #3d1417; color: #f85149; }
+        .stat.total { background: #161b22; color: #8b949e; }
+        .filters { margin-bottom: 16px; display: flex; gap: 8px; }
+        .filter { padding: 6px 12px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; border-radius: 6px; cursor: pointer; }
+        .filter.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+        table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 8px; overflow: hidden; }
+        th { text-align: left; padding: 10px 14px; background: #21262d; color: #8b949e; font-size: 13px; text-transform: uppercase; }
+        td { padding: 8px 14px; border-top: 1px solid #21262d; font-size: 14px; }
+        .status { font-size: 16px; width: 30px; text-align: center; }
+        .status.pass { color: #3fb950; }
+        .status.fail { color: #f85149; }
+        .status.new { color: #d29922; }
+        .status.error { color: #f85149; }
+        tr:hover { background: #1c2128; }
+        a { color: #58a6ff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .accept-section { margin-top: 32px; padding: 20px; background: #161b22; border-radius: 8px; border: 1px solid #30363d; }
+        .accept-section h2 { color: #f0f6fc; margin-bottom: 12px; }
+        .accept-section h3 { color: #c9d1d9; margin: 12px 0 6px; font-size: 14px; }
+        .command { background: #0d1117; padding: 10px 14px; border-radius: 6px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; color: #79c0ff; overflow-x: auto; white-space: pre; cursor: pointer; border: 1px solid #30363d; }
+        .command:hover { border-color: #58a6ff; }
+        .row.hidden { display: none; }
+        """;
+
+    private static string ReportJs() => """
+        function filterBy(status) {
+            document.querySelectorAll('.filter').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.row').forEach(row => {
+                if (status === 'all' || row.dataset.status === status) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+        }
+        document.querySelectorAll('.command').forEach(el => {
+            el.title = 'Click to copy';
+            el.addEventListener('click', () => {
+                navigator.clipboard.writeText(el.textContent);
+                const orig = el.style.borderColor;
+                el.style.borderColor = '#3fb950';
+                setTimeout(() => el.style.borderColor = orig, 1000);
+            });
+        });
+        """;
+
+    private static string DiffPageCss() => """
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; background: #0d1117; color: #c9d1d9; }
+        h1 { margin-bottom: 8px; color: #f0f6fc; font-size: 20px; }
+        .summary { color: #8b949e; margin-bottom: 16px; font-size: 14px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .tab { padding: 6px 12px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; border-radius: 6px; cursor: pointer; }
+        .tab.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+        .frame-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .frame-nav button { padding: 6px 12px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; border-radius: 6px; cursor: pointer; }
+        .frame-nav button:hover { border-color: #58a6ff; }
+        #frameCounter { color: #8b949e; font-size: 14px; }
+        #frameStats { color: #f85149; font-size: 14px; }
+        .viewer { display: flex; gap: 16px; flex-wrap: wrap; }
+        .viewer img { max-width: 100%; border: 1px solid #30363d; border-radius: 4px; image-rendering: pixelated; }
+        .viewer .panel { flex: 1; min-width: 300px; }
+        .viewer .panel h3 { color: #8b949e; font-size: 13px; text-transform: uppercase; margin-bottom: 6px; }
+        """;
+
+    private static string DiffPageJs() => """
+        function maxFrames() { return Math.max(baselineFrames.length, actualFrames.length, diffFrames.length); }
+        function prevFrame() { if (currentFrame > 0) { currentFrame--; updateView(); } }
+        function nextFrame() { if (currentFrame < maxFrames() - 1) { currentFrame++; updateView(); } }
+        function setView(v) {
+            currentView = v;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            updateView();
+        }
+        function updateView() {
+            const fc = document.getElementById('frameCounter');
+            fc.textContent = `Frame ${currentFrame + 1} / ${maxFrames()}`;
+            const fs = document.getElementById('frameStats');
+            if (frameDiffs[currentFrame] > 0) {
+                const pct = ((frameDiffs[currentFrame] / frameTotals[currentFrame]) * 100).toFixed(2);
+                fs.textContent = `${frameDiffs[currentFrame].toLocaleString()} pixels differ (${pct}%)`;
+            } else { fs.textContent = 'Identical'; fs.style.color = '#3fb950'; }
+
+            const viewer = document.getElementById('viewer');
+            const bSrc = currentFrame < baselineFrames.length ? `data:image/png;base64,${baselineFrames[currentFrame]}` : '';
+            const aSrc = currentFrame < actualFrames.length ? `data:image/png;base64,${actualFrames[currentFrame]}` : '';
+            const dSrc = currentFrame < diffFrames.length && diffFrames[currentFrame] ? `data:image/png;base64,${diffFrames[currentFrame]}` : '';
+
+            if (currentView === 'sidebyside') {
+                viewer.innerHTML = `
+                    <div class='panel'><h3>Baseline</h3><img src='${bSrc}'></div>
+                    <div class='panel'><h3>Actual</h3><img src='${aSrc}'></div>
+                    ${dSrc ? `<div class='panel'><h3>Diff</h3><img src='${dSrc}'></div>` : ''}`;
+            } else if (currentView === 'overlay') {
+                viewer.innerHTML = dSrc
+                    ? `<div class='panel'><h3>Diff Overlay</h3><img src='${dSrc}'></div>`
+                    : `<div class='panel'><h3>No differences</h3></div>`;
+            } else {
+                viewer.innerHTML = `<div class='panel'><h3 id='toggleLabel'>Baseline (click to toggle)</h3><img id='toggleImg' src='${bSrc}' style='cursor:pointer' onclick='toggleImage()'></div>`;
+                window._toggleState = false;
+                window._toggleBaseline = bSrc;
+                window._toggleActual = aSrc;
+            }
+        }
+        function toggleImage() {
+            window._toggleState = !window._toggleState;
+            document.getElementById('toggleImg').src = window._toggleState ? window._toggleActual : window._toggleBaseline;
+            document.getElementById('toggleLabel').textContent = window._toggleState ? 'Actual (click to toggle)' : 'Baseline (click to toggle)';
+        }
+        """;
+}

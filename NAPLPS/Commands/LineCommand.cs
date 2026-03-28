@@ -12,7 +12,7 @@ public abstract class LineCommand : GeometricDrawingCommandBase
 
         if (verticies.Count == 0 || operands.Count == 0)
         {
-            // Debugger.Break();
+            State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Line command received with no vertices or operands", opcode);
 
             return;
         }

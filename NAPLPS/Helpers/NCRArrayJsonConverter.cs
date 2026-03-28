@@ -66,6 +66,7 @@ public sealed class NCRArrayJsonConverter : JsonConverter<NCR[]>
                 ("PrimaryCharacterSet", NaplpsState.PrimaryCharacterSet),
                 ("SupplementaryCharacterSet", NaplpsState.SupplementaryCharacterSet),
                 ("GeneralPDISet", NaplpsState.GeneralPDISet),
+                ("TelidonPDISet", NaplpsState.TelidonPDISet),
                 ("MosiacSet", NaplpsState.MosiacSet)));
 
         writer.WriteString("C1",
@@ -75,6 +76,7 @@ public sealed class NCRArrayJsonConverter : JsonConverter<NCR[]>
         writer.WriteString("GRight",
             Resolve(value, 160,
                 ("GeneralPDISet", NaplpsState.GeneralPDISet),
+                ("TelidonPDISet", NaplpsState.TelidonPDISet),
                 ("MosiacSet", NaplpsState.MosiacSet)));
 
         writer.WriteEndObject();
@@ -87,6 +89,7 @@ public sealed class NCRArrayJsonConverter : JsonConverter<NCR[]>
         "PrimaryCharacterSet" => NaplpsState.PrimaryCharacterSet,
         "SupplementaryCharacterSet" => NaplpsState.SupplementaryCharacterSet,
         "GeneralPDISet" => NaplpsState.GeneralPDISet,
+        "TelidonPDISet" => NaplpsState.TelidonPDISet,
         "MosiacSet" => NaplpsState.MosiacSet,
         _ => throw new JsonException($"Unknown NCR set '{name}'")
     };

@@ -25,7 +25,7 @@ public abstract class RectangleSetCommand : FillableGeometricDrawingCommandBase
 
         if (StartPoint == Vector3.Zero)
         {
-            // if (Debugger.IsAttached) Debugger.Break();
+            State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Rectangle set command has zero start point", opcode);
         }
 
         SetPen(StartPoint);

@@ -24,4 +24,8 @@
     <ProjectReference Include="..\NAPLPS\NAPLPS.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\examples\**\*" Link="examples\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -8,7 +8,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadMaple()
     {
-        var file = NaplpsFormat.FromFile("../../../../examples/maple.nap");
+        var file = NaplpsFormat.FromFile("examples/maple.nap");
 
         Assert.IsNotNull(file);
 
@@ -23,7 +23,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadAutumn()
     {
-        var file = NaplpsFormat.FromFile("../../../../examples/autumn.nap");
+        var file = NaplpsFormat.FromFile("examples/autumn.nap");
 
         Assert.IsNotNull(file);
 
@@ -38,7 +38,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadGirl()
     {
-        var file = NaplpsFormat.FromFile("../../../../examples/girl.nap");
+        var file = NaplpsFormat.FromFile("examples/girl.nap");
 
         Assert.IsNotNull(file);
 
@@ -54,7 +54,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadBuilding()
     {
-        var file = NaplpsFormat.FromFile("../../../../examples/building.nap");
+        var file = NaplpsFormat.FromFile("examples/building.nap");
 
         Assert.IsNotNull(file);
 
@@ -73,7 +73,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadCar()
     {
-        var file = NaplpsFormat.FromFile("../../../../examples/car.nap");
+        var file = NaplpsFormat.FromFile("examples/car.nap");
 
         Assert.IsNotNull(file);
 
@@ -89,7 +89,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadAudi1()
     {
-        var file = NaplpsFormat.FromFile("../../../../examples/Anthony Wetzel/AUDI1");
+        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/AUDI1");
 
         Assert.IsNotNull(file);
 
@@ -105,7 +105,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadCoke1()
     {
-        var file = NaplpsFormat.FromFile("../../../../examples/Anthony Wetzel/COKE1");
+        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/COKE1");
 
         Assert.IsNotNull(file);
 

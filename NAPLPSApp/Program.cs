@@ -137,6 +137,9 @@ sealed class Program
             var naplps = NaplpsFormat.FromFile(inputFile);
             var fileInfo = new FileInfo(inputFile);
 
+            var warnings = naplps.Errors.Where(e => e.Severity == NaplpsErrorSeverity.Warning).ToList();
+            var errors = naplps.Errors.Where(e => e.Severity == NaplpsErrorSeverity.Error).ToList();
+
             if (format == "json")
             {
                 var info = new
@@ -148,7 +151,10 @@ sealed class Program
                     BitWidth = naplps.Is7Bit ? "7-Bit" : "8-Bit",
                     CommandCount = naplps.Commands.Count,
                     IsValid = naplps.IsValid,
-                    ErrorCount = naplps.Errors.Count,
+                    ErrorCount = errors.Count,
+                    WarningCount = warnings.Count,
+                    Errors = errors.Select(e => e.ToString()).ToArray(),
+                    Warnings = warnings.Select(e => e.ToString()).ToArray(),
                     Version
                 };
 
@@ -165,7 +171,32 @@ sealed class Program
                 Console.WriteLine($"Bit Width:\t{(naplps.Is7Bit ? "7-Bit" : "8-Bit")}");
                 Console.WriteLine($"Commands:\t{naplps.Commands.Count}");
                 Console.WriteLine($"Valid:\t\t{naplps.IsValid}");
-                Console.WriteLine($"Errors:\t\t{naplps.Errors.Count}");
+                Console.WriteLine($"Errors:\t\t{errors.Count}");
+                Console.WriteLine($"Warnings:\t{warnings.Count}");
+
+                if (errors.Count > 0)
+                {
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Errors:");
+                    foreach (var error in errors)
+                    {
+                        Console.WriteLine($"  {error}");
+                    }
+                    Console.ResetColor();
+                }
+
+                if (warnings.Count > 0)
+                {
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Warnings:");
+                    foreach (var warning in warnings)
+                    {
+                        Console.WriteLine($"  {warning}");
+                    }
+                    Console.ResetColor();
+                }
             }
 
             return 0;
@@ -489,47 +520,9 @@ sealed class Program
 
     private static int ExportApng(DrawContext drawContext, string? outputFile, bool useStdout, int delay)
     {
-        using var apng = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(drawContext.Size.Width, drawContext.Size.Height);
+        using var apng = drawContext.RenderToApng(delay);
 
-        var pngMeta = apng.Metadata.GetFormatMetadata(SixLabors.ImageSharp.Formats.Png.PngFormat.Instance);
-        pngMeta.RepeatCount = 0; // Loop forever
-
-        // Frame delay as a Rational: delay/1000 seconds per frame
-        var frameDelay = new SixLabors.ImageSharp.Rational((uint)delay, 1000);
-
-        int visualFrames = 0;
-
-        for (uint i = 0; i <= drawContext.TotalFrames; i++)
-        {
-            drawContext.Render(i);
-
-            var frame = drawContext.Image.Clone();
-
-            if (i == 0)
-            {
-                apng.Frames.RootFrame.ProcessPixelRows(frame.Frames.RootFrame, (accessorApng, accessorFrame) =>
-                {
-                    for (int y = 0; y < accessorApng.Height; y++)
-                    {
-                        var rowApng = accessorApng.GetRowSpan(y);
-                        var rowFrame = accessorFrame.GetRowSpan(y);
-                        rowFrame.CopyTo(rowApng);
-                    }
-                });
-
-                var rootFrameMeta = apng.Frames.RootFrame.Metadata.GetFormatMetadata(SixLabors.ImageSharp.Formats.Png.PngFormat.Instance);
-                rootFrameMeta.FrameDelay = frameDelay;
-            }
-            else
-            {
-                var addedFrame = apng.Frames.AddFrame(frame.Frames.RootFrame);
-                var addedMeta = addedFrame.Metadata.GetFormatMetadata(SixLabors.ImageSharp.Formats.Png.PngFormat.Instance);
-                addedMeta.FrameDelay = frameDelay;
-            }
-
-            frame.Dispose();
-            visualFrames++;
-        }
+        var visualFrames = apng.Frames.Count;
 
         if (useStdout)
         {

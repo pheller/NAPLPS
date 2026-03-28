@@ -45,6 +45,8 @@
 				<Separator/>
 				<MenuItem Header="_Export PNG" Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
 				<Separator/>
+				<MenuItem Header="_Properties" Command="{Binding PropertiesCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-info"/>
+				<Separator/>
 				<MenuItem Header="_Quit" Command="{Binding QuitCommand}" i:MenuItem.Icon="fa-solid fa-door-open"/>
 			</MenuItem>
 			<MenuItem Header="_Edit">
@@ -56,7 +58,6 @@
 				<MenuItem Header="_Group Layers" IsEnabled="false"></MenuItem>
 				<MenuItem Header="_Ungroup Layers" IsEnabled="false"></MenuItem>
 				<Separator/>
-				<MenuItem Header="_Properties" IsEnabled="false"></MenuItem>
 				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
 			</MenuItem>
 			<MenuItem Header="_Render">
@@ -154,6 +155,18 @@
 				<TextBlock Text="{Binding CurrentFrame}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
 				<TextBlock Text="/" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
 				<TextBlock Text="{Binding TotalFrames}" VerticalAlignment="Center" IsVisible="{Binding IsFileLoaded}"/>
+
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding HasDiagnostics}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+				<StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasDiagnostics}">
+					<Button Command="{Binding ShowDiagnosticsCommand}" Background="Transparent" Padding="2,0" Cursor="Hand">
+						<StackPanel Orientation="Horizontal" Spacing="4">
+							<i:Icon Value="fa-solid fa-circle-xmark" Foreground="#F44" FontSize="11" IsVisible="{Binding ErrorCount}"/>
+							<TextBlock Text="{Binding ErrorCount}" Foreground="#F44" FontSize="11" VerticalAlignment="Center" IsVisible="{Binding ErrorCount}"/>
+							<i:Icon Value="fa-solid fa-triangle-exclamation" Foreground="#FC0" FontSize="11" IsVisible="{Binding WarningCount}"/>
+							<TextBlock Text="{Binding WarningCount}" Foreground="#FC0" FontSize="11" VerticalAlignment="Center" IsVisible="{Binding WarningCount}"/>
+						</StackPanel>
+					</Button>
+				</StackPanel>
 
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsEditorMode}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 				<i:Icon Value="fa-solid fa-pen-ruler" Margin="0,0,5,0" IsVisible="{Binding IsEditorMode}" />

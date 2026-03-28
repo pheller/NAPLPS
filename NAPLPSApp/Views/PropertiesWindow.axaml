@@ -1,0 +1,132 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:NAPLPSApp.ViewModels"
+		xmlns:i="https://github.com/projektanker/icons.avalonia"
+		x:Class="NAPLPSApp.Views.PropertiesWindow"
+		x:DataType="vm:PropertiesWindowViewModel"
+		Title="File Properties"
+		Width="580" Height="560"
+		MinWidth="450" MinHeight="400"
+		WindowStartupLocation="CenterOwner"
+		Icon="/Assets/naplps.ico">
+
+	<Design.DataContext>
+		<vm:PropertiesWindowViewModel/>
+	</Design.DataContext>
+
+	<DockPanel Margin="12">
+		<!-- Bottom buttons -->
+		<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+			<Button Content="Close" Click="OnCloseClick" Width="80" HorizontalContentAlignment="Center"/>
+		</StackPanel>
+
+		<TabControl SelectedIndex="{Binding SelectedTabIndex}">
+			<!-- General Tab -->
+			<TabItem>
+				<TabItem.Header>
+					<StackPanel Orientation="Horizontal" Spacing="6">
+						<i:Icon Value="fa-solid fa-circle-info" FontSize="12" VerticalAlignment="Center"/>
+						<TextBlock Text="General" VerticalAlignment="Center"/>
+					</StackPanel>
+				</TabItem.Header>
+				<StackPanel Margin="16" Spacing="10">
+					<Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+						<TextBlock Grid.Row="0" Grid.Column="0" Text="File Name:" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="#BBB"/>
+						<TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding FileName}" FontSize="13" VerticalAlignment="Center"/>
+
+						<TextBlock Grid.Row="1" Grid.Column="0" Text="File Size:" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="#BBB"/>
+						<TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FileSize}" FontSize="13" VerticalAlignment="Center"/>
+
+						<TextBlock Grid.Row="2" Grid.Column="0" Text="Location:" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="#BBB"/>
+						<TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding FilePath}" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center" Foreground="#888"/>
+
+						<Separator Grid.Row="3" Grid.ColumnSpan="2"/>
+
+						<TextBlock Grid.Row="4" Grid.Column="0" Text="System Type:" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="#BBB"/>
+						<TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SystemType}" FontSize="13" VerticalAlignment="Center"/>
+
+						<TextBlock Grid.Row="5" Grid.Column="0" Text="Bit Width:" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="#BBB"/>
+						<TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding BitWidth}" FontSize="13" VerticalAlignment="Center"/>
+
+						<TextBlock Grid.Row="6" Grid.Column="0" Text="Commands:" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="#BBB"/>
+						<TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding CommandCount}" FontSize="13" VerticalAlignment="Center"/>
+
+						<TextBlock Grid.Row="7" Grid.Column="0" Text="Valid:" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="#BBB"/>
+						<StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal" Spacing="6">
+							<i:Icon Value="fa-solid fa-circle-check" Foreground="#3fb950" FontSize="14" IsVisible="{Binding IsValid}"/>
+							<i:Icon Value="fa-solid fa-circle-xmark" Foreground="#f85149" FontSize="14" IsVisible="{Binding !IsValid}"/>
+							<TextBlock Text="{Binding IsValid}" FontSize="13" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Grid>
+				</StackPanel>
+			</TabItem>
+
+			<!-- Diagnostics Tab -->
+			<TabItem>
+				<TabItem.Header>
+					<StackPanel Orientation="Horizontal" Spacing="6">
+						<i:Icon Value="fa-solid fa-stethoscope" FontSize="12" VerticalAlignment="Center"/>
+						<TextBlock Text="Diagnostics" VerticalAlignment="Center"/>
+						<StackPanel Orientation="Horizontal" Spacing="3" IsVisible="{Binding ErrorCount}" VerticalAlignment="Center">
+							<i:Icon Value="fa-solid fa-circle-xmark" Foreground="#f85149" FontSize="10"/>
+							<TextBlock Text="{Binding ErrorCount}" FontSize="11" Foreground="#f85149"/>
+						</StackPanel>
+						<StackPanel Orientation="Horizontal" Spacing="3" IsVisible="{Binding WarningCount}" VerticalAlignment="Center">
+							<i:Icon Value="fa-solid fa-triangle-exclamation" Foreground="#d29922" FontSize="10"/>
+							<TextBlock Text="{Binding WarningCount}" FontSize="11" Foreground="#d29922"/>
+						</StackPanel>
+					</StackPanel>
+				</TabItem.Header>
+
+				<DockPanel Margin="8">
+					<!-- Toolbar -->
+					<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+						<StackPanel Orientation="Horizontal" Spacing="4">
+							<i:Icon Value="fa-solid fa-circle-xmark" Foreground="#f85149" FontSize="12"/>
+							<TextBlock Text="{Binding ErrorCount}" FontSize="12" VerticalAlignment="Center"/>
+							<TextBlock Text="errors" FontSize="12" Foreground="#888" VerticalAlignment="Center"/>
+						</StackPanel>
+						<StackPanel Orientation="Horizontal" Spacing="4">
+							<i:Icon Value="fa-solid fa-triangle-exclamation" Foreground="#d29922" FontSize="12"/>
+							<TextBlock Text="{Binding WarningCount}" FontSize="12" VerticalAlignment="Center"/>
+							<TextBlock Text="warnings" FontSize="12" Foreground="#888" VerticalAlignment="Center"/>
+						</StackPanel>
+						<Button Content="Copy All" Command="{Binding CopyDiagnosticsCommand}" FontSize="11" Padding="8,2" VerticalAlignment="Center"/>
+					</StackPanel>
+
+					<!-- Diagnostics List -->
+					<DataGrid ItemsSource="{Binding DiagnosticItems}"
+							  AutoGenerateColumns="False"
+							  IsReadOnly="True"
+							  CanUserReorderColumns="False"
+							  CanUserSortColumns="True"
+							  GridLinesVisibility="Horizontal"
+							  HeadersVisibility="Column">
+						<DataGrid.Columns>
+							<DataGridTemplateColumn Header="" Width="28">
+								<DataGridTemplateColumn.CellTemplate>
+									<DataTemplate>
+										<Panel>
+											<i:Icon Value="fa-solid fa-circle-xmark" Foreground="#f85149" FontSize="12" HorizontalAlignment="Center" IsVisible="{Binding IsError}"/>
+											<i:Icon Value="fa-solid fa-triangle-exclamation" Foreground="#d29922" FontSize="12" HorizontalAlignment="Center" IsVisible="{Binding !IsError}"/>
+										</Panel>
+									</DataTemplate>
+								</DataGridTemplateColumn.CellTemplate>
+							</DataGridTemplateColumn>
+							<DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="160"/>
+							<DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+							<DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="140"/>
+						</DataGrid.Columns>
+
+						<DataGrid.ContextMenu>
+							<ContextMenu>
+								<MenuItem Header="Copy Line" Command="{Binding CopyDiagnosticLineCommand}" CommandParameter="{Binding $parent[DataGrid].SelectedItem}"/>
+								<MenuItem Header="Copy All" Command="{Binding CopyDiagnosticsCommand}"/>
+							</ContextMenu>
+						</DataGrid.ContextMenu>
+					</DataGrid>
+				</DockPanel>
+			</TabItem>
+		</TabControl>
+	</DockPanel>
+</Window>

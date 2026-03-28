@@ -8,15 +8,6 @@ public class NaplpsCommand(NaplpsState? state, byte opcode, NaplpsOperands? oper
 
     public static int OperandCount => 0;
 
-    private static NaplpsCommand BreakAndReturn(NaplpsState state, byte opcode, NaplpsOperands operands)
-    {
-        var newUnknownCommand = new NaplpsCommand(state, opcode, operands);
-
-        System.Diagnostics.Debugger.Break();
-
-        return newUnknownCommand;
-    }
-
     public byte OpCode { get; } = opcode;
 
     public NaplpsOperands Operands { get; } = operands ?? [];

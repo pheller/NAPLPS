@@ -1,6 +1,5 @@
 ﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
-using System.Diagnostics;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 
@@ -20,7 +19,7 @@ public enum NaplpsSystemType
 
 public partial class NaplpsFormat
 {
-    public bool IsErrored => Errors.Count > 0;
+    public bool IsErrored => Errors.Any(e => e.Severity == NaplpsErrorSeverity.Error);
 
     public bool Is8Bit => !Is7Bit;
 
@@ -34,7 +33,7 @@ public partial class NaplpsFormat
     /// <summary>If we are streaming, we'll assume there is no end and wait indefinately until more data comes in</summary>
     public bool IsStreaming { get; private set; } = false;
 
-    public List<NaplpsError> Errors { get; } = [];
+    public List<NaplpsError> Errors => State.Errors;
 
     public List<NaplpsSequence> Commands { get; } = [];
 
@@ -278,8 +277,13 @@ public partial class NaplpsFormat
         }
         else
         {
-            // Errors.Add(new NaplpsError());
+            RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.InvalidCommand, $"Control command {command} produced an invalid NaplpsCommand");
         }
+    }
+
+    private void RecordError(NaplpsErrorSeverity severity, NaplpsErrorType type, string message, byte? opcode = null, long? streamPosition = null)
+    {
+        State.RecordError(severity, type, message, opcode, streamPosition);
     }
 
     private List<NaplpsSequence> ReadStream(BinaryReader reader)
@@ -377,7 +381,7 @@ public partial class NaplpsFormat
 
                 if (commandReference == null)
                 {
-                    Debugger.Break();
+                    RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.UnknownOpcode, "Unknown opcode in InUseTable", opcode, reader.BaseStream.Position - 1);
 
                     continue;
                 }
@@ -398,8 +402,7 @@ public partial class NaplpsFormat
 
                 if (commandReference.CommandType == typeof(NumericalDataCommand))
                 {
-                    // Should never get here??
-                    // Debugger.Break();
+                    RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.UnknownOpcode, "NumericalDataCommand reached unexpectedly", opcode, reader.BaseStream.Position);
 
                     continue;
                 }
@@ -442,22 +445,32 @@ public partial class NaplpsFormat
                     }
                     else if (controlCommand == ActivePositionDown)
                     {
-                        // Move pen down one interrow spacing (NAPLPS Y-up, so subtract)
-                        var pen = State.Pen;
-                        var newY = pen.Y - State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
-
-                        if (State.IsScrollMode && newY < State.Field.Origin.Y)
+                        // ANSI X3.110 §5.3.2.3.6: After an automatic APR+APD, an explicit
+                        // APR+APD (or APD+APR) is a null operation. Suppress the APD and
+                        // clear the flag (the APR was already a no-op since we're at field origin).
+                        if (State.AutoWrapJustOccurred)
                         {
-                            // Scroll: clamp pen to bottom of field and flag scroll event
-                            pen.Y = State.Field.Origin.Y;
-                            State.ScrollEventOccurred = true;
+                            State.AutoWrapJustOccurred = false;
                         }
                         else
                         {
-                            pen.Y = newY;
-                            State.ScrollEventOccurred = false;
+                            // Move pen down one interrow spacing (NAPLPS Y-up, so subtract)
+                            var pen = State.Pen;
+                            var newY = pen.Y - State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
+
+                            if (State.IsScrollMode && newY < State.Field.Origin.Y)
+                            {
+                                // Scroll: clamp pen to bottom of field and flag scroll event
+                                pen.Y = State.Field.Origin.Y;
+                                State.ScrollEventOccurred = true;
+                            }
+                            else
+                            {
+                                pen.Y = newY;
+                                State.ScrollEventOccurred = false;
+                            }
+                            State.Pen = pen;
                         }
-                        State.Pen = pen;
                     }
                     else if (controlCommand == ActivePositionUp)
                     {
@@ -468,10 +481,19 @@ public partial class NaplpsFormat
                     }
                     else if (controlCommand == ActivePositionReturn)
                     {
-                        // Carriage return: move pen X to left edge of active field
-                        var pen = State.Pen;
-                        pen.X = State.Field.Origin.X;
-                        State.Pen = pen;
+                        if (State.AutoWrapJustOccurred)
+                        {
+                            // ANSI X3.110 §5.3.2.3.6: Part of the explicit APR+APD pair
+                            // after auto-wrap — execute as null operation. Keep the flag
+                            // set so the paired APD is also suppressed.
+                        }
+                        else
+                        {
+                            // Carriage return: move pen X to left edge of active field
+                            var pen = State.Pen;
+                            pen.X = State.Field.Origin.X;
+                            State.Pen = pen;
+                        }
                     }
                     else if (controlCommand == ActivePositionForward)
                     {
@@ -655,9 +677,22 @@ public partial class NaplpsFormat
 
                 var finalCommandParams = commandParameters.Concat([State, opcode, additionalParameters]).ToArray();
 
-                if (Activator.CreateInstance(commandType, finalCommandParams) is not NaplpsCommand command)
+                NaplpsCommand command;
+
+                try
                 {
-                    Debugger.Break();
+                    if (Activator.CreateInstance(commandType, finalCommandParams) is not NaplpsCommand cmd)
+                    {
+                        RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.CommandInstantiationFailed, $"Failed to instantiate {commandType.Name}", opcode, reader.BaseStream.Position);
+
+                        continue;
+                    }
+
+                    command = cmd;
+                }
+                catch (System.Reflection.TargetInvocationException ex)
+                {
+                    RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.CommandInstantiationFailed, $"{commandType.Name} constructor threw: {ex.InnerException?.Message ?? ex.Message}", opcode, reader.BaseStream.Position);
 
                     continue;
                 }
@@ -667,7 +702,7 @@ public partial class NaplpsFormat
         }
         catch (EndOfStreamException)
         {
-            Debugger.Break();
+            RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.UnexpectedEndOfStream, "Stream ended unexpectedly during parsing");
         }
 
         return commands;

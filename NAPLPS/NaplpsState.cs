@@ -205,6 +205,18 @@ public class NaplpsState
     public bool ScrollEventOccurred { get; set; } = false;
 
     /// <summary>Word wrap mode wraps text at word boundaries</summary>
+    /// <summary>
+    /// ANSI X3.110 §5.3.2.3.6: "If an explicit APR APD (or APD APR) sequence is received
+    /// after an automatic APR APD is executed but before the character field origin is moved,
+    /// aligned, or set by any other received command or sequence, the explicit APR APD (or
+    /// APD APR) sequence shall be executed as a null operation."
+    /// Set after auto-wrap fires. Cleared by any command that moves/aligns/sets the cursor,
+    /// or after the explicit APR+APD pair is consumed as a no-op.
+    /// </summary>
+    [Browsable(false)]
+    [JsonIgnore]
+    public bool AutoWrapJustOccurred { get; set; } = false;
+
     [Category("C1 Controls")]
     [ReadOnly(true)]
     public bool IsWordWrapMode { get; set; } = false;
@@ -321,6 +333,23 @@ public class NaplpsState
     [Category("Color")]
     [ReadOnly(true)]
     public NaplpsColor Background { get; set; } = new();
+
+    /* Error Tracking */
+
+    [JsonIgnore]
+    public List<NaplpsError> Errors { get; } = [];
+
+    public void RecordError(NaplpsErrorSeverity severity, NaplpsErrorType type, string message, byte? opcode = null, long? streamPosition = null)
+    {
+        Errors.Add(new NaplpsError(severity, type, message, opcode, streamPosition));
+
+#if DEBUG
+        if (severity == NaplpsErrorSeverity.Error)
+        {
+            System.Diagnostics.Debugger.Break();
+        }
+#endif
+    }
 
     /* Helpers */
 

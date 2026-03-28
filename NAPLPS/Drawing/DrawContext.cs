@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Processing;
 
 namespace NAPLPS.Drawing;
@@ -445,6 +446,167 @@ public class DrawContext : IDisposable
                 return null;
             }
         }
+    }
+
+    /// <summary>
+    /// Renders all command frames into a deduped APNG. Identical consecutive frames
+    /// are collapsed into a single frame with an extended delay.
+    /// Caller owns the returned image and must dispose it.
+    /// </summary>
+    /// <param name="delayHundredths">Base frame delay in hundredths of a second (default 5 = 50ms)</param>
+    public Image<Rgba32> RenderToApng(int delayHundredths = 5, bool loop = false)
+    {
+        var apng = new Image<Rgba32>(Size.Width, Size.Height);
+        var pngMeta = apng.Metadata.GetFormatMetadata(PngFormat.Instance);
+        pngMeta.RepeatCount = loop ? (uint)0 : 1;
+
+        var baseDelay = new Rational((uint)delayHundredths, 1000);
+        Image<Rgba32>? previousFrame = null;
+        int currentFrameDelayMultiplier = 1;
+
+        // Incremental rendering: single pass through commands, drawing each on top
+        // of the existing canvas. O(n) instead of O(n²). Safe because LivePalette
+        // uses the final parsed palette — color resolution is order-independent.
+        Image.Mutate(ctx => ctx.Fill(ISColor.Black));
+        Drawable.LivePalette = NAPLPS.State.ColorMap;
+
+        CurrentIndex = 0;
+        _lastDisplayedChar = null;
+
+        foreach (var sequence in NAPLPS.Commands)
+        {
+            var (command, state) = sequence;
+
+            if (state.ScrollEventOccurred)
+            {
+                ScrollImageUp(state);
+            }
+
+            var drawable = ConvertToDrawable(command, state);
+
+            if (command is AsciiCharCommand asciiChar && !asciiChar.IsDiscarded)
+            {
+                _lastDisplayedChar = asciiChar;
+            }
+
+            if (drawable is DrawableRepeat repeatDrawable)
+            {
+                RenderRepeat(repeatDrawable, state);
+            }
+            else
+            {
+                drawable?.Draw(Image, state, Size);
+            }
+
+            // Only check for frame changes when something was actually drawn
+            if (drawable != null)
+            {
+                if (previousFrame != null && FramesAreIdentical(Image, previousFrame))
+                {
+                    currentFrameDelayMultiplier++;
+                }
+                else
+                {
+                    if (previousFrame != null)
+                    {
+                        AddApngFrame(apng, previousFrame, baseDelay, currentFrameDelayMultiplier);
+                        previousFrame.Dispose();
+                    }
+
+                    previousFrame = Image.Clone();
+                    currentFrameDelayMultiplier = 1;
+                }
+            }
+            else
+            {
+                currentFrameDelayMultiplier++;
+            }
+
+            CurrentIndex++;
+        }
+
+        if (previousFrame != null)
+        {
+            AddApngFrame(apng, previousFrame, baseDelay, currentFrameDelayMultiplier);
+            previousFrame.Dispose();
+        }
+
+        Drawable.LivePalette = null;
+
+        return apng;
+    }
+
+    private static void AddApngFrame(Image<Rgba32> apng, Image<Rgba32> frame, Rational baseDelay, int delayMultiplier)
+    {
+        var frameDelay = new Rational(baseDelay.Numerator * (uint)delayMultiplier, baseDelay.Denominator);
+
+        if (apng.Frames.Count == 1 && IsBlankFrame(apng.Frames.RootFrame))
+        {
+            apng.Frames.RootFrame.ProcessPixelRows(frame.Frames.RootFrame, (dst, src) =>
+            {
+                for (int y = 0; y < dst.Height; y++)
+                {
+                    src.GetRowSpan(y).CopyTo(dst.GetRowSpan(y));
+                }
+            });
+
+            apng.Frames.RootFrame.Metadata.GetFormatMetadata(PngFormat.Instance).FrameDelay = frameDelay;
+        }
+        else
+        {
+            var added = apng.Frames.AddFrame(frame.Frames.RootFrame);
+            added.Metadata.GetFormatMetadata(PngFormat.Instance).FrameDelay = frameDelay;
+        }
+    }
+
+    private static bool IsBlankFrame(ImageFrame<Rgba32> frame)
+    {
+        bool allBlack = true;
+
+        frame.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < accessor.Height && allBlack; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+
+                for (int x = 0; x < row.Length; x++)
+                {
+                    if (row[x].R != 0 || row[x].G != 0 || row[x].B != 0 || row[x].A != 255)
+                    {
+                        allBlack = false;
+                        break;
+                    }
+                }
+            }
+        });
+
+        return allBlack;
+    }
+
+    private static bool FramesAreIdentical(Image<Rgba32> a, Image<Rgba32> b)
+    {
+        if (a.Width != b.Width || a.Height != b.Height)
+        {
+            return false;
+        }
+
+        bool identical = true;
+
+        a.ProcessPixelRows(b, (accessorA, accessorB) =>
+        {
+            for (int y = 0; y < accessorA.Height && identical; y++)
+            {
+                var rowA = accessorA.GetRowSpan(y);
+                var rowB = accessorB.GetRowSpan(y);
+
+                if (!rowA.SequenceEqual(rowB))
+                {
+                    identical = false;
+                }
+            }
+        });
+
+        return identical;
     }
 
     #region IDisposable

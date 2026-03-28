@@ -63,6 +63,8 @@ public class AsciiCharCommand : NaplpsCommand
         // (avoids false positives for ~ and _ which exist in both sets).
         IsNonSpacing = asciiCharacter > 0x7E && NonSpacingAccents.Contains(asciiCharacter);
 
+        state.AutoWrapJustOccurred = false;
+
         if (!IsNonSpacing)
         {
             MovePen(state);
@@ -81,6 +83,7 @@ public class AsciiCharCommand : NaplpsCommand
                 }
 
                 PerformAutoWrap(state);
+                state.AutoWrapJustOccurred = true;
             }
 
             // Track last break position for word wrap
@@ -108,31 +111,40 @@ public class AsciiCharCommand : NaplpsCommand
         }
 
         var pen = state.Pen;
-        float fieldRight = state.Field.Origin.X + state.Field.Dimensions.X;
-        float fieldLeft = state.Field.Origin.X;
-        float fieldBottom = state.Field.Origin.Y;
-        float fieldTop = state.Field.Origin.Y + state.Field.Dimensions.Y;
+        float x1 = state.Field.Origin.X;
+        float x2 = state.Field.Origin.X + state.Field.Dimensions.X;
+        float y1 = state.Field.Origin.Y;
+        float y2 = state.Field.Origin.Y + state.Field.Dimensions.Y;
+        float fieldRight = Math.Max(x1, x2);
+        float fieldLeft = Math.Min(x1, x2);
+        float fieldBottom = Math.Min(y1, y2);
+        float fieldTop = Math.Max(y1, y2);
+
+        // If the effective field size is zero or negative in the text direction, skip the check.
+        // This handles cases where field dimensions are negative (extending off-screen).
+        float fieldWidth = fieldRight - fieldLeft;
+        float fieldHeight = fieldTop - fieldBottom;
 
         switch (state.TextPath)
         {
             case TextPath.Right:
             {
-                return pen.X > fieldRight;
+                return fieldWidth > 0 && pen.X > fieldRight;
             }
 
             case TextPath.Left:
             {
-                return pen.X < fieldLeft;
+                return fieldWidth > 0 && pen.X < fieldLeft;
             }
 
             case TextPath.Down:
             {
-                return pen.Y < fieldBottom;
+                return fieldHeight > 0 && pen.Y < fieldBottom;
             }
 
             case TextPath.Up:
             {
-                return pen.Y > fieldTop;
+                return fieldHeight > 0 && pen.Y > fieldTop;
             }
         }
 
