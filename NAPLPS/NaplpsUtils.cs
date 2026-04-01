@@ -8,6 +8,8 @@ public static class NaplpsUtils
 {
     private const float NAPLPS_DISPLAY_RATIO = 0.80f;
 
+
+
     public static double CalculateDistance(Point p1, Point p2)
     {
         int dx = p2.X - p1.X;  // Difference in X coordinates

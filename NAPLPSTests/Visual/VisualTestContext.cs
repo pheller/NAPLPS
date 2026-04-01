@@ -205,11 +205,17 @@ public static class VisualTestContext
         sb.AppendLine("<style>");
         sb.AppendLine(DiffPageCss());
         sb.AppendLine("</style></head><body>");
+        var reportRelative = Path.GetRelativePath(Path.GetDirectoryName(outputPath)!, ReportPath).Replace('\\', '/');
+        sb.AppendLine($"<div class='breadcrumb'><a href='{HtmlEncode(reportRelative)}'>&larr; Back to Report</a></div>");
         sb.AppendLine($"<h1>Visual Diff: {HtmlEncode(relativePath)}</h1>");
         sb.AppendLine($"<div class='summary'>Baseline frames: {comparison.BaselineFrameCount} | Actual frames: {comparison.ActualFrameCount} | Diff pixels: {comparison.TotalDiffPixels:N0}</div>");
+        sb.AppendLine($"<div class='timestamp'>Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}</div>");
 
         sb.AppendLine("<div class='tabs'>");
         sb.AppendLine("<button class='tab active' onclick='setView(\"sidebyside\")'>Side by Side</button>");
+        sb.AppendLine("<button class='tab' onclick='setView(\"baseline\")'>Baseline</button>");
+        sb.AppendLine("<button class='tab' onclick='setView(\"actual\")'>Actual</button>");
+        sb.AppendLine("<button class='tab' onclick='setView(\"diff\")'>Diff</button>");
         sb.AppendLine("<button class='tab' onclick='setView(\"overlay\")'>Overlay</button>");
         sb.AppendLine("<button class='tab' onclick='setView(\"toggle\")'>Toggle</button>");
         sb.AppendLine("</div>");
@@ -243,9 +249,14 @@ public static class VisualTestContext
         sb.AppendLine("</script>");
 
         sb.AppendLine("<div class='frame-nav'>");
-        sb.AppendLine("<button onclick='prevFrame()'>Prev</button>");
+        sb.AppendLine("<button class='nav-btn' onclick='prevFrame()' title='Left Arrow'>&larr; Prev</button>");
         sb.AppendLine("<span id='frameCounter'>Frame 1 / 1</span>");
-        sb.AppendLine("<button onclick='nextFrame()'>Next</button>");
+        sb.AppendLine("<button class='nav-btn' onclick='nextFrame()' title='Right Arrow'>Next &rarr;</button>");
+        sb.AppendLine("<span class='nav-sep'>|</span>");
+        sb.AppendLine("<button class='nav-btn diff-btn' onclick='prevDiff()' title='PgUp'>&laquo; Prev Change</button>");
+        sb.AppendLine("<span id='diffCounter'></span>");
+        sb.AppendLine("<button class='nav-btn diff-btn' onclick='nextDiff()' title='PgDown'>Next Change &raquo;</button>");
+        sb.AppendLine("<span class='nav-sep'>|</span>");
         sb.AppendLine("<span id='frameStats'></span>");
         sb.AppendLine("</div>");
 
@@ -496,35 +507,105 @@ public static class VisualTestContext
         .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
         .tab { padding: 6px 12px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; border-radius: 6px; cursor: pointer; }
         .tab.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
-        .frame-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-        .frame-nav button { padding: 6px 12px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; border-radius: 6px; cursor: pointer; }
-        .frame-nav button:hover { border-color: #58a6ff; }
-        #frameCounter { color: #8b949e; font-size: 14px; }
+        .breadcrumb { margin-bottom: 12px; }
+        .breadcrumb a { color: #58a6ff; text-decoration: none; font-size: 14px; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .timestamp { color: #8b949e; font-size: 13px; margin-bottom: 16px; }
+        .frame-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .nav-btn { padding: 6px 12px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .nav-btn:hover { border-color: #58a6ff; }
+        .nav-btn:disabled { opacity: 0.4; cursor: default; border-color: #30363d; }
+        .diff-btn { background: #1c1e2a; border-color: #444c8c; color: #a5b4fc; }
+        .diff-btn:hover:not(:disabled) { border-color: #818cf8; }
+        .nav-sep { color: #30363d; font-size: 14px; user-select: none; }
+        #frameCounter { color: #8b949e; font-size: 14px; min-width: 120px; text-align: center; }
+        #diffCounter { color: #d29922; font-size: 14px; min-width: 120px; text-align: center; }
         #frameStats { color: #f85149; font-size: 14px; }
-        .viewer { display: flex; gap: 16px; flex-wrap: wrap; }
+        .kbd { display: inline-block; padding: 1px 5px; font-size: 11px; color: #8b949e; background: #161b22; border: 1px solid #30363d; border-radius: 3px; font-family: 'Cascadia Code', monospace; margin-left: 4px; }
+        .viewer { display: flex; flex-direction: column; gap: 16px; }
         .viewer img { max-width: 100%; border: 1px solid #30363d; border-radius: 4px; image-rendering: pixelated; }
-        .viewer .panel { flex: 1; min-width: 300px; }
+        .viewer .row-pair { display: flex; gap: 16px; }
+        .viewer .row-pair .panel { flex: 1; min-width: 300px; }
+        .viewer .row-diff { }
+        .viewer .row-diff .panel { max-width: 50%; }
+        .viewer .panel { min-width: 300px; }
+        .viewer .panel.solo { max-width: 100%; }
         .viewer .panel h3 { color: #8b949e; font-size: 13px; text-transform: uppercase; margin-bottom: 6px; }
         """;
 
     private static string DiffPageJs() => """
+        // Build index of frames where the diff PATTERN changes — not just every differing frame.
+        // A "change point" is where the diff pixel count transitions (0→N, N→0, or N→M different).
+        const changeIndices = [];
+        let prevDiffCount = -1;
+        for (let i = 0; i < frameDiffs.length; i++) {
+            if (frameDiffs[i] !== prevDiffCount) {
+                changeIndices.push(i);
+                prevDiffCount = frameDiffs[i];
+            }
+        }
+
         function maxFrames() { return Math.max(baselineFrames.length, actualFrames.length, diffFrames.length); }
         function prevFrame() { if (currentFrame > 0) { currentFrame--; updateView(); } }
         function nextFrame() { if (currentFrame < maxFrames() - 1) { currentFrame++; updateView(); } }
+
+        function prevDiff() {
+            for (let i = changeIndices.length - 1; i >= 0; i--) {
+                if (changeIndices[i] < currentFrame) {
+                    currentFrame = changeIndices[i];
+                    updateView();
+                    return;
+                }
+            }
+        }
+
+        function nextDiff() {
+            for (let i = 0; i < changeIndices.length; i++) {
+                if (changeIndices[i] > currentFrame) {
+                    currentFrame = changeIndices[i];
+                    updateView();
+                    return;
+                }
+            }
+        }
+
         function setView(v) {
             currentView = v;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
             updateView();
         }
+
         function updateView() {
             const fc = document.getElementById('frameCounter');
             fc.textContent = `Frame ${currentFrame + 1} / ${maxFrames()}`;
+
+            const dc = document.getElementById('diffCounter');
+            const changeIdx = changeIndices.indexOf(currentFrame);
+            if (changeIdx >= 0) {
+                dc.textContent = `Change ${changeIdx + 1} / ${changeIndices.length}`;
+                dc.style.color = '#f85149';
+            } else {
+                dc.textContent = `${changeIndices.length} change${changeIndices.length !== 1 ? 's' : ''}`;
+                dc.style.color = '#d29922';
+            }
+
             const fs = document.getElementById('frameStats');
             if (frameDiffs[currentFrame] > 0) {
                 const pct = ((frameDiffs[currentFrame] / frameTotals[currentFrame]) * 100).toFixed(2);
                 fs.textContent = `${frameDiffs[currentFrame].toLocaleString()} pixels differ (${pct}%)`;
-            } else { fs.textContent = 'Identical'; fs.style.color = '#3fb950'; }
+                fs.style.color = '#f85149';
+            } else {
+                fs.textContent = 'Identical';
+                fs.style.color = '#3fb950';
+            }
+
+            // Update button disabled states
+            const btns = document.querySelectorAll('.nav-btn');
+            btns[0].disabled = currentFrame <= 0;
+            btns[1].disabled = currentFrame >= maxFrames() - 1;
+            btns[2].disabled = !changeIndices.some(i => i < currentFrame);
+            btns[3].disabled = !changeIndices.some(i => i > currentFrame);
 
             const viewer = document.getElementById('viewer');
             const bSrc = currentFrame < baselineFrames.length ? `data:image/png;base64,${baselineFrames[currentFrame]}` : '';
@@ -533,24 +614,82 @@ public static class VisualTestContext
 
             if (currentView === 'sidebyside') {
                 viewer.innerHTML = `
-                    <div class='panel'><h3>Baseline</h3><img src='${bSrc}'></div>
-                    <div class='panel'><h3>Actual</h3><img src='${aSrc}'></div>
-                    ${dSrc ? `<div class='panel'><h3>Diff</h3><img src='${dSrc}'></div>` : ''}`;
+                    <div class='row-pair'>
+                        <div class='panel'><h3>Baseline</h3><img src='${bSrc}'></div>
+                        <div class='panel'><h3>Actual</h3><img src='${aSrc}'></div>
+                    </div>
+                    ${dSrc ? `<div class='row-diff'><div class='panel'><h3>Diff</h3><img src='${dSrc}'></div></div>` : ''}`;
+            } else if (currentView === 'baseline') {
+                viewer.innerHTML = `<div class='panel solo'><h3>Baseline</h3><img src='${bSrc}'></div>`;
+            } else if (currentView === 'actual') {
+                viewer.innerHTML = `<div class='panel solo'><h3>Actual</h3><img src='${aSrc}'></div>`;
+            } else if (currentView === 'diff') {
+                viewer.innerHTML = dSrc
+                    ? `<div class='panel solo'><h3>Diff</h3><img src='${dSrc}'></div>`
+                    : `<div class='panel solo'><h3>No differences</h3></div>`;
             } else if (currentView === 'overlay') {
                 viewer.innerHTML = dSrc
                     ? `<div class='panel'><h3>Diff Overlay</h3><img src='${dSrc}'></div>`
                     : `<div class='panel'><h3>No differences</h3></div>`;
             } else {
-                viewer.innerHTML = `<div class='panel'><h3 id='toggleLabel'>Baseline (click to toggle)</h3><img id='toggleImg' src='${bSrc}' style='cursor:pointer' onclick='toggleImage()'></div>`;
-                window._toggleState = false;
-                window._toggleBaseline = bSrc;
-                window._toggleActual = aSrc;
+                // Toggle mode: preserve toggle state across frame changes
+                const toggleImg = document.getElementById('toggleImg');
+                if (toggleImg) {
+                    // Just update the sources without rebuilding the DOM
+                    window._toggleBaseline = bSrc;
+                    window._toggleActual = aSrc;
+                    toggleImg.src = window._toggleState ? aSrc : bSrc;
+                } else {
+                    // First render of toggle mode
+                    viewer.innerHTML = `<div class='panel'><h3 id='toggleLabel'>Baseline (click to toggle)</h3><img id='toggleImg' src='${bSrc}' style='cursor:pointer' onclick='toggleImage()'></div>`;
+                    window._toggleState = false;
+                    window._toggleBaseline = bSrc;
+                    window._toggleActual = aSrc;
+                }
             }
         }
+
         function toggleImage() {
             window._toggleState = !window._toggleState;
             document.getElementById('toggleImg').src = window._toggleState ? window._toggleActual : window._toggleBaseline;
             document.getElementById('toggleLabel').textContent = window._toggleState ? 'Actual (click to toggle)' : 'Baseline (click to toggle)';
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    prevFrame();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    nextFrame();
+                    break;
+                case 'PageUp':
+                    e.preventDefault();
+                    prevDiff();
+                    break;
+                case 'PageDown':
+                    e.preventDefault();
+                    nextDiff();
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    currentFrame = 0;
+                    updateView();
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    currentFrame = maxFrames() - 1;
+                    updateView();
+                    break;
+            }
+        });
+
+        // Jump to first change point on load if frame 0 is identical
+        if (changeIndices.length > 0 && frameDiffs[0] === 0) {
+            currentFrame = changeIndices.find(i => frameDiffs[i] > 0) ?? changeIndices[0];
         }
         """;
 }

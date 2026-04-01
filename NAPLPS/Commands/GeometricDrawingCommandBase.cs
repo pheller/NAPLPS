@@ -38,8 +38,11 @@ public abstract class GeometricDrawingCommandBase : NaplpsCommand
 
     public (Color, Color) GetColors(NaplpsState state)
     {
-        // Use LivePalette when available for palette animation support
-        var palette = Drawing.Drawable.LivePalette ?? state.ColorMap;
+        // Normal rendering: use historical per-command palette snapshot.
+        // Palette animation (blink): use LivePalette so CLUT changes are visible.
+        var palette = (Drawing.Drawable.UseLivePalette && Drawing.Drawable.LivePalette != null)
+            ? Drawing.Drawable.LivePalette
+            : state.ColorMap;
         NaplpsColor fgColor = ColorMode == 0 ? Foreground : palette[ColorMapForeground];
         NaplpsColor bgColor = ColorMode == 0 ? Background : palette[ColorMapBackground];
 

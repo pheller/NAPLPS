@@ -32,7 +32,7 @@ public class DrawablePolygon : Drawable, IDrawable
         }
 
         var polygon = new Polygon(polygonPoints.ToArray());
-        var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
+        var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
 
         image.Mutate(x =>
         {

@@ -244,7 +244,6 @@ public class NaplpsState
 
     /// <summary>Set to true when an APD in scroll mode would move pen below field origin</summary>
     [Browsable(false)]
-    [JsonIgnore]
     public bool ScrollEventOccurred { get; set; } = false;
 
     /// <summary>Word wrap mode wraps text at word boundaries</summary>
@@ -257,7 +256,6 @@ public class NaplpsState
     /// or after the explicit APR+APD pair is consumed as a no-op.
     /// </summary>
     [Browsable(false)]
-    [JsonIgnore]
     public bool AutoWrapJustOccurred { get; set; } = false;
 
     [Category("C1 Controls")]

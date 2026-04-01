@@ -95,7 +95,7 @@ public class SetColorCommand : NaplpsCommand
 
     private static NaplpsColor ParseColorComponents(NaplpsOperands operands)
     {
-        var color = new NaplpsColor();
+        int green = 0, red = 0, blue = 0;
 
         while (operands.Count < 3)
         {
@@ -105,16 +105,29 @@ public class SetColorCommand : NaplpsCommand
         foreach (var b in operands)
         {
             // Extract bits for each color component from the first triplet
-            color.Green = (byte)(color.Green << 1 | b >> 5 & 0x1);
-            color.Red = (byte)(color.Red << 1 | b >> 4 & 0x1);
-            color.Blue = (byte)(color.Blue << 1 | b >> 3 & 0x1);
+            green = green << 1 | (b >> 5 & 0x1);
+            red = red << 1 | (b >> 4 & 0x1);
+            blue = blue << 1 | (b >> 3 & 0x1);
 
             // Extract bits for each color component from the second triplet
-            color.Green = (byte)(color.Green << 1 | b >> 2 & 0x1);
-            color.Red = (byte)(color.Red << 1 | b >> 1 & 0x1);
-            color.Blue = (byte)(color.Blue << 1 | b & 0x1);
+            green = green << 1 | (b >> 2 & 0x1);
+            red = red << 1 | (b >> 1 & 0x1);
+            blue = blue << 1 | (b & 0x1);
         }
 
-        return color;
+        // ANSI X3.110 §5.3.2.5.2: "the maximum color fraction attainable,
+        // given the number of bits specified, shall be interpreted as full intensity."
+        // Scale from N-bit range to 8-bit (0-255).
+        int bitsPerComponent = operands.Count * 2;
+        int maxVal = (1 << bitsPerComponent) - 1;
+
+        if (maxVal > 0 && maxVal < 255)
+        {
+            green = green * 255 / maxVal;
+            red = red * 255 / maxVal;
+            blue = blue * 255 / maxVal;
+        }
+
+        return new NaplpsColor((byte)green, (byte)red, (byte)blue);
     }
 }

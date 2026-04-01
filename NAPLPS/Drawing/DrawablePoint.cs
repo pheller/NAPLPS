@@ -42,7 +42,7 @@ public class DrawablePoint : Drawable, IDrawable
         var width = scaledLogicalPel.X;
         var height = scaledLogicalPel.Y;
 
-        var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
+        var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
 
         image.Mutate(x =>
         {

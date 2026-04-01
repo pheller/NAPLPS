@@ -46,7 +46,7 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(255, command.State.Foreground.Green);
         Assert.AreEqual(0, command.State.Foreground.Red);
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
@@ -59,7 +59,7 @@ public class SetColorCommandTests
         Assert.IsNotNull(command);
 
         Assert.AreEqual(0, command.State.Foreground.Green);
-        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(255, command.State.Foreground.Red);
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
@@ -72,7 +72,7 @@ public class SetColorCommandTests
 
         Assert.AreEqual(0, command.State.Foreground.Green);
         Assert.AreEqual(0, command.State.Foreground.Red);
-        Assert.AreEqual(63, command.State.Foreground.Blue);
+        Assert.AreEqual(255, command.State.Foreground.Blue);
     }
 
     [TestMethod]
@@ -82,8 +82,8 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.Foreground.Green);
-        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(255, command.State.Foreground.Green);
+        Assert.AreEqual(255, command.State.Foreground.Red);
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
@@ -94,8 +94,8 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(9, command.State.Foreground.Green);
-        Assert.AreEqual(35, command.State.Foreground.Red);
+        Assert.AreEqual(36, command.State.Foreground.Green);
+        Assert.AreEqual(141, command.State.Foreground.Red);
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
@@ -106,9 +106,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.Foreground.Green);
-        Assert.AreEqual(63, command.State.Foreground.Red);
-        Assert.AreEqual(63, command.State.Foreground.Blue);
+        Assert.AreEqual(255, command.State.Foreground.Green);
+        Assert.AreEqual(255, command.State.Foreground.Red);
+        Assert.AreEqual(255, command.State.Foreground.Blue);
     }
 
     [TestMethod]
@@ -132,7 +132,7 @@ public class SetColorCommandTests
         Assert.IsNotNull(command);
         Assert.AreEqual(0, command.State.Foreground.Green);
         Assert.AreEqual(0, command.State.Foreground.Red);
-        Assert.AreEqual(63, command.State.Foreground.Blue);
+        Assert.AreEqual(255, command.State.Foreground.Blue);
     }
 
     /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n154/mode/1up?view=theater</summary>
@@ -142,7 +142,7 @@ public class SetColorCommandTests
         var command = new SetColorCommand(new(), 0xBC, new NaplpsOperands([0x64]));
 
         Assert.IsNotNull(command);
-        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(255, command.State.Foreground.Green);
         Assert.AreEqual(0, command.State.Foreground.Red);
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
@@ -155,7 +155,7 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
         Assert.AreEqual(0, command.State.Foreground.Green);
-        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(255, command.State.Foreground.Red);
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 
@@ -167,9 +167,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.Foreground.Green);
+        Assert.AreEqual(255, command.State.Foreground.Green);
         Assert.AreEqual(0, command.State.Foreground.Red);
-        Assert.AreEqual(63, command.State.Foreground.Blue);
+        Assert.AreEqual(255, command.State.Foreground.Blue);
     }
 
     /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n162/mode/1up?view=theater</summary>
@@ -180,9 +180,9 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.Foreground.Green);
-        Assert.AreEqual(63, command.State.Foreground.Red);
-        Assert.AreEqual(63, command.State.Foreground.Blue);
+        Assert.AreEqual(255, command.State.Foreground.Green);
+        Assert.AreEqual(255, command.State.Foreground.Red);
+        Assert.AreEqual(255, command.State.Foreground.Blue);
     }
 
     /// <summary>Based on https://archive.org/details/byte-magazine-1983-03/page/n163/mode/1up?view=theater</summary>
@@ -206,8 +206,8 @@ public class SetColorCommandTests
 
         Assert.IsNotNull(command);
 
-        Assert.AreEqual(63, command.State.Foreground.Green);
-        Assert.AreEqual(63, command.State.Foreground.Red);
+        Assert.AreEqual(255, command.State.Foreground.Green);
+        Assert.AreEqual(255, command.State.Foreground.Red);
         Assert.AreEqual(0, command.State.Foreground.Blue);
     }
 }

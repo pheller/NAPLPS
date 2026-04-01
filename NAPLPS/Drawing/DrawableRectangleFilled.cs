@@ -28,7 +28,7 @@ public class DrawableRectangleFilled : Drawable, IDrawable
             dimensions.Y
         );
 
-        var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
+        var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
         var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
 
         image.Mutate(x =>

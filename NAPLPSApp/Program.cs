@@ -73,6 +73,7 @@ sealed class Program
         Console.WriteLine("Export Options:");
         Console.WriteLine("  --format=png|gif|apng Output format (default: png)");
         Console.WriteLine("  --size=WxH            Canvas size (default: 1024x768)");
+        Console.WriteLine("  --at=FRAMES           Export specific frames (e.g. 1,2-5,500,1200)");
         Console.WriteLine("  --stdout, -           Output to stdout instead of file");
         Console.WriteLine();
         Console.WriteLine("Batch Export Options:");
@@ -260,7 +261,7 @@ sealed class Program
             }
             else if (opts.Format == "apng")
             {
-                return ExportApng(drawContext, outputFile, opts.UseStdout, opts.Delay);
+                return ExportApng(drawContext, outputFile, opts.UseStdout, opts.Delay, opts.Loop, opts.BlinkCycles);
             }
             else if (opts.Format == "gif")
             {
@@ -268,7 +269,7 @@ sealed class Program
             }
             else
             {
-                return ExportPng(drawContext, outputFile, opts.UseStdout);
+                return ExportPng(drawContext, outputFile, opts.UseStdout, opts.AtFrames);
             }
         }
         catch (Exception ex)
@@ -281,7 +282,37 @@ sealed class Program
     private record ExportOptions(
         string InputFile, string? OutputFile, string? OutputDir,
         string Format, string Size, bool UseStdout, bool Loop,
-        bool Batch, bool PaletteAnim, int PaletteFrames, int Delay);
+        bool Batch, bool PaletteAnim, int PaletteFrames, int Delay,
+        string? AtFrames, int BlinkCycles);
+
+    /// <summary>
+    /// Parses a printer-style range string like "1,2-5,10" into a sorted list of indices.
+    /// </summary>
+    private static List<int> ParseFrameRanges(string rangeStr)
+    {
+        var result = new HashSet<int>();
+
+        foreach (var part in rangeStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (part.Contains('-'))
+            {
+                var bounds = part.Split('-', 2);
+                if (int.TryParse(bounds[0], out var lo) && int.TryParse(bounds[1], out var hi))
+                {
+                    for (int i = lo; i <= hi; i++)
+                    {
+                        result.Add(i);
+                    }
+                }
+            }
+            else if (int.TryParse(part, out var single))
+            {
+                result.Add(single);
+            }
+        }
+
+        return result.Order().ToList();
+    }
 
     private static ExportOptions ParseExportArgs(string[] args, out string? error)
     {
@@ -297,6 +328,8 @@ sealed class Program
         var paletteAnim = false;
         var paletteFrames = 120;
         var delay = 5;
+        string? atFrames = null;
+        var blinkCycles = 0;
 
         for (int i = 2; i < args.Length; i++)
         {
@@ -337,6 +370,18 @@ sealed class Program
                     break;
                 }
             }
+            else if (args[i].StartsWith("--at="))
+            {
+                atFrames = args[i]["--at=".Length..];
+            }
+            else if (args[i].StartsWith("--blink-cycles="))
+            {
+                if (!int.TryParse(args[i]["--blink-cycles=".Length..], out blinkCycles) || blinkCycles < 0)
+                {
+                    error = "Error: Invalid blink-cycles value. Expected non-negative integer.";
+                    break;
+                }
+            }
             else if (args[i].StartsWith("--frames="))
             {
                 if (!int.TryParse(args[i]["--frames=".Length..], out paletteFrames) || paletteFrames < 1)
@@ -351,7 +396,7 @@ sealed class Program
             }
         }
 
-        return new ExportOptions(inputFile, outputFile, outputDir, format, size, useStdout, loop, batch, paletteAnim, paletteFrames, delay);
+        return new ExportOptions(inputFile, outputFile, outputDir, format, size, useStdout, loop, batch, paletteAnim, paletteFrames, delay, atFrames, blinkCycles);
     }
 
     private static int HandleBatchExport(string inputDir, string? outputDir, string format, int width, int height, bool loop, int delay)
@@ -520,10 +565,36 @@ sealed class Program
         return parts.Length == 2 && int.TryParse(parts[0], out width) && int.TryParse(parts[1], out height);
     }
 
-    private static int ExportPng(DrawContext drawContext, string? outputFile, bool useStdout)
+    private static int ExportPng(DrawContext drawContext, string? outputFile, bool useStdout, string? atFrames = null)
     {
-        drawContext.Render();
+        if (atFrames == null)
+        {
+            drawContext.Render();
+            SavePng(drawContext, outputFile, useStdout);
+            return 0;
+        }
 
+        // Export specific frames: --at=1,2-5,500,1200
+        var indices = ParseFrameRanges(atFrames);
+        var baseName = outputFile != null ? IOPath.GetFileNameWithoutExtension(outputFile) : "frame";
+        var baseDir = outputFile != null ? IOPath.GetDirectoryName(outputFile) ?? "." : ".";
+
+        foreach (var idx in indices)
+        {
+            var ctx = new DrawContext(drawContext.NAPLPS, drawContext.Size);
+            ctx.Render((uint)idx);
+
+            var framePath = IOPath.Combine(baseDir, $"{baseName}_{idx:D4}.png");
+            ctx.Image.SaveAsPng(framePath);
+            Console.Error.WriteLine($"Frame {idx}: {framePath}");
+            ctx.Image.Dispose();
+        }
+
+        return 0;
+    }
+
+    private static void SavePng(DrawContext drawContext, string? outputFile, bool useStdout)
+    {
         if (useStdout)
         {
             using var stdout = Console.OpenStandardOutput();
@@ -534,13 +605,11 @@ sealed class Program
             drawContext.Image.SaveAsPng(outputFile);
             Console.Error.WriteLine($"Exported to: {outputFile}");
         }
-
-        return 0;
     }
 
-    private static int ExportApng(DrawContext drawContext, string? outputFile, bool useStdout, int delay)
+    private static int ExportApng(DrawContext drawContext, string? outputFile, bool useStdout, int delay, bool loop = false, int blinkCycles = 0)
     {
-        using var apng = drawContext.RenderToApng(delay);
+        using var apng = drawContext.RenderToApng(delay, loop, blinkCycles);
 
         var visualFrames = apng.Frames.Count;
 

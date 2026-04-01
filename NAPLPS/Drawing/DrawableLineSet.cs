@@ -30,7 +30,7 @@ public class DrawableLineSet : Drawable, IDrawable
             return;
         }
 
-        var palette = Drawable.LivePalette ?? state.ColorMap;
+        var palette = (Drawable.UseLivePalette && Drawable.LivePalette != null) ? Drawable.LivePalette : state.ColorMap;
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : palette[state.ColorMapForeground].ToColor();
         var isColor = color.ToISColor();
 

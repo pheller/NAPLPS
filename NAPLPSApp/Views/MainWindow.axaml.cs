@@ -13,6 +13,16 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.CloseChildWindows();
+        }
+    }
+
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);

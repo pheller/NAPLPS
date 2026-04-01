@@ -146,16 +146,7 @@ public partial class SequenceWindowViewModel : ViewModelBase
         }
         else if (command is EscCommand escCommand)
         {
-            var escapeCode = escCommand.Operands.First().ToString("X");
-
-            ExtraDetails = $"Escape Char: 0x{escapeCode}, {escapeCode[0]}/{escapeCode[1]}\n";
-
-            foreach (var extraChars in escCommand.Operands.Skip(1))
-            {
-                var extraCharsStr = extraChars.ToString("X");
-
-                ExtraDetails += $"Extra Chars: 0x{extraCharsStr}, {extraCharsStr[0]}/{extraCharsStr[1]}\n";
-            }
+            ExtraDetails = DecodeEscSequence(escCommand);
         }
         else if (command is SelectColorCommand selectColorCommand)
         {
@@ -239,6 +230,95 @@ public partial class SequenceWindowViewModel : ViewModelBase
                 var charsToEnd = Math.Max(0, (int)((fieldEndX - state.Pen.X) / state.CharSize.X));
                 ExtraDetails = $"Repeat to EOL: ~{charsToEnd} chars";
             }
+        }
+        else if (command is WaitCommand waitCommand)
+        {
+            ExtraDetails = $"  Wait Time: {waitCommand.WaitTime} ({waitCommand.WaitTime * 100}ms)\n";
+            ExtraDetails += $"    IsValid: {waitCommand.IsValid}\n";
+
+            if (waitCommand.WaitTimes.Count > 0)
+            {
+                ExtraDetails += $"Extra Waits: {string.Join(", ", waitCommand.WaitTimes.Select(w => $"{w} ({w * 100}ms)"))}";
+            }
+        }
+        else if (command is SetColorCommand setColorCommand)
+        {
+            IsColorInfoVisible = true;
+
+            var entry = state.ColorMapForeground;
+            ExtraDetails = $"     Entry: [{entry}]\n";
+            ExtraDetails += $" New Color: R={setColorCommand.Color.Red} G={setColorCommand.Color.Green} B={setColorCommand.Color.Blue}\n";
+            ExtraDetails += $"ColorMode: {state.ColorMode}\n";
+
+            var newColor = setColorCommand.Color.ToColor();
+
+            ColorForeground = new SolidColorBrush(Color.FromArgb(newColor.A, newColor.R, newColor.G, newColor.B));
+            ColorForegroundText = new SolidColorBrush(GetContrastingColor(newColor));
+
+            if (state.ColorMap.TryGetValue(entry, out var prevNaplpsColor))
+            {
+                var prevColor = prevNaplpsColor.ToColor();
+                ExtraDetails += $" Old Color: R={prevNaplpsColor.Red} G={prevNaplpsColor.Green} B={prevNaplpsColor.Blue}\n";
+                ColorBackground = new SolidColorBrush(Color.FromArgb(prevColor.A, prevColor.R, prevColor.G, prevColor.B));
+                ColorBackgroundText = new SolidColorBrush(GetContrastingColor(prevColor));
+            }
+        }
+        else if (command is AsciiCharCommand asciiCharCommand)
+        {
+            var ch = asciiCharCommand.AsciiCharacter;
+            ExtraDetails = $"Character: '{ch}' (0x{asciiCharCommand.OpCode:X2})\n";
+            ExtraDetails += $" Discarded: {asciiCharCommand.IsDiscarded}\n";
+            ExtraDetails += $"NonSpacing: {asciiCharCommand.IsNonSpacing}\n";
+            ExtraDetails += $"      Pen: ({state.Pen.X:F4}, {state.Pen.Y:F4})\n";
+            ExtraDetails += $" CharSize: ({state.CharSize.X:F4}, {state.CharSize.Y:F4})\n";
+            ExtraDetails += $" TextPath: {state.TextPath}";
+        }
+        else if (command is ControlCommand ctrlCmd &&
+                 ctrlCmd.Command != NaplpsControlCommands.Repeat &&
+                 ctrlCmd.Command != NaplpsControlCommands.RepeatToEOL)
+        {
+            ExtraDetails = $"Command: {ctrlCmd.Command}\n";
+
+            switch (ctrlCmd.Command)
+            {
+                case NaplpsControlCommands.ClearScreen:
+                {
+                    ExtraDetails += "Clears the screen to nominal black";
+                }
+                break;
+
+                case NaplpsControlCommands.ActivePositionDown:
+                {
+                    ExtraDetails += $"Scroll Mode: {state.IsScrollMode}\n";
+                    ExtraDetails += $"   Scroll ▼: {state.ScrollEventOccurred}";
+                }
+                break;
+
+                case NaplpsControlCommands.ActivePositionReturn:
+                {
+                    ExtraDetails += $"Pen: ({state.Pen.X:F4}, {state.Pen.Y:F4})";
+                }
+                break;
+
+                case NaplpsControlCommands.ScrollOn:
+                {
+                    ExtraDetails += "Enables scroll mode";
+                }
+                break;
+
+                case NaplpsControlCommands.ScrollOff:
+                {
+                    ExtraDetails += "Disables scroll mode";
+                }
+                break;
+            }
+        }
+        else if (command is ResetCommand)
+        {
+            ExtraDetails = "Resets NAPLPS state to defaults\n";
+            ExtraDetails += $"ColorMode: {state.ColorMode}\n";
+            ExtraDetails += $"  Texture: {state.Texture.TexturePattern}\n";
+            ExtraDetails += $"      Pen: ({state.Pen.X:F4}, {state.Pen.Y:F4})";
         }
         else if (command is GeometricDrawingCommandBase baseDrawCommand)
         {
@@ -405,6 +485,173 @@ public partial class SequenceWindowViewModel : ViewModelBase
                 State = sequence.State.ToString(),
             });
         }
+    }
+
+    private static string DecodeEscSequence(EscCommand escCommand)
+    {
+        var ops = escCommand.Operands;
+
+        if (ops.Count == 0)
+        {
+            return "ESC (no operands)";
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"Raw: ESC {string.Join(" ", ops.Select(b => $"0x{b:X2}"))}");
+        sb.AppendLine();
+
+        var firstByte = ops[0];
+
+        // ISO 2022 intermediate bytes (0x20-0x2F) + final byte (0x30-0x7E)
+        if (firstByte >= 0x20 && firstByte <= 0x2F)
+        {
+            var designation = firstByte switch
+            {
+                0x21 => "Designate C0 control set",
+                0x22 => "Designate C1 control set",
+                0x23 => "Designate single-shift 2",
+                0x24 => "Designate multi-byte character set",
+                0x25 => "Designate other coding system",
+                0x28 => "Designate G0 character set",
+                0x29 => "Designate G1 character set",
+                0x2A => "Designate G2 character set",
+                0x2B => "Designate G3 character set",
+                0x2D => "Designate G1 (96-char) set",
+                0x2E => "Designate G2 (96-char) set",
+                0x2F => "Designate G3 (96-char) set",
+                _ => $"Intermediate byte"
+            };
+
+            sb.AppendLine($"Type: {designation}");
+
+            if (ops.Count > 1)
+            {
+                var finalByte = ops[1];
+                var setName = DecodeCharacterSetFinal(firstByte, finalByte);
+                sb.AppendLine($" Set: 0x{finalByte:X2} → {setName}");
+            }
+        }
+        // 7-bit C1 control codes (ESC 0x40-0x5F → equivalent to 0x80-0x9F)
+        else if (firstByte >= 0x40 && firstByte <= 0x5F)
+        {
+            var c1Code = (byte)(firstByte + 0x40);
+            var c1Name = c1Code switch
+            {
+                0x80 => "Padding Character (PAD)",
+                0x81 => "High Octet Preset (HOP)",
+                0x82 => "Break Permitted Here (BPH)",
+                0x83 => "No Break Here (NBH)",
+                0x84 => "Index (IND)",
+                0x85 => "Next Line (NEL)",
+                0x86 => "Start of Selected Area (SSA)",
+                0x87 => "End of Selected Area (ESA)",
+                0x88 => "Horizontal Tab Set (HTS)",
+                0x89 => "Horizontal Tab with Justification (HTJ)",
+                0x8A => "Vertical Tab Set (VTS)",
+                0x8B => "Partial Line Down (PLD)",
+                0x8C => "Partial Line Up (PLU)",
+                0x8D => "Reverse Index (RI)",
+                0x8E => "Single Shift 2 (SS2)",
+                0x8F => "Single Shift 3 (SS3)",
+                0x90 => "Device Control String (DCS)",
+                0x91 => "Private Use 1 (PU1)",
+                0x92 => "Private Use 2 (PU2)",
+                0x93 => "Set Transmit State (STS)",
+                0x94 => "Cancel Character (CCH)",
+                0x95 => "Message Waiting (MW)",
+                0x96 => "Start of Guarded Area (SPA)",
+                0x97 => "End of Guarded Area (EPA)",
+                0x98 => "Start of String (SOS)",
+                0x99 => "Single Graphic Char Introducer (SGCI)",
+                0x9A => "Single Character Introducer (SCI)",
+                0x9B => "Control Sequence Introducer (CSI)",
+                0x9C => "String Terminator (ST)",
+                0x9D => "Operating System Command (OSC)",
+                0x9E => "Privacy Message (PM)",
+                0x9F => "Application Program Command (APC)",
+                _ => $"Unknown C1 (0x{c1Code:X2})"
+            };
+
+            sb.AppendLine($"  C1: ESC {(char)firstByte} → 0x{c1Code:X2}");
+            sb.AppendLine($"Name: {c1Name}");
+
+            // NAPLPS-specific C1 mappings
+            if (firstByte == 0x45)
+            {
+                sb.AppendLine("\nNAPLPS: Next Line (moves to start of next line)");
+            }
+            else if (firstByte == 0x4E)
+            {
+                sb.AppendLine("\nNAPLPS: SS2 → invoke G2 for next character");
+            }
+            else if (firstByte == 0x4F)
+            {
+                sb.AppendLine("\nNAPLPS: SS3 → invoke G3 for next character");
+            }
+            else if (firstByte == 0x57)
+            {
+                sb.AppendLine("\nNAPLPS: Scroll On (EPA equivalent)");
+            }
+        }
+        else
+        {
+            sb.AppendLine($"Byte: 0x{firstByte:X2} ({firstByte}/{firstByte >> 4}:{firstByte & 0xF})");
+        }
+
+        // Show any additional operand bytes
+        if (ops.Count > 2)
+        {
+            sb.AppendLine();
+            sb.Append("Extra: ");
+
+            foreach (var b in ops.Skip(2))
+            {
+                sb.Append($"0x{b:X2} ");
+            }
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string DecodeCharacterSetFinal(byte intermediate, byte finalByte)
+    {
+        // NAPLPS character set designations (ANSI X3.110)
+        if (intermediate == 0x28 || intermediate == 0x29 || intermediate == 0x2A || intermediate == 0x2B)
+        {
+            return finalByte switch
+            {
+                0x40 => "NAPLPS Primary Character Set",
+                0x42 => "ASCII (ISO 646)",
+                0x43 => "NAPLPS PDI (Picture Description Instructions)",
+                0x44 => "NAPLPS Supplementary Set",
+                0x45 => "NAPLPS Mosaic Set",
+                0x46 => "NAPLPS DRCS (Dynamically Redefined Character Set)",
+                0x47 => "NAPLPS Macro Set",
+                _ => $"Set 0x{finalByte:X2} (F={finalByte - 0x30})"
+            };
+        }
+
+        if (intermediate == 0x21)
+        {
+            return finalByte switch
+            {
+                0x40 => "NAPLPS C0 Control Set",
+                0x42 => "Default C0 Set",
+                _ => $"C0 Set 0x{finalByte:X2}"
+            };
+        }
+
+        if (intermediate == 0x22)
+        {
+            return finalByte switch
+            {
+                0x40 => "NAPLPS C1 Control Set",
+                0x41 => "NAPLPS PDI C1 Set",
+                _ => $"C1 Set 0x{finalByte:X2}"
+            };
+        }
+
+        return $"Final 0x{finalByte:X2}";
     }
 
     private static Color GetContrastingColor(System.Drawing.Color backgroundColor)

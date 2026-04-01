@@ -333,6 +333,11 @@ public partial class NaplpsFormat
                 if (commandType == typeof(ControlCommand) && commandParameters.Count == 1)
                 {
                     HandleControlCommand((NaplpsControlCommands)commandParameters[0], reader, additionalParameters, commands);
+
+                    // Re-clone AFTER control command so the sequence's state snapshot
+                    // reflects changes made by the handler (cursor position, scroll flag, etc.)
+                    currentState = State.Clone();
+                    State.ScrollEventOccurred = false;
                 }
 
                 var command = TryInstantiateCommand(commandType, commandParameters, opcode, additionalParameters, reader);
@@ -341,6 +346,10 @@ public partial class NaplpsFormat
                 {
                     commands.Add(new NaplpsSequence(currentState, command));
                 }
+
+                // One-shot: clear scroll flag set by non-ControlCommand constructors
+                // (e.g. IncrementalFieldCommand) so only the triggering command carries it.
+                State.ScrollEventOccurred = false;
             }
         }
         catch (EndOfStreamException)
@@ -466,6 +475,27 @@ public partial class NaplpsFormat
         if (controlCommand == Escape)
         {
             ControlCommandEscape(reader, additionalParameters);
+
+            // ESC + byte in 0x40-0x5F = 7-bit encoding of C1 control codes.
+            // Only dispatch safe state-flag C1 codes — NOT buffer-mode starters
+            // (DefMacro, DefTexture, DefDRCS, End) which would swallow subsequent data.
+            if (additionalParameters.Count == 1 && additionalParameters[0] >= 0x40 && additionalParameters[0] <= 0x5F)
+            {
+                byte c1Code = (byte)(additionalParameters[0] + 0x40); // 0x40→0x80, 0x5F→0x9F
+                var c1Ref = State.InUseTable[c1Code];
+                if (c1Ref?.CommandType == typeof(ControlCommand) && c1Ref.Parameters.Count == 1)
+                {
+                    var c1Command = (NaplpsControlCommands)c1Ref.Parameters[0];
+
+                    // Skip buffer-mode commands that would be destructive via ESC
+                    if (c1Command != DefMacro && c1Command != DefPMacro && c1Command != DefTMacro &&
+                        c1Command != DefDRCS && c1Command != DefTexture && c1Command != End)
+                    {
+                        HandleControlCommand(c1Command, reader, new NaplpsOperands(), commands);
+                    }
+                }
+            }
+
             State.DoEscape(additionalParameters);
         }
         else if (controlCommand == NonSelectiveReset)
@@ -605,10 +635,12 @@ public partial class NaplpsFormat
         var pen = State.Pen;
         var newY = pen.Y - State.CharSize.Y * GetInterrowMultiplier(State.TextInterrowSpacing);
 
-        if (State.IsScrollMode && newY < State.Field.Origin.Y)
+        if (State.IsScrollMode)
         {
-            pen.Y = State.Field.Origin.Y;
+            // PP3 behavior (FUN_2168_02c6): every APD triggers scroll when scroll mode is on.
+            // Direction determined by field position in ScrollImage().
             State.ScrollEventOccurred = true;
+            pen.Y = newY < State.Field.Origin.Y ? State.Field.Origin.Y : newY;
         }
         else
         {

@@ -26,13 +26,22 @@ public class Drawable
     }
 
     /// <summary>
-    /// When set, color resolution uses this palette instead of the per-command state's ColorMap.
-    /// This enables palette animation (blink, palette cycling) — modifications to LivePalette
-    /// are immediately visible on re-render without changing historical state snapshots.
+    /// When set alongside UseLivePalette, color resolution uses this palette instead of
+    /// the per-command state's ColorMap. This enables palette animation (blink, palette cycling)
+    /// — modifications to LivePalette are immediately visible on re-render without changing
+    /// historical state snapshots.
     /// ThreadStatic ensures each thread gets its own palette for safe parallel rendering.
     /// </summary>
     [ThreadStatic]
     public static Dictionary<byte, NaplpsColor>? LivePalette;
+
+    /// <summary>
+    /// When true, drawing commands use LivePalette for color resolution (palette animation mode).
+    /// When false, drawing commands use their historical per-command state ColorMap.
+    /// Only set to true during blink/palette animation re-renders.
+    /// </summary>
+    [ThreadStatic]
+    public static bool UseLivePalette;
 
     private readonly NaplpsCommand _baseCommand;
     private readonly NaplpsState _state;
@@ -103,11 +112,11 @@ public class Drawable
         return MathF.Max(MathF.Max(pelX, pelY), 1f);
     }
 
-    internal (Brush, Pen) GetBrushAndPenFromFillableCommand(Size size)
+    internal (Brush, Pen) GetBrushAndPenFromFillableCommand(Size size, NaplpsState? renderState = null)
     {
         var fillableCommand = (FillableGeometricDrawingCommandBase)_baseCommand;
 
-        var (fgColor, bgColor) = fillableCommand.GetColors(_state);
+        var (fgColor, bgColor) = fillableCommand.GetColors(renderState ?? _state);
 
         var brush = GetFillBrush(size, fgColor, bgColor);
 
@@ -173,6 +182,17 @@ public class Drawable
         var fgColorImageSharp = fgColor.ToISColor();
         var bgColorImageSharp = bgColor.ToISColor();
 
+        // ANSI X3.110 §5.3.3.5: "Even when the logical pel size is (0,0), the solid fill
+        // is still drawn." At pel (0,0), hatching patterns produce solid fills.
+        // Only non-zero pel sizes produce visible hatching.
+        var logicalPel = fillableCommand.LogicalPel;
+
+        if (texturePattern == TexturePatterns.Solid || (logicalPel.X == 0 && logicalPel.Y == 0))
+        {
+            return Brushes.Solid(fgColorImageSharp);
+        }
+
+        // Modes 0/1: background is transparent (gaps show underlying canvas)
         if (fillableCommand.ColorMode != 2)
         {
             bgColorImageSharp = ISColor.Transparent;
@@ -198,7 +218,6 @@ public class Drawable
             case TexturePatterns.MaskB:
             case TexturePatterns.HorizontalHatching:
             {
-                // ANSI X3.110: horizontal lines 1 logical pel HEIGHT high, spaced 2x pelH apart
                 var pelY = Math.Max(1, scaledLogicalPel.Y);
                 var pattern = new bool[pelY * 2, 1];
 
@@ -213,7 +232,6 @@ public class Drawable
             case TexturePatterns.MaskC:
             case TexturePatterns.CrossHatching:
             {
-                // ANSI X3.110: combination of vertical (pelW wide) and horizontal (pelH high)
                 var pelX = Math.Max(1, scaledLogicalPel.X);
                 var pelY = Math.Max(1, scaledLogicalPel.Y);
                 var width = pelX * 2;
@@ -245,10 +263,9 @@ public class Drawable
             state = _state;
         }
 
-        // Use LivePalette for color lookups when available (enables palette animation).
-        // The color index comes from historical state, but the actual color value
-        // comes from the live palette — this is how real NAPLPS terminals work (CLUT swap).
-        var palette = LivePalette ?? state.ColorMap;
+        // Normal rendering: use historical per-command palette snapshot.
+        // Palette animation (blink): use LivePalette so CLUT changes are visible.
+        var palette = (UseLivePalette && LivePalette != null) ? LivePalette : state.ColorMap;
         var fgColor = state.ColorMode == 0 ? state.Foreground : palette[state.ColorMapForeground];
         var bgColor = state.ColorMode == 0 ? state.Background : palette[state.ColorMapBackground];
 

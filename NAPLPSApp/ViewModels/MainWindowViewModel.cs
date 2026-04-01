@@ -921,6 +921,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         await RenderToFrame((int)drawContext.TotalFrames);
+
+        // Restart blink timer when returning to the final frame
+        if (drawContext.BlinkAnimator?.HasActiveProcesses == true)
+        {
+            StartBlinkTimer();
+        }
     }
 
     private async Task RenderToFrame(int frameIndex)
@@ -929,6 +935,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             return;
         }
+
+        // Stop blink timer — it calls Render() which would overwrite the navigated frame.
+        // Blink restarts when the user returns to the last frame via LastFrame().
+        StopBlinkTimer();
 
         // Cancel any ongoing render
         renderCancellationToken?.Cancel();
@@ -1011,6 +1021,17 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         blinkTimer?.Stop();
         blinkTimer = null;
+    }
+
+    public void CloseChildWindows()
+    {
+        StopBlinkTimer();
+
+        sequenceWindow?.Close();
+        sequenceWindow = null;
+
+        propertiesWindow?.Close();
+        propertiesWindow = null;
     }
 
     private void FileClose()

@@ -22,7 +22,7 @@ public class DrawableRectangleSetOutlined : Drawable, IDrawable
             return;
         }
 
-        var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
+        var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
         var vertices = _command.Vertices;
 
         image.Mutate(x =>

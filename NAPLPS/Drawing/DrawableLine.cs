@@ -30,8 +30,7 @@ public class DrawableLine : Drawable, IDrawable
             return;
         }
 
-        // Use LivePalette (CLUT) for modes 1/2 to reflect retroactive palette changes
-        var palette = Drawable.LivePalette ?? state.ColorMap;
+        var palette = (Drawable.UseLivePalette && Drawable.LivePalette != null) ? Drawable.LivePalette : state.ColorMap;
         var color = state.ColorMode == 0 ? state.Foreground.ToColor() : palette[state.ColorMapForeground].ToColor();
         var isColor = color.ToISColor();
 

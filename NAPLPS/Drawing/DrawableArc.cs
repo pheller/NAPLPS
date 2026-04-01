@@ -17,7 +17,7 @@ public class DrawableArc : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
-        var (brush, pen) = GetBrushAndPenFromFillableCommand(size);
+        var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
 
         // Check for spline: more vertices than a standard arc requires
         bool isSet = _command is ArcSetFilledCommand or ArcSetOutlinedCommand;

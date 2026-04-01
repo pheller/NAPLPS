@@ -53,8 +53,21 @@ public class DrawContext : IDisposable
     {
         BeginRender();
 
+        // Build running CLUT palette to detect mid-stream palette changes
+        var clutPalette = new Dictionary<byte, NaplpsColor>(NAPLPS.Commands[0].State.ColorMap);
+        bool clutDirty = false;
+
         foreach (var (command, state) in NAPLPS.Commands)
         {
+            // Track palette changes for CLUT animation
+            if (command is SetColorCommand setColor &&
+                (state.ColorMode == 1 || state.ColorMode == 2) &&
+                setColor.Operands.Count > 0)
+            {
+                clutPalette[state.ColorMapForeground] = setColor.Color;
+                clutDirty = true;
+            }
+
             RenderCommand(command, state);
 
             if (CurrentIndex == sequenceNumber)
@@ -63,6 +76,13 @@ public class DrawContext : IDisposable
             }
 
             CurrentIndex++;
+        }
+
+        // If palette changed during rendering, do a final CLUT-correct re-render
+        // so the output shows retroactive palette effects (e.g., eye blink).
+        if (clutDirty && !PaletteAnimationMode)
+        {
+            ClutReRender(clutPalette, (int)Math.Min(sequenceNumber, TotalFrames));
         }
 
         EndRender();
@@ -83,7 +103,13 @@ public class DrawContext : IDisposable
             OnImageUpdated?.Invoke();
             CurrentIndex++;
 
-            if (drawable != null)
+            if (command is WaitCommand waitCmd && waitCmd.IsValid)
+            {
+                // PP3 doesn't parse WAIT timing — it processes data bytes at CPU speed.
+                // Use a short fixed delay for visual feedback (e.g., CLUT eye blink).
+                await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken);
+            }
+            else if (drawable != null)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(delay), cancellationToken);
             }
@@ -100,10 +126,12 @@ public class DrawContext : IDisposable
         // Clear canvas (important for loop restarts and re-renders)
         Image.Mutate(ctx => ctx.Fill(ISColor.Black));
 
-        // NAPLPS is a CLUT system: palette changes via SET COLOR retroactively affect
-        // all previously drawn objects using that palette index. Always use the final
-        // parsed state's palette for color resolution in modes 1 and 2.
+        // LivePalette holds the final palette for scroll clear and palette animation.
+        // UseLivePalette controls whether drawing commands use it:
+        //   false (normal render) → commands use their historical per-command ColorMap
+        //   true  (palette animation) → commands use LivePalette for CLUT blink effects
         Drawable.LivePalette = NAPLPS.State.ColorMap;
+        Drawable.UseLivePalette = PaletteAnimationMode;
     }
 
     private void EndRender()
@@ -114,6 +142,7 @@ public class DrawContext : IDisposable
         }
 
         Drawable.LivePalette = null;
+        Drawable.UseLivePalette = false;
     }
 
     /// <summary>
@@ -121,10 +150,11 @@ public class DrawContext : IDisposable
     /// </summary>
     private IDrawable? RenderCommand(NaplpsCommand command, NaplpsState state)
     {
-        // Handle scroll: shift image pixels up when scroll event occurs
+        // Handle scroll: shift image pixels up when scroll event occurs.
+        // Scroll = paper feed: shift pixels, then draw at same coords fills fresh area.
         if (state.ScrollEventOccurred)
         {
-            ScrollImageUp(state);
+            ScrollImage(state);
         }
 
         var drawable = ConvertToDrawable(command, state);
@@ -146,6 +176,99 @@ public class DrawContext : IDisposable
         }
 
         return drawable;
+    }
+
+    /// <summary>
+    /// CLUT re-render: replays all commands from 0 to upToIndex using the given palette
+    /// for color resolution. This produces CLUT-correct output where palette changes
+    /// retroactively affect previously-drawn shapes (e.g., eye blink animation).
+    /// </summary>
+    private void ClutReRender(Dictionary<byte, NaplpsColor> clutPalette, int upToIndex)
+    {
+        // Save state that gets mutated during rendering
+        var savedLastChar = _lastDisplayedChar;
+
+        // Save pen positions for states with Repeat commands (RenderRepeat mutates state.Pen)
+        var savedPens = new Dictionary<int, Vector3>();
+        int scanIdx = 0;
+
+        foreach (var (cmd, cmdState) in NAPLPS.Commands)
+        {
+            if (scanIdx > upToIndex)
+            {
+                break;
+            }
+
+            if (cmd is ControlCommand cc &&
+                (cc.Command == NaplpsControlCommands.Repeat || cc.Command == NaplpsControlCommands.RepeatToEOL))
+            {
+                savedPens[scanIdx] = cmdState.Pen;
+            }
+
+            scanIdx++;
+        }
+
+        // Clear and re-render with CLUT palette
+        Image.Mutate(ctx => ctx.Fill(ISColor.Black));
+        Drawable.LivePalette = clutPalette;
+        Drawable.UseLivePalette = true;
+
+        _lastDisplayedChar = null;
+        int idx = 0;
+
+        foreach (var (cmd, cmdState) in NAPLPS.Commands)
+        {
+            if (idx > upToIndex)
+            {
+                break;
+            }
+
+            if (cmdState.ScrollEventOccurred)
+            {
+                ScrollImage(cmdState);
+            }
+
+            var drawable = ConvertToDrawable(cmd, cmdState);
+
+            if (cmd is AsciiCharCommand asciiChar && !asciiChar.IsDiscarded)
+            {
+                _lastDisplayedChar = asciiChar;
+            }
+
+            if (drawable is DrawableRepeat repeatDrawable)
+            {
+                RenderRepeat(repeatDrawable, cmdState);
+            }
+            else
+            {
+                drawable?.Draw(Image, cmdState, Size);
+            }
+
+            idx++;
+        }
+
+        // Restore mutated pen positions
+        idx = 0;
+
+        foreach (var (cmd, cmdState) in NAPLPS.Commands)
+        {
+            if (idx > upToIndex)
+            {
+                break;
+            }
+
+            if (savedPens.TryGetValue(idx, out var savedPen))
+            {
+                cmdState.Pen = savedPen;
+            }
+
+            idx++;
+        }
+
+        // Restore rendering state
+        Drawable.LivePalette = NAPLPS.State.ColorMap;
+        Drawable.UseLivePalette = false;
+        _lastDisplayedChar = savedLastChar;
     }
 
     private void RenderRepeat(DrawableRepeat repeatDrawable, NaplpsState state)
@@ -239,42 +362,44 @@ public class DrawContext : IDisposable
     /// If the cursor is within the active field, only the field region scrolls.
     /// Otherwise, the entire display scrolls.
     /// </summary>
-    private void ScrollImageUp(NaplpsState state)
+    private void ScrollImage(NaplpsState state)
     {
-        var (_, lineHeightPx) = ConvertNormalizedToScreenScale(Size, 0, state.CharSize.Y * GetInterrowMultiplier(state.TextInterrowSpacing));
-        int shiftPixels = Math.Max(1, Math.Abs(lineHeightPx));
+        float charHeightNorm = state.CharSize.Y * GetInterrowMultiplier(state.TextInterrowSpacing);
+        int shiftPixels = Math.Max(1, (int)(charHeightNorm / 0.80f * Size.Height));
 
-        // Determine scroll region: active field if pen is inside it, otherwise full screen
-        bool fieldScoped = state.Field.Dimensions.X > 0 && state.Field.Dimensions.Y > 0;
+        // ANSI X3.110 §6.2.7.13: cleared pixels are nominal black in modes 0/1,
+        // background color in mode 2.
+        // Normal render: use historical state palette (paper color at time of scroll).
+        // Palette animation: use LivePalette to stay consistent with filled shapes.
+        var palette = (Drawable.UseLivePalette && Drawable.LivePalette != null)
+            ? Drawable.LivePalette
+            : state.ColorMap;
+        var clearColor = state.ColorMode == 2 && palette.ContainsKey(state.ColorMapBackground)
+            ? new Rgba32(palette[state.ColorMapBackground].Red, palette[state.ColorMapBackground].Green, palette[state.ColorMapBackground].Blue, 255)
+            : new Rgba32(0, 0, 0, 255);
 
-        if (fieldScoped)
+        // Determine scroll direction based on pen position.
+        // Pen in lower half of screen → scroll UP (paper feeds up, new content at bottom)
+        // Pen in upper half of screen → scroll DOWN (new content appears at top, old pushed down)
+        bool scrollDown = state.Pen.Y > 0.4f;
+
+        Image.ProcessPixelRows(accessor =>
         {
-            var fieldOrigin = ConvertNormalizedToPoint(Size, state.Field.Origin.X, state.Field.Origin.Y + state.Field.Dimensions.Y);
-            var fieldEnd = ConvertNormalizedToPoint(Size, state.Field.Origin.X + state.Field.Dimensions.X, state.Field.Origin.Y);
-            int left = Math.Max(0, (int)fieldOrigin.X);
-            int top = Math.Max(0, (int)fieldOrigin.Y);
-            int right = Math.Min(Image.Width, (int)fieldEnd.X);
-            int bottom = Math.Min(Image.Height, (int)fieldEnd.Y);
-
-            Image.ProcessPixelRows(accessor =>
+            if (scrollDown)
             {
-                for (int y = top; y < bottom - shiftPixels; y++)
+                for (int y = accessor.Height - 1; y >= shiftPixels; y--)
                 {
-                    var srcRow = accessor.GetRowSpan(y + shiftPixels);
+                    var srcRow = accessor.GetRowSpan(y - shiftPixels);
                     var dstRow = accessor.GetRowSpan(y);
-                    srcRow.Slice(left, right - left).CopyTo(dstRow.Slice(left, right - left));
+                    srcRow.CopyTo(dstRow);
                 }
 
-                for (int y = Math.Max(top, bottom - shiftPixels); y < bottom; y++)
+                for (int y = 0; y < Math.Min(shiftPixels, accessor.Height); y++)
                 {
-                    var row = accessor.GetRowSpan(y);
-                    row.Slice(left, right - left).Fill(new Rgba32(0, 0, 0, 255));
+                    accessor.GetRowSpan(y).Fill(clearColor);
                 }
-            });
-        }
-        else
-        {
-            Image.ProcessPixelRows(accessor =>
+            }
+            else
             {
                 for (int y = 0; y < accessor.Height - shiftPixels; y++)
                 {
@@ -285,11 +410,10 @@ public class DrawContext : IDisposable
 
                 for (int y = accessor.Height - shiftPixels; y < accessor.Height; y++)
                 {
-                    var row = accessor.GetRowSpan(y);
-                    row.Fill(new Rgba32(0, 0, 0, 255));
+                    accessor.GetRowSpan(y).Fill(clearColor);
                 }
-            });
-        }
+            }
+        });
     }
 
     private static float GetInterrowMultiplier(TextInterrowSpacing spacing) => spacing switch
@@ -469,7 +593,8 @@ public class DrawContext : IDisposable
     /// Caller owns the returned image and must dispose it.
     /// </summary>
     /// <param name="delayHundredths">Base frame delay in hundredths of a second (default 5 = 50ms)</param>
-    public Image<Rgba32> RenderToApng(int delayHundredths = 5, bool loop = false)
+    /// <param name="blinkCycles">Number of blink animation cycles to append after drawing (0 = none)</param>
+    public Image<Rgba32> RenderToApng(int delayHundredths = 5, bool loop = false, int blinkCycles = 0)
     {
         var apng = new Image<Rgba32>(Size.Width, Size.Height);
         var pngMeta = apng.Metadata.GetFormatMetadata(PngFormat.Instance);
@@ -479,18 +604,57 @@ public class DrawContext : IDisposable
         Image<Rgba32>? previousFrame = null;
         int currentFrameDelayMultiplier = 1;
 
-        // Incremental rendering: single pass through commands, drawing each on top
-        // of the existing canvas. O(n) instead of O(n²). Safe because LivePalette
-        // uses the final parsed palette — color resolution is order-independent.
+        // Running CLUT palette — tracks palette changes for CLUT animation.
+        // When SetColorCommand modifies an entry followed by WaitCommand,
+        // we re-render from scratch with this palette to show the CLUT effect
+        // (e.g., girl.nap eye blink: entries 11/12/13 toggle between eye and skin colors).
+        var clutPalette = new Dictionary<byte, NaplpsColor>(NAPLPS.Commands[0].State.ColorMap);
+        bool clutDirty = false;
+
         BeginRender();
+
+        int commandIndex = 0;
 
         foreach (var sequence in NAPLPS.Commands)
         {
             var (cmd, cmdState) = sequence;
+
+            // Track palette changes for CLUT animation
+            if (cmd is SetColorCommand setColor)
+            {
+                if ((cmdState.ColorMode == 1 || cmdState.ColorMode == 2) && setColor.Operands.Count > 0)
+                {
+                    clutPalette[cmdState.ColorMapForeground] = setColor.Color;
+                    clutDirty = true;
+                }
+            }
+
             var drawable = RenderCommand(cmd, cmdState);
 
+            // WaitCommand: capture current frame with the wait duration as delay.
+            // CLUT animation: if palette changed before this wait, re-render first.
+            if (cmd is WaitCommand waitCmd && waitCmd.IsValid)
+            {
+                if (clutDirty)
+                {
+                    ClutReRender(clutPalette, commandIndex);
+                    clutDirty = false;
+                }
+
+                // Commit the previous frame, then capture current state with wait delay
+                if (previousFrame != null)
+                {
+                    AddApngFrame(apng, previousFrame, baseDelay, currentFrameDelayMultiplier);
+                    previousFrame.Dispose();
+                }
+
+                previousFrame = Image.Clone();
+                // PP3 doesn't parse WAIT timing — short fixed delay for CLUT animation frames.
+                // 150ms ≈ 15 hundredths → multiplier = 15 / delayHundredths
+                currentFrameDelayMultiplier = Math.Max(1, 15 / delayHundredths);
+            }
             // Only check for frame changes when something was actually drawn
-            if (drawable != null)
+            else if (drawable != null)
             {
                 if (previousFrame != null && FramesAreIdentical(Image, previousFrame))
                 {
@@ -514,6 +678,7 @@ public class DrawContext : IDisposable
             }
 
             CurrentIndex++;
+            commandIndex++;
         }
 
         if (previousFrame != null)
@@ -522,9 +687,89 @@ public class DrawContext : IDisposable
             previousFrame.Dispose();
         }
 
+        // Append blink animation frames if requested and blink processes exist
+        if (blinkCycles > 0 && NAPLPS.State.BlinkProcesses.Count > 0)
+        {
+            AppendBlinkFrames(apng, blinkCycles);
+        }
+
         Drawable.LivePalette = null;
 
         return apng;
+    }
+
+    /// <summary>
+    /// Appends blink/palette animation frames to an APNG after the main render.
+    /// Ticks the blink animator at 100ms intervals and captures each state change.
+    /// </summary>
+    private void AppendBlinkFrames(Image<Rgba32> apng, int cycles)
+    {
+        InitializeBlinkAnimator();
+
+        if (BlinkAnimator == null || !BlinkAnimator.HasActiveProcesses)
+        {
+            return;
+        }
+
+        // Calculate total animation time from blink processes
+        // Each cycle = (OnInterval + OffInterval) * 100ms
+        int maxCycleMs = 0;
+
+        foreach (var process in NAPLPS.State.BlinkProcesses)
+        {
+            int cycleMs = (process.OnInterval + process.OffInterval) * 100;
+            maxCycleMs = Math.Max(maxCycleMs, cycleMs);
+        }
+
+        int totalMs = maxCycleMs * cycles;
+        const int tickMs = 100; // 100ms per tick (matches NAPLPS blink time unit)
+        var blinkDelay = new Rational(10, 1000); // 100ms = 10/100s
+
+        var oldMode = PaletteAnimationMode;
+        PaletteAnimationMode = true;
+
+        Image<Rgba32>? lastBlinkFrame = null;
+        int frameAccumulator = 1;
+
+        for (int elapsed = 0; elapsed < totalMs; elapsed += tickMs)
+        {
+            bool changed = BlinkAnimator.Tick(tickMs);
+
+            if (changed)
+            {
+                // Re-render with updated palette
+                Render();
+
+                if (lastBlinkFrame != null && FramesAreIdentical(Image, lastBlinkFrame))
+                {
+                    frameAccumulator++;
+                }
+                else
+                {
+                    if (lastBlinkFrame != null)
+                    {
+                        AddApngFrame(apng, lastBlinkFrame, blinkDelay, frameAccumulator);
+                        lastBlinkFrame.Dispose();
+                    }
+
+                    lastBlinkFrame = Image.Clone();
+                    frameAccumulator = 1;
+                }
+            }
+            else
+            {
+                frameAccumulator++;
+            }
+        }
+
+        if (lastBlinkFrame != null)
+        {
+            AddApngFrame(apng, lastBlinkFrame, blinkDelay, frameAccumulator);
+            lastBlinkFrame.Dispose();
+        }
+
+        PaletteAnimationMode = oldMode;
+        BlinkAnimator.Reset();
     }
 
     private static void AddApngFrame(Image<Rgba32> apng, Image<Rgba32> frame, Rational baseDelay, int delayMultiplier)

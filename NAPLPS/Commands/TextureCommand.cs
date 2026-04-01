@@ -19,7 +19,7 @@ public class TextureCommand : GeometricDrawingCommandBase
 
     public TextureCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
-        TexturePattern = (TexturePatterns)(operands.Count != 0 ? ConvertBitsToByte([operands[0, 6], operands[0, 5], operands[0, 4]]) : 0);
+        TexturePattern = (TexturePatterns)(operands.Count != 0 ? ConvertBitsToByte([operands[0, 4], operands[0, 5], operands[0, 6]]) : 0);
         ShouldHighlight = operands.Count != 0 && operands[0, 3];
         LineTexture = (LineTextures)(operands.Count != 0 ? ConvertBitsToByte([operands[0, 1], operands[0, 2]]) : 0);
         MaskSize = operands.Count > 1 ? ProcessVertices(operands[1..]).FirstOrDefault() : Vector3.Zero;
