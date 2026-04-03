@@ -41,11 +41,14 @@ public class DrawableRectangleFilled : Drawable, IDrawable
             if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
             {
                 float outlineWidth = GetPenWidth(size);
-                // Highlight uses solid per spec; non-fill uses current line texture
+                float inset = outlineWidth / 2f;
+                var insetRect = new RectangularPolygon(
+                    new PointF(x1 + inset, y1 + inset),
+                    new PointF(x2 - inset, y2 - inset));
                 var outlinePen = _command.Texture.ShouldHighlight
                     ? Pens.Solid(GetOutlineColor(), outlineWidth)
                     : GetTexturedPen(GetOutlineColor(), outlineWidth);
-                x.Draw(outlinePen, rect);
+                x.Draw(outlinePen, insetRect);
             }
         });
     }

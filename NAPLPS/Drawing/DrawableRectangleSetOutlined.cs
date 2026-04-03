@@ -33,9 +33,15 @@ public class DrawableRectangleSetOutlined : Drawable, IDrawable
                 var v2 = vertices[i + 1];
 
                 var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, v1.X, v1.Y, v2.X, v2.Y);
-                var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
 
                 float outlineWidth = GetPenWidth(size);
+                // Inset by half pen width so the stroke falls entirely inside the boundary,
+                // matching PP3's Bresenham line drawing which places pixels AT the boundary.
+                float inset = outlineWidth / 2f;
+                var rect = new RectangularPolygon(
+                    new PointF(x1 + inset, y1 + inset),
+                    new PointF(x2 - inset, y2 - inset));
+
                 x.Draw(GetTexturedPen(GetOutlineColor(), outlineWidth), rect);
             }
         });

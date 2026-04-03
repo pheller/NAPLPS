@@ -316,39 +316,48 @@ public class DrawContext : IDisposable
         var pen = state.Pen;
 
         {
-            float spacingMultiplier = state.TextSpacing switch
-            {
-                TextSpacing.One => 1.0f,
-                TextSpacing.FiveQuarters => 1.25f,
-                TextSpacing.ThreeHalves => 1.5f,
-                _ => 1.0f
-            };
+            float advance;
 
-            float widthRatio = DrawableAsciiChar.GetCharWidthRatio(character);
+            if (state.TextSpacing == TextSpacing.Proportional)
+            {
+                float widthRatio = DrawableAsciiChar.GetCharWidthRatio(character);
+                advance = state.CharSize.X * widthRatio;
+            }
+            else
+            {
+                float spacingMultiplier = state.TextSpacing switch
+                {
+                    TextSpacing.FiveQuarters => 1.25f,
+                    TextSpacing.ThreeHalves => 1.5f,
+                    _ => 1.0f
+                };
+
+                advance = state.CharSize.X * spacingMultiplier;
+            }
 
             switch (state.TextPath)
             {
                 case TextPath.Right:
                 {
-                    pen.X += state.CharSize.X * widthRatio * spacingMultiplier;
+                    pen.X += advance;
                 }
                 break;
 
                 case TextPath.Left:
                 {
-                    pen.X -= state.CharSize.X * widthRatio * spacingMultiplier;
+                    pen.X -= advance;
                 }
                 break;
 
                 case TextPath.Up:
                 {
-                    pen.Y += state.CharSize.Y * spacingMultiplier;
+                    pen.Y += state.CharSize.Y;
                 }
                 break;
 
                 case TextPath.Down:
                 {
-                    pen.Y -= state.CharSize.Y * spacingMultiplier;
+                    pen.Y -= state.CharSize.Y;
                 }
                 break;
             }

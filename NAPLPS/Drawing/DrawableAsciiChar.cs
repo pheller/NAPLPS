@@ -75,8 +75,34 @@ public class DrawableAsciiChar : Drawable, IDrawable
         9, 9, 9, 9, 5, 0, 4, 4, 7, 9, 9, 6, 5, 4, 5
     };
 
-    // Legacy row 8 lookup for backward compatibility
+    // Legacy row 8 lookup — used for glyph rendering width
     private static readonly int[] _displacementRow8 = { 2, 3, 4, 4, 5, 6, 7, 6, 7, 8 };
+
+    // Actual VGA 8x16 font glyph pixel widths (rightmost set pixel column).
+    // PP3's MVDI measures actual glyph widths from the font ROM for proportional advance.
+    // All glyphs are 6-8px wide — proportional mode is nearly monospaced with this font.
+    private static readonly byte[] _vgaGlyphWidths = new byte[]
+    {
+        8, 6, 8, 7, 8, 7, 8, 7, 8, 6, 8, 8, 8, 6, 8, 7, // SP ! " # $ % & ' ( ) * + , - . /
+        8, 7, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, // 0-9 : ; < = > ?
+        7, 8, 7, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, // @ A-O
+        8, 7, 8, 7, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, // P-_
+        7, 8, 7, 8, 6, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, // ` a-o
+        8, 6, 8, 7, 8, 7, 7, 8, 7, 8, 6, 8, 7, 8, 7, 8, // p-~ DEL
+    };
+
+    /// <summary>
+    /// Returns the actual VGA font glyph pixel width ratio for proportional advance.
+    /// </summary>
+    public static float GetGlyphAdvanceRatio(char c)
+    {
+        if (c >= 0x20 && c <= 0x7F)
+        {
+            return _vgaGlyphWidths[c - 0x20] / 8f;
+        }
+
+        return 0.875f; // default 7/8 for unknown chars
+    }
 
     static DrawableAsciiChar()
     {
@@ -136,19 +162,52 @@ public class DrawableAsciiChar : Drawable, IDrawable
     /// </summary>
     public static float GetCharWidthRatio(char c)
     {
-        if (c < 0x20 || c > 0x7E)
+        if (c >= 0x20 && c <= 0x7E)
         {
-            return 1.0f; // Full width for unknown characters
+            int widthClass = _asciiWidthClass[c - 0x20];
+            return _displacementRow8[widthClass] / 8f;
         }
 
-        int widthClass = _asciiWidthClass[c - 0x20];
-        return _displacementRow8[widthClass] / 8f;
+        // Supplementary/extended characters: use width estimates based on Unicode category.
+        // The NAPLPS spec doesn't define proportional widths for the supplementary set,
+        // but full-width (1.0) is wrong for narrow symbols like ®, ©, °, etc.
+        return c switch
+        {
+            '®' or '©' or '™' => 0.625f,  // Narrow symbols (width class ~5)
+            '°' or '·' or '¨' or '¸' or '˚' or '˙' => 0.375f,  // Tiny symbols (class ~3)
+            '±' or '×' or '÷' or '¬' => 0.75f,   // Math operators (class ~6)
+            '²' or '³' or '¹' => 0.375f,  // Superscripts (class ~3)
+            '¼' or '½' or '¾' => 0.875f,  // Fractions (class ~7)
+            '←' or '→' or '↑' or '↓' => 0.875f,  // Arrows (class ~7)
+            '─' or '―' => 1.0f,  // Full-width dashes/lines
+            _ => 0.75f  // Default: slightly narrower than full width
+        };
     }
 
     /// <summary>
-    /// ANSI X3.110 proportional spacing algorithm.
-    /// Returns the cursor displacement as a normalized coordinate value,
-    /// given the character field width and the character's width class.
+    /// Returns the raw Row 8 displacement value (0-8) for a character's width class.
+    /// Used by PP3's fixed-point integer arithmetic: advance = (n * disp) / 8.
+    /// </summary>
+    public static int GetWidthClassDisplacement(char c)
+    {
+        int widthClass;
+        if (c >= 0x20 && c <= 0x7E)
+        {
+            widthClass = _asciiWidthClass[c - 0x20];
+        }
+        else
+        {
+            widthClass = 9;
+        }
+
+        return _displacementRow8[widthClass];
+    }
+
+    /// <summary>
+    /// Proportional spacing displacement matching PP3's implementation.
+    /// PP3 uses the ANSI X3.110 displacement table (Phase 1) but does NOT
+    /// implement the Phase 2 multiply/divide algorithm — confirmed via Ghidra
+    /// (zero MUL instructions in overlay code). PP3 clamps to table bounds.
     /// </summary>
     public static float GetProportionalDisplacement(float charFieldWidth, char c)
     {
@@ -163,55 +222,16 @@ public class DrawableAsciiChar : Drawable, IDrawable
             widthClass = 9; // Full width for supplementary/unknown
         }
 
-        // Multiply character field width by 256, truncate to integer
+        // Compute n = floor(charFieldWidth * 256)
         int n = (int)(charFieldWidth * 256f);
 
-        if (n < 6)
-        {
-            // Below minimum table row — use full field width for class 9, scale for others
-            return charFieldWidth * (widthClass + 1) / 10f;
-        }
+        // Clamp to table range: PP3 has rows for n=6 through n=11.
+        // For n < 6, clamp to row 6. For n >= 12, clamp to row 11.
+        // PP3 has no Phase 2 algorithm (no MUL/DIV instructions in overlay).
+        int row = Math.Clamp(n, 6, 11) - 6;
 
-        if (n < 12)
-        {
-            // Phase 1: Small text — direct table lookup
-            int row = n - 6; // Table rows 0-5 correspond to n=6-11
-            if (row >= 0 && row < 6)
-            {
-                int disp = _displacementTable[row, widthClass];
-                return disp / 256f;
-            }
-        }
-
-        // Phase 2: Large text (n >= 12) — scaling algorithm
-        // Step 1: Truncate to 8 MSBs (DOMAIN 3 precision)
-        int n8 = n & 0xFF; // Already 8-bit from the multiply-by-256
-
-        // Step 2: Multiply by 11/13
-        int scaled = (n8 * 11) / 13;
-
-        // Step 3: Subtract 1/256, OR with 1/256, subtract 1/256 again
-        // This forces the result to be odd (in 1/256 units)
-        int f = scaled;
-        f = f - 1;
-        f = f | 1;
-        f = f - 1;
-        f = f & 0xFF; // Truncate to 8 bits
-
-        // Step 4: Get unit spacing from row 12
-        int unitSpacing = _unitSpacingRow12[widthClass];
-
-        // Step 5: Multiply unit spacing by f
-        int product = unitSpacing * f;
-
-        // Step 6: Divide by 6, add 1/512 for rounding, truncate to 8 bits
-        int adjustment = ((product / 6) + 1) >> 1; // +1 then >>1 approximates +0.5 rounding
-        adjustment = adjustment & 0xFF;
-
-        // Displacement = n - adjustment
-        int displacement = n8 - adjustment;
-
-        return displacement / 256f;
+        int disp = _displacementTable[row, widthClass];
+        return disp / 256f;
     }
 
     /// <summary>
@@ -390,10 +410,13 @@ public class DrawableAsciiChar : Drawable, IDrawable
         var penPoint = ConvertNormalizedToPoint(size, state.Pen.X, state.Pen.Y);
         var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
 
-        float cellW = MathF.Max(1f, MathF.Abs(charSizeX));
+        float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
+        float fullCellW = MathF.Max(1f, MathF.Abs(charSizeX));
+        float cellW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
         float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
 
         float cellTopX = penPoint.X;
+
         float cellTopY = penPoint.Y - cellH;
 
         var (fgColor, bgColor) = GetISColorFromState(state);
@@ -410,10 +433,12 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         image.Mutate(ctx =>
         {
-            // Color mode 2: fill background
+            // Color mode 2: fill background across full cell width
             if (state.ColorMode == 2)
             {
-                var bgRect = new RectangleF(cellTopX, cellTopY, cellW + 1, cellH);
+                float bgX = state.TextSpacing == TextSpacing.Proportional ? penPoint.X : penPoint.X;
+                float bgW = state.TextSpacing == TextSpacing.Proportional ? cellW + 1 : fullCellW + 1;
+                var bgRect = new RectangleF(bgX, cellTopY, bgW, cellH);
                 ctx.Fill(bgColor, bgRect);
             }
 
@@ -453,11 +478,13 @@ public class DrawableAsciiChar : Drawable, IDrawable
                 }
             }
 
-            // Underline
+            // ANSI X3.110 §6.2.7.15: underline starts at character field origin,
+            // extends across full field width (dx), thickness = logical pel dy.
             if (state.IsUnderline)
             {
-                float underlineY = penPoint.Y - 1;
-                float underlineThickness = MathF.Max(1f, cellH * 0.05f);
+                float underlineY = penPoint.Y;
+                var (pelX, pelY) = ConvertNormalizedToScreenScale(size, state.LogicalPel.X, state.LogicalPel.Y);
+                float underlineThickness = MathF.Max(1f, MathF.Abs(pelY));
                 var underlinePen = Pens.Solid(fgColor, underlineThickness);
                 ctx.DrawLine(underlinePen, new PointF(cellTopX, underlineY), new PointF(cellTopX + cellW, underlineY));
             }
@@ -476,14 +503,11 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // Convert character cell size (normalized) to screen pixels
         var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
 
-        // Get proportional width for this character
+        float fullCellW = MathF.Max(1f, MathF.Abs(charSizeX));
         float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
-
-        // Apply proportional width to cell
         float cellW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
         float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
 
-        // Cell top-left in screen coords (Y-down)
         float cellTopX = penPoint.X;
         float cellTopY = penPoint.Y - cellH;
 
@@ -606,13 +630,16 @@ public class DrawableAsciiChar : Drawable, IDrawable
             // Draw with stretch transform
             ctx.DrawText(drawingOptions, charText, font, fgColor, new PointF(textOriginX, textOriginY));
 
-            // Underline: draw line at bottom of character field
+            // ANSI X3.110 §6.2.7.15: underline starts at character field origin,
+            // extends across full field width (dx, not proportional), thickness = logical pel dy.
             if (state.IsUnderline)
             {
-                float underlineY = penPoint.Y - 1; // Just above the pen position (bottom of cell)
-                float underlineThickness = MathF.Max(1f, cellH * 0.05f);
+                float fullFieldW = MathF.Max(1f, MathF.Abs(charSizeX));
+                float underlineY = penPoint.Y;
+                var (pelX, pelY) = ConvertNormalizedToScreenScale(size, state.LogicalPel.X, state.LogicalPel.Y);
+                float underlineThickness = MathF.Max(1f, MathF.Abs(pelY));
                 var underlinePen = Pens.Solid(fgColor, underlineThickness);
-                ctx.DrawLine(underlinePen, new PointF(cellTopX, underlineY), new PointF(cellTopX + cellW, underlineY));
+                ctx.DrawLine(underlinePen, new PointF(cellTopX, underlineY), new PointF(cellTopX + fullFieldW, underlineY));
             }
         });
     }

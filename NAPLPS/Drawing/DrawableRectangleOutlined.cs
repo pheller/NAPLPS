@@ -29,9 +29,15 @@ public class DrawableRectangleOutlined : Drawable, IDrawable
         );
 
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
-        var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
 
         float outlineWidth = GetPenWidth(size);
+        // Inset by half pen width so the stroke falls entirely inside the boundary,
+        // matching PP3's Bresenham line drawing which places pixels AT the boundary.
+        float inset = outlineWidth / 2f;
+        var rect = new RectangularPolygon(
+            new PointF(x1 + inset, y1 + inset),
+            new PointF(x2 - inset, y2 - inset));
+
         var outlinePen = GetTexturedPen(GetOutlineColor(), outlineWidth);
 
         image.Mutate(x => x.Draw(outlinePen, rect));

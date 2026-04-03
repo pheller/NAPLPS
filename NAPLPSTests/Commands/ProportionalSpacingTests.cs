@@ -58,11 +58,10 @@ public class ProportionalSpacingTests
     [TestMethod]
     public void ProportionalDisplacement_LargeText_WidthClass0()
     {
-        // Large text (n=12): width class 0 ('!')
-        // n8=12, scaled=12*11/13=10, f=(10-1)|1-1=8, unitSpacing=6, product=48
-        // adjustment=((48/6)+1)>>1=4, displacement=12-4=8 → 8/256
+        // Large text (n=12): PP3 clamps to row 11 (no Phase 2).
+        // Row 11, class 0: displacement = 3/256
         float disp = DrawableAsciiChar.GetProportionalDisplacement(12f / 256f, '!');
-        Assert.AreEqual(8f / 256f, disp, 0.002f);
+        Assert.AreEqual(3f / 256f, disp, 0.002f);
     }
 
     [TestMethod]

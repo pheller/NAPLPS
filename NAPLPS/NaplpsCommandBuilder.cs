@@ -99,4 +99,43 @@ public static class NaplpsCommandBuilder
     {
         return (OpSelectColor, NaplpsEncoder.EncodeSelectColorForegroundBackground(fgIndex, bgIndex));
     }
+
+    public const byte OpText = 0xA2;
+
+    /// <summary>
+    /// Build a TEXT command that sets character size and spacing mode.
+    /// Fixed byte 1: bits 6,5=spacing, bits 4,3=path, bits 2,1=rotation
+    /// Fixed byte 2: bits 6,5=cursor, bits 4,3=moveAttrs, bits 2,1=interrow
+    /// Then multi-value vertex for charSize (dx, dy).
+    /// </summary>
+    public static (byte opcode, NaplpsOperands operands) BuildText(
+        float charWidth, float charHeight,
+        TextCommand.TextSpacing spacing = TextCommand.TextSpacing.One,
+        TextCommand.TextPath path = TextCommand.TextPath.Right,
+        int multiByteValue = 3)
+    {
+        var operands = new NaplpsOperands();
+
+        // Fixed byte 1: rotation(bits 2,1) + path(bits 4,3) + spacing(bits 6,5)
+        byte fixed1 = 0xC0; // base for numerical data
+        int spacingBits = (int)spacing;
+        int pathBits = (int)path;
+        // bit 6 = spacing high, bit 5 = spacing low
+        if ((spacingBits & 2) != 0) fixed1 |= (1 << 5); // bit 6 (1-indexed)
+        if ((spacingBits & 1) != 0) fixed1 |= (1 << 4); // bit 5
+        // bit 4 = path high, bit 3 = path low
+        if ((pathBits & 2) != 0) fixed1 |= (1 << 3); // bit 4
+        if ((pathBits & 1) != 0) fixed1 |= (1 << 2); // bit 3
+        operands.Add(fixed1);
+
+        // Fixed byte 2: interrow(bits 2,1) + moveAttrs(bits 4,3) + cursor(bits 6,5)
+        // All defaults = 0
+        operands.Add(0xC0);
+
+        // Multi-value vertex for char size
+        var sizeOperands = NaplpsEncoder.EncodeVertex2D(charWidth, charHeight, multiByteValue);
+        operands.AddRange(sizeOperands);
+
+        return (OpText, operands);
+    }
 }

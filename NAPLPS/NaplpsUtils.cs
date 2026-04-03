@@ -169,14 +169,14 @@ public static class NaplpsUtils
     {
         var bits = new List<bool>(totalBits);
 
+        // NAPLPS coordinate encoding: bit 1 = sign (1=negative, 0=positive).
+        // For positive: remaining bits encode the fraction starting at 0.5.
+        // For negative: decoder does result = -1 + fraction, so encode fraction = value + 1.
+        // The sign bit is part of the total bit count — all totalBits are used.
         bool isNegative = value < 0;
         bits.Add(isNegative);
 
-        // For negative values, the decoder does: result = -1 + fraction
-        // So to encode: fraction = value + 1
-        // For positive values: fraction = value
         float fraction = isNegative ? value + 1.0f : value;
-
         float baseValue = 0.5f;
 
         for (int i = 1; i < totalBits; i++)

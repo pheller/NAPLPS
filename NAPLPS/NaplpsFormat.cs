@@ -139,9 +139,25 @@ public partial class NaplpsFormat
         return FromBytes(data);
     }
 
-    public static NaplpsFormat New()
+    public static NaplpsFormat New(NaplpsSystemType systemType = NaplpsSystemType.NAPLPS)
     {
-        var newFile = new NaplpsFormat(new NaplpsState());
+        var state = new NaplpsState();
+
+        if (systemType == NaplpsSystemType.Prodigy)
+        {
+            state.ColorMap = new Dictionary<byte, NaplpsColor>(NaplpsState.ColorMapProdigyDefaults);
+        }
+
+        var newFile = new NaplpsFormat(state)
+        {
+            SystemType = systemType
+        };
+
+        if (systemType == NaplpsSystemType.Prodigy)
+        {
+            // Prodigy files start with Domain command (A1 C8) for auto-detection
+            newFile.AddCommand(0xA1, new NaplpsOperands([0xC8]));
+        }
 
         newFile.AddControlCommand(Cancel);
         newFile.AddControlCommand(NonSelectiveReset);
