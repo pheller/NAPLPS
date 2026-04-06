@@ -53,8 +53,11 @@ public class BlinkAnimator
 
             if (changed)
             {
-                // Update the live palette entry with the current blink color
-                _livePalette[process.PaletteEntry] = process.GetCurrentColor();
+                // Per Byte Magazine 1983: during ON phase, the "to" color is read from
+                // the CURRENT palette (which another blink process may have modified).
+                // This enables ripple/cascade effects between multiple blink processes.
+                var currentToColor = _livePalette.GetValueOrDefault(process.BlinkToPaletteEntry, process.BlinkToColor);
+                _livePalette[process.PaletteEntry] = process.GetCurrentColor(currentToColor);
                 anyChanged = true;
             }
         }

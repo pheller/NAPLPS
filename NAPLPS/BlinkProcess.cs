@@ -16,6 +16,9 @@ public class BlinkProcess
     /// <summary>Color to blink to (the "off" color, typically black)</summary>
     public NaplpsColor BlinkToColor { get; set; }
 
+    /// <summary>Palette index of the "to" color, for live palette lookup during cascading blinks</summary>
+    public byte BlinkToPaletteEntry { get; set; }
+
     /// <summary>Duration of "on" phase in units (implementation dependent)</summary>
     public int OnInterval { get; set; }
 
@@ -108,11 +111,20 @@ public class BlinkProcess
     /// Phase 0: hard toggle between from/to colors.
     /// Phase 1-7: gradual interpolation.
     /// </summary>
-    public NaplpsColor GetCurrentColor()
+    public NaplpsColor GetCurrentColor() => GetCurrentColor(BlinkToColor);
+
+    /// <summary>
+    /// Gets the current color based on blink state and phase.
+    /// Phase 0: hard toggle between from/to colors.
+    /// Phase 1-7: gradual interpolation.
+    /// The liveToColor parameter allows cascading blink processes — per the spec,
+    /// the "to" color is read from the CURRENT palette, not the value at definition time.
+    /// </summary>
+    public NaplpsColor GetCurrentColor(NaplpsColor liveToColor)
     {
         if (Phase == 0)
         {
-            return IsOn ? BlinkFromColor : BlinkToColor;
+            return IsOn ? BlinkFromColor : liveToColor;
         }
 
         // Gradual transition: interpolate based on elapsed time and phase
@@ -132,6 +144,6 @@ public class BlinkProcess
         float phaseFactor = Phase / 7f;
         t = MathF.Pow(t, 1f + phaseFactor);
 
-        return NaplpsColor.Lerp(BlinkFromColor, BlinkToColor, t);
+        return NaplpsColor.Lerp(BlinkFromColor, liveToColor, t);
     }
 }

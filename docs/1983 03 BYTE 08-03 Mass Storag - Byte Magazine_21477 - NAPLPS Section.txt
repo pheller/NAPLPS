@@ -1,0 +1,808 @@
+
+NAPLPS: .A New Standard for Text and Graphics 
+Part 2: Basic Features 
+How to encode text and simple graphics elements in a standard and efficient manner. 
+Last month in part 1 of this series we introduced the North American Presentation-Level-Protocol Syntax (NAPLPS, or "nap-lips"), which is an ASCII-like standard that can be used to facilitate the interchange of both textual and graphical information. The graphic<Jl information is encoded in a very portable and resolution­independent form, which can be dis­played on a large number of suitably equipped display terminals, printers, or plotters. 
+This month the basic features and specific coding formats of NAPLPS are introduced. The emphasis will be on the set of Picture-Description In­structions (POls), around which most of the important features of NAPLPS revolve. 
+A Picture Is Worth 284 Bytes 
+The easiest way to explain the detailed coding formats of NAPLPS is to use the simple picture (or frame) shown in figure 1 (on page 164), which illustrates many of the basic 
+
+About the Author 
+Jim Fleming was a member of the original small group of engineers at Bell Laboratories who developed PLP (Presentation-Level Proto­col). PLP was later standardized as NAPLPS by the ANSI X3L2.1 committee. He is now an independent consultant specializing in interac­tive computing systems. 
+
+Jim Heming Unir Corporation Suite 106 5987 East 71st St. 
+
+Indianapolis, IN 46220 
+NAPLPS features. Listing 1 (pages 154-163) is an annotated version of the NAPLPS codes used to produce this picture. As you can see, although the annotated listing is quite long, the actual coding consists of only 284 bytes. 
+For the sake of simplicity, this pic­ture was created using the 7-bit form of NAPLPS. As you may remember from last month, NAPLPS can use either 7 or 8 bits. If we had used the 8-bit form, the coding would be even shorter. 
+Op Codes and Operands 
+As can be seen in listing 1, a Picture-Description Instruction usual­ly consists of an op code and an operand. The op code specifies a par­ticular function; the optional operand(s) specify the data needed by the function. Figure 2 (on page 166) il­lustrates the general op code/operand structure used in NAPLPS. 
+In NAPLPS it is very easy to dis­tinguish between the op codes and the operands. As can be seen, bit 6 is a 0 for an op code and a 1 for an operand. This distinction allows us to have variable-length operands, as long as each operand byte has bit 6 seUo a 1. Another nice feature is that if the POls are presented in octal form as in listing 1, it .is easy to distinguish the operands from the op codes. Oc­tal codes with a.first digit of 0 (e.g., 
+
+
+045) are op codes, while a first digit of 1 (e.g., 154) indicates an operand. 
+Bit 5 will always be a 1 for an op code. This distinguishes op codes from the standard control codes in the CO set. The lower 5 bits of an op­code byte are used to indicate the par­ticular function. These 5 bits accom­modate 32 op codes, which are shown in figure 3. Most of these op codes will be covered in this article. 
+The operand bytes shown in figure 3 all have bit 6 set to 1. The lower 6 bits (bits 0 through 5) are thus avail­able to encode data, the format of which is dependent on the op code preceding the data. 
+The 6 bits available in each operand byte can be formatted in a variety of ways. Figure 4 illustrates the four standard operand-encoding formats used in NAPLPS. 
+The fixed format for operand en­coding is the simplest and most flexi­ble. (Isn't it interesting that something "fixed" can be "flexible"?) Fixed­format operands are used for small bit fields (6 bits or less) and often con­tain a few suboperands. For example, in the Text op code (see figure 7), a fixed operand is used to encode the Text Rotation (2 bits: 0, 90, 180, or 270 degrees), Character Path (2 bits: 
+Right, Left, Up, or Down), and Char­acter Spacing (2 bits: 1, 1.25, 1.5, or Proportional). The fixed-format operands are · used in most of · the 
+Text continued on page 164 
+152 March 1983 © BYTE Publications Inc 
+
+
+
+Listing 1: An annotated listing of NAPLPS codes used to produce the designs in figure 1. 
+ERG/68000 Note that each byte is given in its octal fonn. This makes it easy to distinguish op codes (first digit = 0) from operands (first digit = 1). Coordinates are described in tenns of 
+MINI-SYSTEMS 
+
+both their fractional fonn and their equivalent fonn for a 256 by 256 screen. For exam­
+ple, in lines 11-13 the coordinates (0.375,0.25) are equivalent to (96,64) on a 256 by 256 
+0 Full IEEE 6961S100 
+grid. The notation (dx,dy) refers to coordinates relative to the present drawing point. 
+compatibility 
+
+HARDWARE OPTIONS 
+
+0 8MHz, 10MHz or 12MHz 68000 
+Byte octal Symbolic 
+CPU 
+
+No1. Form Form Description 
+D Memory Management 
+D Multiple Port lntelligen. 1/0 
+Get ready for graphics ( 7 Bit Mode1) 
+D 64K or 128K STATIC RAM 
+1 016 so Select G1 (POI Graphics1)
+(70 nsec) 
+
+Set color to BLUE
+D 256K Dynamic RAM, with full 
+parity (150 nsec) 2 074 SET set Color 
+3 111 BLU X100BOOB
+0 8" DID, DIS floppy disk drives 
+D 5MB-40MB hard disk drives Draw the sky by clearing' 
+the screen to the current color (BLUE1) 
+D FullaDMA host adaptor 
+D 20MB tape streamer 4 040 RES Reset 
+5 120 Clear screen to current color
+D 10 to 20 slot backplane 
+D 30 amp power supply Change color to GREEN 
+for the grass 
+
+SOFTWARE OPTIONS 6 074 SET Set Color 
+7 144 GRN X1GOOGOO
+D 68KFORTH1 systems language 
+with MACRO assembler and Make sure polygons are not highlighted 
+or textured
+lillETA compiler 
+
+0 Fast Floating Point package 8 043 TEX Texture 
+9 100 Solid areas, lines and no highlight 
+0 Motorola's MACSBUG 
+' 
+
+D IDRISzaoperating system with Draw the grass 
+. C, PASCAL, FORTRAN 77, 
+
+10 067 SPF set Polygon Filled 
+68K·BASIC1 compilers 11 111 } 
+12 140 } -(x,y) = ( .375, .25) => (96,64) 
+0 CPIM-68K3 OIS with C, 
+13 100 )
+Assembler, 68K1·BASIC, 
+
+14 110 
++ 68K1·FORTH 
+
+15 140 -(dx,dy) = (+.375,+.0) => (+96,+01) 
+Trademark 1ERG, Inc. 16 
+100 
+2Whltesmlths •Digital Research 
+
+17 110 
+=>
+
+30 day delivery 18 102 -(dx,dy) (+.25,+.0625) (+64,+16) 
+19 100 
+with valid Purchase Order 
+
+20 106 
+OEM prices.available 21 106 -(dx,dy) (+.0,-.3125} => (+0,-801) 
+22 100
+For CPU, Integrated Card Sets 
+
+orSystems. 23 140 
+24 100 -(dx,dy} (-1.0,+.0} => (-256,+0) 
+25 100 
+26 100 
+106 -(dx,dy) (+.0,+.21484375} => (+0,+551) 
+28 107 
+29 100
+Empirical Research·Group, Inc. 
+
+P.O.Box 1176 Milton, WA98354 2.1-4855 Listing 1 continued on page 156 
+154 March 1983 © BITE Publications Inc 
+Listing 1 continued: 
+30 152 
+-(dx,dy) (+.171875,+.0625) => (+44,+161) 31 140 
+Change to RED 32 074 SET Set Color 33 122 RED XlOROORO 
+Make sure highlighting is on 
+043 TEX Texture 
+104
+35 
+Draw the house 
+
+36 044 SPA Point Set Absolute 
+110 ) 
+38 127 ) -{x,y) = (.3125,1.234375) => (80,60) 
+104 ) 
+40 061 REF Rectangle Filled 
+. g\"es 41 100 ) 
+1\"e o(\".. \1..-so 
+
+42 174 ) -(dx,dy) = (+.21875,+.1251) => {+56,+321) 
+. 
+)
+9o"'-
+
+43 100 
+eslull su.l<e\le .ooul:lle s '"clu.l:l pe(SooII'S!·'$
+"''' 
+) and 
+Draw the roof
+\ .'2. 
+fflooe 
+
+045 SPR Point Set Relative 
+170 
+46 104 -(dx,dy) = (-.1234375,+.1251) => (-60,+321) 
+47 140 
+l1<1 '2. plus 
+
+l';'i cl' 48 074 SET Set Color 
+es ol l' 
+
+100 ELK
+lea\u( c\(\-Je· 
+aes all '".a o\sl< 
+1nclul<\l:l l'e( n 
+s.1 
+
+50 065 POF Polygon Filled 51 100 } 
+52 141 ) -(dx,dy) = (+.125,+.058593751) => (+32,+151) 
+107 } 
+107 
+146 -(dx,dy) (+.125,-.0625) => (+32,-161) 
+101
+56 
+Label the "House" 
+
+57 045 SPR Point set Relative 
+58 107 
+59 125 -(dx,dy) = (+.078125,-.0781251) => (+20,-201) 
+60 144 
+61 017 SI Select GO {ASCII Text1) 
+"House" 
+H
+62 
+
+Start with a Model l I floppy system and 63 157 0 
+grow into a hard disk. Since all P&T 
+64 
+u 
+CP/M 2 systems are fully compatible. 
+s
+you willhave no conversion worries. 
+Special note: P&T hard disk systems allow you the user to configure logical drive assignments to your specifications. 
+Write for more details. 
+Prepaid VISA, M/C, orCOD orders accepted. 
+All prices FOB Goleta and subject to change. 
+66 
+e 
+Back to graphics 
+
+67 016 so Select Gl (POI Graphics1) 
+Set color to CYAN (Light Blue1) 
+68 074 SET Set Color 69 155 CYN XlGOBGOB 
+Label "BIRDS" before drawing them 
+Listing 1 continued on page 159 
+156 March 1983 © BYTE Publications Inc 
+Listing 1 continued: 
+70 044 SPA Point set Absolute 
+71 102 ) 72 150 ) -(x,y) = ( .15625, .52734375) => (40,11351) 73 i07 ) 
+017  SI  Select  GO  (ASCII Text1)  
+"BIRDS"  
+102 111 122 104  B I R D  
+
+
+79  123  s  
+Back  to  Graphics  
+80  016  so  Select G1  (PDI Graphics1)  
+Draw bird  with  black  wing tips  
+81  057  SAF  set  Arc  Filled  
+82  101  )  
+83  167  )  -(x,y)  =  ( .19531251, .468751)  =>  (50,1201)  
+84  120  )  
+
+107 
+
+86 107 -(dx,dy) = (+.015625,-.0156251) => (+4,-4) 
+87 144 
+88 107 
+89 107 -(dx,dy) (+.0078125,-.015625) => (+2,-4) 90 124 
+91 055 ARF Arc Filled 
+92 100 
+93 100 -(dx,dy) (+.0078125,+.015625) => (+2,+41) 
+94 124 
+95 100 
+96 100 -(dx,dy) (+.0234375,+.0234375) => (+6,+61) 
+
+98 
+166 
+
+Draw bird without black wing tips 
+043 TEX 
+Texture 
+
+99 100 
+100 045 SPR Point set Relative 
+101 100 
+102 111 -(dx,dy) = (+.1035156251,+.03906251) => (+9,+101) 
+103 112 
+104 055 ARF Arc Filled 
+105 107 106 107 -(dx,dy) (+.015625,-.015625) => (+4,-41) 
+107 144 
+108 107 
+109 107 -(dx,dy) (+.0078125,-.015625) => (+2,-4) 
+110 124 
+111 055 ARF Arc Filled 
+112 100 
+113 100 -(dx,dy) (+.0078125,+.015625) => (+2,+41) 
+114 124 
+115 100 
+116 100 -(dx,dy) (+.0234375,+.0234375) => (+6,+6) 
+117 166 
+Listing 1 continued on page 161 Listing 1 continued: 
+Draw Cloud  
+118  044  SPA  Point  set  Absolute  
+119  122 160  } }  -(x,y)  =  ( .68751, .5)  =>  (1761,11281)  
+121  074  SET  Set  Color  
+122  177  'WHT  X1GRBGRB  
+123  055  ARF  Arc  Filled  
+124  170  
+170  - ( dx,dy)  (-.0156251,+.02343751) =>  (-4,+61)  
+126  146  
+127  100  
+128  110  - (dx,dy)  (+.1042968751,+.011718751)  =>  (+11,+31)  
+129  133  
+055  ARF  Arc Filled  
+131  100  
+132  110  - (dx,dy)  (+.03125,+.0273437.1)  =>  (+8,+7)  
+133  107  
+134  107  
+107  - (dx,dy)  (+.02343751,-.011718751)  =>  (+6,-31)  
+136  165  
+137  055  ARF  Arc  Filled  
+138  100  
+139  121  - (dx,1dy)  (+.066406251,+.035156251)  =>  (+17,+9)  
+111  
+141  107  
+142  105  - (dx,1dy)  (+0.0,-.0781251)  =>  (+0,-201)  
+143  104  
+144  055  ARF  Arc  Filled  
+177  
+146  157  - (dx,dy)  (-.1082031251,-.019531251)  =>  (-21,-51)  
+147  133  
+148  170  
+149  150  - (dx,dy)  (-.106640625,+.011718751)  =>  <-t7,+31)  
+173  
+151  065  POP  Polygon  Filled  
+152  100  }  
+153  101  }  -(dx,1dy)  =  (+.02734375,+.035156251)  =>  (+7,+91)  
+154  171  }  
+100  
+156  110  - (dx,1dy)  (+.0546875,+.0156251)  =>  (+14,1+41)  
+157  164  
+158  107  
+159  126  - (dx,dy)  (+.06640625,-.1042968751)  =>  (+171,1-ll1)  
+115  
+Label  "CLOUD"  
+161  045  SPR  Point  set  Relative  
+162  170  
+163  142  - (dx,dy)  =  (-.1171875,+.0781251)  =>  (-30,1+201)  
+164  124  
+017  SI  Select  GO  (ASCII Text1)  
+"CLOUD"  
+166  103  c  
+167  114  L  
+Circle 304 on inquiry card. . 
+
+
+
+Listing 1 continued 011 page 162 
+
+
+Circle 227 on Inquiry card. 
+Listing 1 continued:
+
+
+
+Oot for Quality 
+168 117 0 High-Reliability Design 169 125 u 170 104 D
+
+Model HS·Z900 
+Back again
+Intelligent 
+
+171 016 so Select Gl (PDI Graphics1) 
+Buffer 
+
+Standard $348.00 Set color to CYAN again for the rain 
+RS-232C Add $120.00 
+
+• 62KB STANDARD • Data (;Ompressinon/copy mode • Self test mode • Centronics II F standard • RS-232C, I EEE-488 optional • Low price •AC 100/117/220/240V 
+Single Board Computer meeting IEEE­696 (CP/M, SB 
+$999.00 
+
+e ZBOA •64K st&ic RAM t ROM replacahle J • RS-232C 2port Centronics lport • Supports s; 8; floppy by DMA e Muets IEEE S-100 bus •+SV only e4JayHed PCB er.lemoi'Y card piggy_back on main hoard •Include CP/M or SB-80 
+
+Model SBC·488 
+Single Board Computer OEEE-488!etc) 
+$488.00 
+
+eZSO •ROM/RAM total IOKB •IEEE-488 1/F ITMS9914J 
+•RS-232C I/F(8251 ) •Pnrallel 6ports (8255l •+SV only 
+
+Model GPIB·IOO 
+S-100 bus Multifunction Board meeting 
+IEEE-488 
+$550.00 
+
+• 
+Supports IEEE-488 tTr.IS9914) • Univen;al interrupt coni· roller (AJ\19519) • Programmed interval timt:r (8253) • Real· time clock, hauery back·up (l\.151\158321 •IEEE· S· IOO 1/F 
+
+•Software 
+handler on 8' diskelle (CP/M based) 
+
+
+Model CAP·MZOGP 
+intelligent 
+
+Winchester Disk 
+_;;:;
+! 
+,-,#'
+._..,.,..,._.. 
+$6,200.00 
+
+e a· Winchester disk. maintenance free •I EE£·488, RS-232C (up to 38,400 baud) •Intelligent functions •Supports CP/M based driver •4301WJXI501HIX450101% •ACI00/117/220/240V 
+
+
+Model FZP/FZ 
+•Uitrn·slim S"drive •Signnl compatible Persci 299 •No modi· fication of the COOS of your CROMEMCO is needed IF2Pl e Fully compalible 
+Shugart SA801H an1l 850R(F2J •Cool· ing fan. no isefilter included •160 (W)X225 (H)X500 (01% 
+ALL PRICES ARE FOB TOKYO AND SUBJECT TO CHANGE WITHOUT NOTICE (Dealer inquiries invited) 
+Internati!nal Agent!: RENFUL COMPUTER LTD. 
+o!
+
+Rm.602, Hop Fat Commercial Centre, 490·492, Nethan Road, 
+Kowloon, H.K. Tel : 3·320498(31ines) 
+Telex : 37546 RENFL HX Cable Address : RENFULCOMP 
+@JJ!cma-liollt:r! Offipslcms·& Automa-tioJJ 
+
+ISA CO., LTD. 
+
+HEIAN.BLDG.2·6·16 OKUBO.SHINJUKU·KU. TOKYO 160 JAPAN PHONE: 03·232·8570 TELEX: 2324196 ISATOK CABLE: ISAHEIAN 
+162 March 1983 © BYTE Publications Inc 
+172 074 SET Set Color 173 155 XlGOBGOB 
+Draw Rain using various textured lines 
+174 045 SPR Point Set Relative 175 107 176 104 -(dx,dy) = (+.019531251,-.11718751) => (+5,-301} 177 152 
+178 043 TEX Texture 179 102 
+180 051 LIR Line Relative 181 177 182 165 -(dx,dy) = (-.0390625,-.0781251) => (-10,-201) 
+_1183 164 
+
+184 045 SPR Point Set Relative 185 100 186 122 -(dx,dy) = (+1.0781251,+.07031251) => (+20,+181) 167 142 
+188 043 TEX Texture 189 101 
+190 051 LIR Line Relative 191 177 192 165 -(dx,dy) = (-.103906251,-.0781251) => (-10,-201) 193 164 
+194 043 TEX Texture 195 100 
+196 045 SPR Point set Relative 
+197 100 198 122 (dx,dy) = (+.078125,+.089843751) => (+20,+231) 199 147 
+200 051 LIR Line Relative 
+201 177 
+202 165 -(dx,dy) = (-.03906251,-.0781251) => (-10,-201) 203 164 
+204 045 SPR Point set Relative 205 100 206 122 -(dx,dy) = (+.078125,+.06251) => (+20,+161) 
+207 140 
+Label the ""RAIN"" vertically 
+208 042 TXT Text 209 114 Char Path Down 
+210 017 SI Select GO (ASCII Text1) 
+'"RAIN"" 
+
+211 122 R 212 101 A 213 111 I 214 116 N 
+Back to Graphics 
+
+
+Listing 1 continued: 
+215 016 so Select G1 (PDI Graphics1) 
+
+216 042 217 100 
+218 074 219 100 
+220 044 221 100 222 100 
+223 100 
+224 065 225 120 226 106 227 102 
+228 100 
+229 121 
+230 146 
+231 100 
+232 120 
+233 140 
+234 177 
+235 155 
+236 166 
+237 167 
+238 142 
+239 162 
+240 044 
+241 120 
+242 102 
+243 104 
+244 017 
+245 122 246 117 247 101 248 104 
+249 016 
+250 042 251 100 252 100 253 100 254 112 255 144 
+256 044 
+257 112 
+258 105 
+259 107 
+Reset to normal text 
+TXT Text 
+Char Path Right 
+set color to BLACK (actually transparent1) 
+SET Set Color TRN XlOOOOOO 
+Draw the road 
+SPA 
+POF 
+Label 
+SPA 
+SI 
+"ROAD" 
+R 
+0 
+A 
+D 
+
+so Select G1 (PDI Graphics1) 
+Change Size of text 
+TXT Text 
+} 
+) 
+} 
+} ­} 
+Draw BLACK as base for 
+SPA Point Set Absolute 
+
+( . 25' . 6859375) => ( 64' 1751) 
+Point set Absolute 
+
+-(x,y) = (O.o,o.o) => (0,0) 
+Polygon Filled 
+} 
+
+} -(dx,dy) = (+.5,+.19531251) => (+1281,+501) } 
+-(dx,dy) (+.078125,+.0546875) => (+20,+141) 
+-(dx,dy) (+.078125,+.0} => (+20,+01) 
+-(dx,dy) (-.0703125,-.0703125) => (-18,-181} 
+-(dx,dy) (-.3515625,-.1796875} => (-90,1-461} 
+the "ROAD" 
+Point set Absolute 
+
+-(x,y) = (.5,1.0781251) => (128,20) 
+Select GO (ASCII Text1) 
+(dx,dy) (+.046875,+.078125) => (+121,+201) 
+"Figure 1" drop shadow 
+Listing 1 continued on page 164 
+Text continued from page 152: 
+
+Listing 1 continued: 
+"control-oriented" NAPLPS func­
+260 017 SI Select GO (ASCII Text1) 
+"Figure 1" 
+
+261 106 F 
+262 151 i 
+263 147 g 
+264 165 u 
+265 162 r 
+266 145 e 
+267 040 space 
+268 061 1 
+Finish drop shadowing with yellow over black 
+
+so Select Gl (POI Graphics1) 
+SET Set Color 
+YEL XlGROGRO 
+SPA Point set Absolute 
+
+-(x,y) = ( .24609375,.6875) => 
+SI Select GO (ASCII Text) 
+"Figure 1" 
+F i 
+g 
+u 
+r 
+e 
+
+space 1 
+The end 
+
+Text is still large and YELLOW is the current color 
+(63,1761) 
+
+tions. 
+The single-value format is used when a common integer is needed. Thi,s format is used when specifying color indexes and blink rates (in tenths of a second). The single-value format is encoded using 1 to 4 bytes, each containing 6 bits of data. In the default mode, 1 byte is used, thus allowing numbers in the range 0 to 63 to be encoded. In the maximum mode (4 bytes or 24 bits), numbers from 0 to 16,777,215 can be specified. 
+The most common format in NAPLPS is the multivalue operand. The multivalue-operand format has two coordinate forms and a color form, as shown in figure 4. 
+The coordinate forms are used to encode (x, y) or (x, y,z) coordinate locations in the unit screen. In the two-dimensional mode, each 6-bit operand contains 3 bits of x and 3 bits of y. Multivalue operands are nor­mally encoded in 3 bytes. Therefore, 9 bits of resolution are encoded for each coordinate. The 9 bits allow for a sign bit and 8 data bits, which results in coordinates suitable for a 256 by 256 resolution display. 
+NAPLPS supports multivalue operands up to 8 bytes. The 8 bytes each contain 6 data bits. Therefore, 48 bits are available to be split be­tween the coordinates. In two-dimen­sional mode the 24 bits available for each coordinate can support displays with a resolution of 8 million by 8 million points! This exceeds the resolution of most media, including a page in this magazine. 
+The multivalue-operand format is also used for color specification. Various amounts of green, red, and blue are specified using this multibyte format. Each 6-bit data item contains 2 bits of each color. The colors are in­terlaced as shown in figure 4, with green being first and thus least likely to be truncated. This takes advantage of the fact that the human eye is more responsive to green than it is to red and blue. 
+The 8-byte multivalue-operand for­mat will again yield 48 bits of color information that results in 280,000,000,000,000 colors. With the maximum display resolution and the 
+
+
+Figure 2: The general structure for op codes and operands of the Picture­Description Instructions (PD!s) in NAPLPS. 
+maximum color resolution, NAPLPS can support displays with 296 bits of display memory! At today's memory prices, such a display would cost $750 billion billion billion dollars. (No wonder semiconductor companies are interested in NAPLPS.) 
+The final operand format is the string operand. This format is used when a long string of bits is needed that may require hundreds or thousands of bytes to encode. This format is used when sending high­resolution pictures and for encoding compressed chain-coded images. These techniques will be discussed in part 3 of this series. 
+The operand/ op code encoding structure of NAPLPS allows a variety of formats and subformats. Many of the op codes contain one or more of the operand types. For example, the Text op code, which will be described in detail later on, is followed by two fixed-format operands and a multi­value operand. The total number of operand bytes for this op code is variable, but the first 2 bytes will always be interpreted as fixed-format bytes and the remaining bytes will be considered as part of a multivalue format. Because of the variable­length nature of the operand encod­ing in NAPLPS, operands can be truncated and/or omitted with a con­sistent result dependent on the op code active at the time. 
+Picture-Description Instructions 
+The Picture-Description Instruc­tions (POls) are used to encode 
+166 March 1983 © BYTE Publications Inc 
+
+Figure 3: The complete set of Picture-Description Instruction op codes in NAPLPS. 
+graphics images in NAPLPS. Codes from the POI G-set and the ASCII­like text set can be intermixed on the same frame. Most of the common POls have been used to encode the image in figure 1. These POls are described here with references to the coding in listing 1. 
+
+Reset 
+
+The Reset POI is illustrated in figure 5. It is used to clear the screen 
+
+
+text continued on page 170 
+
+a) FIXED b) SINGL!:E-VALUE 
+BBBColor 
+0 0 0 No action 
+0 0 1 Physical display area to nominal black 
+0 1 0 Physical display area to cur­
+3DIMENSIONS 
+rent drawing color 
+· 0 1 1 Border area to nominal black 
+
+1 0 0 Border area to current drawing color 
+1 0 1 Physical display area and border area to current drawing
+c) MUL!:TIVAL!:UE 
+color 
+
+1 1 0 Physical display area to cur­rent drawing color and border area to nominal black 
+1 1 1 Physical display area and border area to nominal black 
+C C Color mode 
+0 0 No action 
+0 1 Select color mode 0, set color 
+
+d) STRING map to default colors, and set the 
+in-use drawing color to white 1 0 Select color mode 1 and set color
+Figure 4: The various formats for the operands of the PDis in NAPLPS. 
+map to default colors. If this is ex­
+ecuted while in color mode 0, it 
+has the same effect as "11." 
+
+1 1 Select color mode 1, set color map to default colors, and set the
+and initialize various attributes. Two of a fixed-format operand followed 
+in-use drawing color to white 
+
+fixed-format operand bytes contain by a multibyte operand. The fixed­
+nine suboperands. The second format operand controls the size of Miscellaneous Resets 
+_operand byte can be omitted when single-value operands and multivalue 
+D Domain 
+
+those operations are not needed. If operands as well as the dimensionali­T Text both operand bytes are omitted, a ty of coordinates. F Blink 
+Unprotected (User) 
+
+complete Reset is performed. The multivalue operand is used to U 
+Fields 
+
+The screen is cleared based on the control the size of the logical drawing X Texture value in bits 4 to 6 of the first operand point. M Macro POls 
+R ORCS 
+
+byte. The eight combinations are 
+Figure 5: The operand structure for the Reset instruction. 
+seen, these suboperands control at­tributes such as rotation, spacing, and cursor style. 
+The multivalue operand following the two fixed-format operands is used to specify the size and orientation of the text template. The size is ex­pressed in terms of relative coor­dinates, which we will indicate by the notation (dx, dy). This is to distinguish relative coordinates from absolute coordinates (x, y) that refer shown in figure 5. In the example frame (line 4), the screen is cleared once to establish the blue sky. The fixed-format operand (octal 120 at line 5) indicates that the screen should be cleared to the current in-use color (in this case, blue). Note that the sec. ond fixed-format operand byte is omitted. The op code at line 6 in­dicates that the previous operation and op code have ended. 
+Domain 
+The Domain POI is used primarily to control the size of data operands for subsequent POls. As shown in figure 6, the Domain POI is made up 
+170 March 1983 © BYfE Publications lnc 
+Text 
+
+The Text POI controls attributes 
+related to text and "text-like" sym­
+bols. As discussed in part 1, text sym­
+bols are unique in the sense that they 
+are rectangular templates that contain 
+a figure. When a text symbol is re­
+quested, the proper template is posi­
+tioned at the current drawing point, 
+the template is scaled as specified by 
+the text size, and the drawing is per­
+formed. 
+Figure 7 illustrates the Text POI 
+and operands. Two fixed-format operand bytes contain six sub­operands. Each of the suboperands has four possible values. As can be 
+
+Figure 6: The operand structure for the 
+Domain instruction. The Logical Pel Size 
+can be thought of as the size of the draw­ing pen. 
+to specific; points on the unit screen. 
+In the example frame, text is used to label the objects as well as the en­tire figure. Most of the text is encoded in the standard manner and therefore no Text POI is needed. The first Text POI appears in line 208 and is used to change the Character Path from left­to-right to down. This allows the word "RAIN" (lines 211-214) to be sent without repositioning the draw­ing point. 
+Note that the second fixed-format operand and the multivalue size operand are omitted because only the Character Path is being changed. Also note that because the Character Path is being changed, the other two suboperands in that byte (Interchar­acter Spacing and Rotation) have to be restated or "refreshed." It is as­sumed that the NAPLPS code gen­
+172 March 1983 ©aBYTE Publications Inc 
+
+0 1 
+1 0 180 
+1 1 270 
+c c Cursor Style 
+0 0 Underscore (default) 
+Figure 8: The operand structure for the
+0 1 Block 
+Texture instruction. 
+
+1 0 Cross-hair 
+Figure 7: The operand structure for the 
+Text instruction. 
+erator will always have knowledge of the current settings of these suboperands so that such a refresh is easy to do. 
+The Text POI is used again in lines 2?0-255. The size of the text is changed to label the figure. The Character Path is also set to left-to­right. The (dx, dy) of ( +0.046875, 
+250. At the end of the frame, the text size is still large. When the next frame is sent, the text size should be changed back to its default state. This is typically done with a global Reset at the beginning of the frame. 
+Texture 
+
+The Texture POI applies to the tex­turing of filled areas and lines (see figure 8). Line texturing can be set so that dotted, dashed, or dotted-dashed lines will be drawn instead of the nor­
+
+
+
+
+
+
+Johnny's Function Kevs can't Read 
+Or write. Or move a paragraph. Johnny is not a programmer, so his function keys are nonfunctional. 
+For Johnny, and everyone else who wants the convenience of 
+function keys, help is here. Keychanger™ replaces 
+cumbersome multi-stroke control characters with individual 
+function keys, thus saving keystrokes and time. No more 
+"control P-S" --simply press the assigned function key. You 
+may choose from four ready-made sets of functions, or create 
+custom function keys with the aid of on-screen guidance. You 
+can change instantly from one set of functions to another. 
+Keychanger™ is CP/M compatible and presently supports 
+Wordstar® , dBase II™, and BASIC (other selected programs 
+are coming soon). To start your function keys working, send $29.95 to Computer Publishing Co., 1945 N. Fine #101e, Fresno, CA 93727. For VISA/Mastercard orders, call 209-453­
+0777. Words tar is a registered trademark of MicroPro; dBase II is a trademark of Ashton-Tate. 
+Supplied in many popular diskette formats. Compatible with virtually all terminals having function keys. California residents add sales tax. 
+Circle 11 on Inquiry card. 
+
+mal solid line. A variety of area tex­tures can be selected so that large ob­jects can have recognizable interiors. The area textures can be chosen from a "stock" set of patterns or "program­mable" patterns can be used. 
+A "cartoon-like" highlighting feature is included. When enabled, filled areas are highlighted (usually in black) to accent the edges. This is especially useful in low-resolution video-display systems that have trou­ble making rapid color changes. 
+
+The Texture POI is used several times in the example frame (lines 8, 34, 98, 178, 188, and 194). The highlighting is turned off for the grass and on for the house. The highlighting is also used on the left bird to add a little diversity. The line textures are demonstrated in creating the rain (lines 171-203). 
+Outlined Drawings 
+
+The majority of drawings are created using the basic primitives Point, Line, Arc, Rectangle, and Polygon. All these primitives are sup­ported in NAPLPS with each one having several forms. 
+Points 
+
+Points can be drawn on the unit screen in a variety of ways. As shown in figure 9, four Point POls are pro­vided. Two of these commands are used to actually draw points (Point Draw), while the other two merely position the drawing point prior to drawing text or graphics (Point Set). The coordinates for both Point Draw and Point Set can be expressed in either absolute or relative terms. 
+At this point (no pun intended), it is probably useful to distinguish be­tween the drawing point and the cur­sor. The drawing point is the imagi­nary pen point or brush tip that is used to draw graphics on the screen. The cursor is the typical block or underscore that marks the position where the next text entry will be made. The drawing point and cursor usually "track" each other, but this is not required. In other words, the cur­
+
+
+
+LINE 
+
+76543210 76543210 
+
+
+d X d y 
+LINE !RELATIVE l 
+76543210 
+
+
+SET 6 LINE I RELATIVE l 
+
+LINE (ABSOLUTE l 
+76543210 
+SET 6 Ll NE I ABSOLUTE l 
+
+
+Pi0iitii1t! 
+Without SAFEWARE;" you could be uninsured. For as little as $35 a year, SAFEWARE 
+provides complete protection for all hardware, media and software. Both business and home application. toll free today for more information or immediate protection. Columbia National General Agency, 88 E. Broad, Columbus, Ohio 43215. (In Ohio call!l-800-848-2112} 
+
+176 March 1983 © BYTE Publications Inc Circle 83 on inquiry card. 
+
+sor can be positioned on the screen and the drawing point can be moved independently. 
+The example frame uses the "Set" forms of the Point POls, but not the "Draw" forms. Line 36 is an example of a Set Point Absolute op code. This op code is used to position the draw­ing point to a specific place on the screen regardless of where the draw­ing point is currently located. This is in preparation for drawing the house. 
+Line 44 is an example of a Set Point Relative op code. This op code is followed by a (dx,dy) operand that specifies a distance to move from the current position. This move is made in. preparation for drawing the roof. Note that the relative form of the op code is useful because the roof should always be "tied" to the house. If a specific (absolute) screen coordinate had been specified, the roof would be fixed at a certain location. In this ex­ample, if the initial coordinate (lines 37-39) is changed, the roof will move with the house. 
+Lines 
+Lines are used in almost every graphics display. Four forms of the Line POI are provided, as shown in figure 10. The major difference in the four op codes is that two of them draw a line from the present drawing point and the other two draw from a new set point. Also, two of the op codes involve relative positions and two involve absolute positions. 
+Lines are used to create the rain in the example frame. The relative form of the Line POls is used in lines 180, 190, and 200. As mentioned, the lines are drawn using the current texture setting. 
+Arcs 
+The Arc POls are extremely power­ful, but may be confusing to the casual observer. Most people can eventually be convinced that only one circular arc can be drawn through three points if two of the points are known to form the end­points. In NAPLPS the three points on the arc are specified rather than 
+the  center  and  radius.  The  three  
+points  are  specified just like  other  
+points in the unit screen.  
+
+text continued on page 180 
+
+
+ARC 
+76543210 76543210 
+
+ARC !OUTLINED) 
+76543210 
+
+Four forms of the Arc POls are in­cluded in NAPLPS, as shown in figure 11. Two of the forms allow arcs to be filled so that solid areas with curved edges can be created. 
+Arcs are used in the example frame to create the birds and the cloud. As shown in figure 12, the cloud is made up of four arcs and a polygon. The area between each arc and a line (or chord) connecting the endpoints of the arc is filled by the Arc (Filled) command. The Polygon (Filled) com­mand fills the middle area. 
+Circles are a subset of the more general arc. If only two points are specified (instead of three), those points are assumed to form endpoints of a diameter of a circle. Circles can also be encoded using three points in the normal arc format, but the start­ing and ending points must be equal for a circle to be drawn. 
+A "hook" has been provided in NAPLPS so that it might eventually support complex curves or splines . These curves cannot be described by using simple arcs of circles. But if more than three points are specified for an arc, it should be possible to draw a smooth curve connecting the points. Until algorithms are devel­oped that can efficiently draw a spline, lines can be used to connect the points. 
+Rectangles 
+Both filled and outlined rectangles are supported by NAPLPS. The four forms of the Rectangle POI are shown in figure 13. Rectangles are described by specifying the opposite corner in terms of relative (dx, dy) coordinates. Negative values for dx or dy can be used to produce rectangles in various directions from the current drawing point. 
+One difference that should be noted with Rectangles is the final destination of the 
+drawing point. Most drawing commands cause the drawing point to be left at the last point involved in the figure. In the case of the Rectangle, only the x coor­dinate is modified so that the drawing point moves horizontally. This allows for histograms or bar charts to be generated in an efficient manner. 
+A Rectangle is used to generate the 
+RECTANGLE 
+76543210 
+dx dy dx dy 
+RECTANGLE IOUTLINEDI RECTANGLE IFILLEDI 
+76543210 76543210 
+
+
+
+
+SET a RECTANGLE I OUTLINED I 
+
+house in the example frame. The op code at line 40 could have been a Set Rectangle Filled with the data from lines 37-39 moved into the operation. This would eliminate the need for the Point Set Absolute op code at line 36. Both encodings would yield the same result. 
+Polygons 
+The irregular Polygon is a very useful feature in NAPLPS. Many ob­jects can be broken down into multisided irregular objects. These objects can be encoded using the end­points of the lines forming the sides. 
+Four forms of the Polygon op code are available, as shown in figure 14. The outlined polygons do not offer much more than an efficient way to send a lot of lines. It should be noted that the last line in a polygon is not explicitly sent. The polygon is auto­matically "closed" by an edge con­necting the last point sent and the starting point. 
+The filled polygons offer the ability to define an entire object disregarding 
+
+
+
+POLYGON !OUTLINED l POLYGON !FILLED l 
+
+
+
+polygon. 
+what may be "under" the object. Pic­tures can be built up in the same man­ner that kids create pictures using construction paper. 
+In the example frame, the largest polygon is the grass (lines 10-31). When the house is drawn on top of the grass, a piece of the polygon is covered. Likewise, when the road is drawn (lines 220-2,39), more of the grass is covered. If the grass had been drawn last, part of the house and the entire road would not be seen. 
+The polygon that is used to fill the center of the cloud (lines 151-160) can be derived directly from the arcs that 
+184 March 1983 © BYTE Publications Inc 
+surround it. As shown in figure 12, the (dx, dy) values for the polygon end up being the sum of the (dx, dy) values for the three points that de­scribe the arc. 
+Other POls 
+Several other POls are available in NAPLPS. Some of them allow com­pressed encoding of high-resolution images and detailed line drawings. POls are included that allow "logical" areas on the screen to be specified for user input. Timed waits and blinking capabilities are also part of NAPLPS, but will not be t;liscussed here. 
+SET COLOR 
+
+7654E3E2E1E
+OP CODE 131121 
+COLOR VALUE GERBGRB 
+
+Figure 15: The Set Color instruction. This instruction defines the color with which all succeeding characters or graphics designs will be drawn. 
+Color Control 
+Color control in NAPLPS ranges from primitive, static color defini­tions to exotic color mapping and animation. Here I shall describe only the primitive color-control capabil­ities of NAPLPS. 
+The basic color-control capability of NAPLPS allows a color to be ex­pressed as relative amounts of red, green, and blue. The "resolution" of the color specification can vary just as with coordinates (see figure 15). A display device is expected to display the "closest" color that is available. 
+For simple display devices, 4 to 6 bits of color specification are usually sufficient to select every available col­or (unless color maps are available). 
+·
+These color-specification bits are usually encoded in a truncated multivalued-operand byte. The first color specification in the sample frame appears in lines 2 and 3. The Set Color POI is an op code and is followed by a data byte that specifies three units of blue, zero units of red, and zero units of green. The resulting color of the sky is a "very blue" blue. 
+When a color is specified, it be­comes the "current in-use color." Anything drawn after the Set Color will be drawn in the new color. Note that after the sky is created, the green grass color is specified in lines 6 and 
+7. If this was not there, the grass would be drawn in blue and would not be visible. 
+Changing Character Sets 
+If you have been carefully decoding the information in listing 1, you have probably come across a few SO and SI codes (octal 016 and 017). These codes are used to indicate a change in the character sets or G-sets that are to be used. In the 7-bit mode of NAPLPS, only one character set can be used at a time. The SO code specifies that the set of POls should be used, and the SI code specifies that the Text character set should be used. 
+
+
+You have also probably noticed that the high-order bit of all the codes has not been used. The reason for this of course is that we have been using the 7-bit mode of NAPLPS. If the 8-bit mode were desired, a simple conversion can be made. Each time an SO is found it should be removed, and all bytes following that code should have their high bit set to 1. When an SI is encountered, it should also be removed and the bytes that follow should have a high bit equal to 
+0. The result would be that all graphics-related codes would be in the form 1XXXXXXX. All text-related codes would have the form OXXXXX­XX. 
+In the 8-bit mode of NAPLPS, the 14 SI and SO bytes could be re­moved, which would allow the figure to be stored in only 270 bytes. This may not seem like a big savings, but for large national databases with thousands of frames, every byte counts. There would also be a payoff in transmission time. At 30 characters per second, those 14 bytes might represent almost 1/z second, which adds up as a user interacts with a system. 
+Next Month 
+In part 3 of this series, I will cover some of the more advanced topics in NAPLPS, including Incremental Lines, Macros, Dynamically Redefin­able Character Sets, and Fields. 
+This series of articles should give the reader a very good overview of this coding system. But as was men­tioned last month, anyone seriously interested in working with NAPLPS should obtain a copy of the complete specifications for $18 from X3 Secretariat, CBEMA, 311 First St., NW, Washington, DC 20001, (202) 737-8888.• 
+
+

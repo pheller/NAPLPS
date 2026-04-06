@@ -1,0 +1,1042 @@
+/ 
+
+Figure 1: A stylized representation of how the NAPLPS system works. The programmer or artist creates a list of graphics commands, e.g.e, "get red pen,e" "draw a circle.e" The robot (or NAPLPS decoder) then interprets these commands and uses various drawing in­struments such as pens, brushes, rulers, and compasses to draw on the canvas (display screen). If a text character is specified, the 
+robot uses an appropriate template for that character. 
+This article is the first in a series of articles on NAPLPS. In this part, we give an overall perspective of 
+. 
+NAPLPS, describing its history and background, as well as its structure and major features. In subsequent parts, we will cover the basic text and graphics features of NAPLPS from a bit and byte perspective, describe some of its more advanced features, and explore the future of NAPLPS with an emphasis on personal com­puters, local and regional area net­works, and distributed processing. 
+History and Background 
+NAPLPS has its roots in videotex, a much-discussed system of large host computers and low-cost, user­friendly graphics terminals. Because of the large potential market for these 
+204 Februory 1983 © BYTE Publications Inc 
+terminals, many groups around the world have been designing such systems for use in homes, offices, and public areas. As shown in figure 2 on page 206, a basic videotex system consists of a host computer with a database of information, a com­munication network, and a terminal. The terminal users request informa­tion from the database, and the desired information is sent back to the terminal, where it is interpreted and displayed. 
+Unfortunately, all the experimental systems designed around the world used different coding schemes. As is the case with most languages, the various coding schemes had different strengths and weaknesses. Some were more efficient than others; some were more easily decoded by terminals; some preserved the "conceptual" con­tent of the information; and some were tailored to particular hardware configurations. 
+At the time NAPLPS was devel­oped, videotex coding schemes could be divided into two major groups. In one group were schemes that were similar to the approach used in the British Prestel system, which was the first videotex effort in the world. The other group of schemes is best rep­resented by the Telidon system developed in Canada as an alterna­tive to the Prestel system. As is the case with many developments in the computer field, being first does not imply being the best. 
+Table 1 on page 210 compares Prestel-like systems and Telidon-like systems. Without going into all the 
+
+o 
+CABLE TV 
+
+o 
+HYBRIDS 
+
+
+Figure 2: A diagram of a typical videotex system. Videotex is defined here as two-way communication of textual and graphical infor­mation between a low-cost, user-friendly terminal and a large, central host computer. Communication can be by telephone lines, television cables, or a hybrid syste. using a broadcast television channel for information sent from the host computer and using 
+telephone lines for information sent from the terminal. 
+technical, emotional, and political history, suffice it to say that NAPLPS was designed using Telidon-like sys­tems as a base. 
+In May 1981, AT&T created a bit of commotion by releasing documen­tation for a new Telidon-like scheme called PLP (Presentation-Level Proto­col) at the Videotex '81 conference in Toronto. Since that time, continuous efforts have been underway in various standards groups to adopt PLP. 
+NAPLPS is a standard version of PLP that resulted from a joint effort by the American National Standards Institute (ANSI) and the Canadian Standards Association (CSA). Copies of the draft proposed NAPLPS stan­dard (document #BSRX3.110-198X) can be obtained from CBEMA (Com­puter and Business Equipment Manu­facturers Association, X3 Secretariat, Suite 500, 311 First St., NW, Washington, DC 20001). 
+This series of articles will provide an overview of the features of NAPLPS. The specific details and ex­amples presented in these articles are not meant to form a complete NAPLPS specification. Anyone inter­ested in doing development work us­ing NAPLPS should obtain a copy of the ANSI document. 
+Layered Protocols 
+Modern communication systems are designed in a layered or modular manner to help prevent extensive sys­tem redesign when parts of a system are changed. Layering achieves many of the advantages found in good structured system design. By isolating functions in various layers, we can proceed to standardize and imple-
+Text continued on page 210 
+
+Circle 372 on inquirycard. 
+
+FLOPPY DISK CONTROLLER 
+features: Model FDC1 . 
+• 
+Single or Double density, sides, in any combination of up to four 8" or 5.25" drives. • Digital phase locked loop. 
+
+• 
+OMA data transfer with cross 64K boundaries, 248 address, OMA arbitation. • Monitor/boot EPROM accomo­dating two different processors. • CPM Bios programs. 
+
+• 
+Serial port to 19.2K baud. 
+
+
+ZBOB CPU BOARD 
+features: Model ZBO CPU 
+• 2, 4 or 6 mhz clock. • 22 bit Address by Memory Mapping in 16K blocks. • 2 or 4Kbyte EPROM (not supplied) with Phantom generation. • Jump on Reset. • Provision to run two different CPU's on the same bus, such as forth coming 8086. 
+.t'IJ 256K DYNAMIC RAM 
+features: Model 256KZ 
+• 8/16B Oat.. 24B Address. • Parity bit per Byte • Transparent refresh • Unlimited OMA • 180nsec. Access time e Will run 8086, 8088, 68000 to 8mhz, Z80, Z8000 to 6mhz without wait states. 
+64K STATIC RAM 
+features: Model 64KS 
+• 8/16B Data 24B Address • Disable in 2K increments • 180nsec Access Time (with 64KB) from address on, runs 8086, 68000 to 1 Omhz, Z80. Z8000 to 8mhz without wait states • Battery back up capable. 
+32K STATIC RAM 'Uniselect: 4' 
+features: Model 32KUSM 
+• 
+8/1 6 bit data, 16/24 bit address. • Bank Select by SW selectable port, bit in 32K block. • Battery backup (battery not supplied) with power-fail detect/automatic Ram disable. 
+
+• 
+Complete EPROM (2716) capability with wait states (up to 3), phantom responding or generating. 
+
+
+All boards conform to IEEE696/S100 specifications, fully socketed, screened legends, masks, Gold contacts. Guaranteed One Full Year. 
+New Price Effective February 1, 1983 
+Model Prices with 
+FOCI S425 Monitor EPROM 
+Z80 CPU S349 Memory Mapping, 6mhz clock 
+156KZ • S795 156KB. Parity 
+64KS S415 64KB, CMOS 
+31KUSM S315 31KB. CMOS 
+32KUSM-N S169 no ram, no power fail 
+JSPC S259 3 serial, 1 para el. cassette
+ll-
+Z80 monitor S55 2K in EPROM, source code 
+All Boards come assembled and tested. 
+Call for current and package deal prices. 
+Delivery is within 3 to 5 working days. MC, Visa or COO orders accepted. (Add S6 for COO orders) Illinois residents add 5V.% sales tax. 
+O.E.M. & DEALER PRICING AVAILABLE 
+S. C. DIGITAL 
+P.O. Box 906 
+1240 N. Highland Ave., Suite #4 
+Aurora, lllinl)is 60507 
+Phone: (312) 897-7749 
+210 February 1983 © BYTE Publications Inc 
+
+ment a system for one layer without regard to details of other layers. Because layering is an abstract and sometimes confusing topic, we will use a simple example of communica­tion between two people to illustrate the concept. 
+
+As shown in figure 3 on page 212, when two people converse, their basic goal is to communicate ideas to each other with as much understand­ing as possible. We shall regard these ideas themselves as the first level or layer of communication. This level, which may be considered the highest or most abstract, will be called the conceptual level. 
+In order for people to communiCate these ideas, they must choose a languag.-say, English-as a set of rules for presenting · the ideas. And with English come all the rules con­cerning grammar, sentence structure, and so on. We shall include English as part of a second level of communica­tion that we shall call the logical level. The ideas from the upper level would have to be. expressed in this logical level before a transfer could take place between the two people. 
+
+
+LAYERED PROTOCOLS 
+HUMAN COMM UN! CAT! ON 
+
+CONCEPTUAL IDEAS LEVEL 
+LOGICAL ENGLISH FRENCH ENGLISH FRENCH LEVEL 
+PHYSICAL iSPOK\ WRITTEN SUNG 
+LEVEL MOUTH .AIR 
+
+Figure 3: A diagram showing how communication can be divided into a series of layered protocols. Here, the example of communication is a simple conversation in English be­tween two people. The conceptual level comprises the actual ideas to be communicated. The logical level comprises the language in which the ideas are to be expressed. The physical level comprises the physical phenomena that are used to convey the English words. In the case of speech, this involves movements of the mouth, air, and the listener's eardrums. 
+LAYERED PROTOCOLS 
+
+HUMAN COMMUNICATION 
+
+CONCEPTUAL IDEAS IDEAS LEVEL 
+LOGICAL ENGLISH FRENCH ENGLISH FRENCH LEVEL 
+PHYSICAL SPOKEN WRITTEN SUNG READ HEARD 
+LEVEL 
+MOUTH EARS 
+AIR MOVEMENTS AIR MOVEMENTS 
+.TELEPHONE. 
+Figure 4: If the conversation in figure 3 were conducted over a telephone, we could in­terpret this as a change of the physical layer. The advantage of layered protocols is that one layer can be changed without affecting the other layers. Although the physical level here has been changed, the logical level-English-is unaffected. 
+212 February 1983 © BYTE Publications Inc 
+Once English is chosen, a mecha­nism is needed to physically transfer the logical representations of the con­ceptual ideas from one person to another. This will be done on the physical level. In human communica­tion, several choices exist. The most obvious is speech. When we speak, a set of physical tools is used. The English constructs from the logical level are converted to movements of the diaphragm, tongue, and mouth, which result in the movement of air. The vibrating air is detected by the other person's ears (if she is listening) and is transferred into bone and mus­cle movements. The second person must decode these movements, re­create the English, and conceptualize the idea. 
+This example can also be used to il­lustrate why layering is useful in pre­venting complete system redesign when changes are made. It can even be used to show how standard layers can be mixed and matched as the needs of a system change. 
+Suppose that the two people are separated by a large distance and that a telephone must be used so that they can talk to one another. The lowest level (the physical level) is the only area affected. As shown in figure 4, the telephone and the telephone net­work are used to transport the sounds from one location to another. The logical English constructs can remain the same and the ideas can be com­municated. 
+If French or German is substituted at the logic level, no changes need to be made to the physical level. The conceptual level may or may not be affected, depending on how adept the languages are in representing certain ideas. For example, when learning a second language, one usually runs into the case where an instructor says, "That idea really can't be translated into this language." 
+As mentioned before, layering is done to prevent expensive system redesign when parts of a complex communication system are changed. Imagine how inconvenient it would have been if everyone had had to learn a new language when the telephone was invented. Or imagine how expensive it would be if a dif­ferent telephone system were needed to speak different foreign languages. 
+
+Data-communication systems have likewise been divided into various layers. A seven-level model promoted by the International Organization for Standardization (ISO) is typically used. A complete description of the model is beyond the scope of this arti­cle. In general terms, however, this seven-layer model, like our simple ex­ample, runs from the more abstract layers at the top (level 7) to the physical layers at the bottom (level 1). Most of the work in standardizing data-communication protocols has heretofore 
+been done at the lower, physical levels. 
+NAPLPS is a standard for the sixth level, commonly called the presenta­tion level, of the seven-level model. In our example of human communi­cation, NAPLPS is similar to the logical (English, French, and German) level. NAPLPS has been designed to allow a large variety of information to be encoded in a manner that pre­serves the conceptual content of the information. NAPLPS codes can be physically transported between com­puter systems via modems and data links, floppy disks, magnetic tapes, and other common mechanisms. 
+Code-Extension Techniques 
+The coding of NAPLPS begins with bits and bytes. The 8-bit byte can be used to represent 256 unique patterns or code points. At first glance, the 256 codes might seem to be a large 
+In NAPLPS, 96-code sets can be swapped in and out of a large 256-code table. 
+enough set, especially if only letters, digits, and control information must be encoded. But in order to encode graphics coordinates, colors, graphics drawing commands, and advanced control information, more than 256 codes are needed. The obvious solu­tion is to group bytes together se­quentially to form an extremely large set of commands. This is similar to what occurs in English where the 26 letters of the alphabet are grouped to form words. 
+Grouping of bytes is commonly called code extension. Many code­extension techniques use the ASCII Escape character (ESC, hexadecimal lB, decimal 27) as an indicator that the next character has a special mean­ing. Many times, the next character indicates that more characters follow. (An example of this type of code ex­tension is the typical multicharacter Escape sequence for the cursor-posi­tioning sequence supported by many terminals.) 
+This approach to code extension is fine for a small number of extensions, but tends to become a hodgepodge of inconsistent code sequences when a large number of extensions are de­fined. 
+NAPLPS has been designed with an extremely general code-extension structure that is independent of the specific "meanings" of the codes, and is based on an ISO recommendation 
+
+
+(ISO 2022.2). 
+Keep in mind that up to this point we have been talking about codes as 8-bit binary numbers in the decimal range 0 to 255. No meaning has been placed on the codes. Because of the widespread use of ASCII, many peo­ple assume that a capital "C" must always be coded as a decimaln67, as it is in ASCII. The assumption is also made that the value 67 cannot be used to code anything but capital Cs. In 
+order to fully understand NAPLPS, you must first realize that the rela­tionship that exists between the capital C and 67 is by convention and not due to some physical limitation of computers or an act of God. Further­more, you must realize that the decimal value 67 (or any code) ca. be 
+given other meanings in other con­
+texts as long as an indication is given 
+as to which context is currently in effect. 
+The basic strategy underlying code extension in NAPLPS is to take a 
+. 
+large table of codes (128 or 256) and 
+divide it into smaller sets of codes 
+that can be "swapped" in and out of 
+the large table. The small code sets 
+Circle 105 on Inquiry card. 
+
+128 CODES
+1 16 
+16l 256-CODE TABLE 
+
+formed at leveln2. Because NAPLPS is 
+2 6 . 2 6 
+a level-6 protocol, the error-control bits have already been handled prior 
+to the data's reaching level 6. 
+128 
+CODES 
+The 8-bit code-extension technique is used when all 8 data bits are avail­able for NAPLPS information. This is the method that is used in systems 
+GL  GR  
+96  96  
+CODES  CODES  
+
+
+I 
+C1 where the low-level protocols can 
+(32 CODES)co (32 CODES) 
+support 8 bits. It will also be used 
+(b) (c) when files containing NAPLPS are
+
+(a) 
+exchanged between users via disks Figure 5: With an 8-bit code, 256 combinations are possible. These can be represented and tapes. · Because of the eventual on a 16 by 16 table (a). For convenience, this large table can be divided into tw. widespread use of the 8-bit code­
+128-code tables (b). Each of these 128-code tables can then be further subdivided into a 
+extension technique, it is the one that 
+32-code table and a 96-code table (c). 
+will be described in this article. 
+With 8 data bits, the 256 codes or can include codes with similar charac­mainly about an 8-bit code. Actually, patterns can be grouped in the form teristics. The sets can have standard two code-extension techniques are of a table with 16 rows and 16 col­names, and a standard mechanism supported in NAPLPS: 7-bit and umns (16 X 16 256), as shown in 
+= 
+can be established to control. the 8-bit. The 7-bit extension technique is figure Sa. swapping. New sets can be added as used in systems where only 7 data bitsn. The 16 by 16 table can be divided long as a unique name is chosen. can be passed through the lower, into two sets of 128 codes, as shown Because a standard mechanism would physical levels of communication in figure Sb. These two sets can each already .be in place to handle the (levels 1 through 5). The eighth bit is be partitioned into sets of 32 and 96 swapping, the new code set could be often reserved for parity so that er­codes (32 + 96 128), as shown in 
+= 
+added without affecting other sets. rors can be detected. In a seven-level figure Sc. The 32 codes will occupy Up to now, we have been talking system, error control is usually per-two columns of the original 16 by 16 
+a message 
+to our subscribers 
+From time to time we make the BYrE subscriber list 
+available to other companies who wish to send our 
+subscribers promotional material about their products. We 
+take great care to screen these companies, choosing only 
+A solid state those who are reputable, and whose products, seNices or disk emulator for your information we feel would be of interest to you. Direct APPLE•, TRSSO**, 51E00, mail is an efficient medium for presenting the latest personal 
+computer goods and seNices to our subscribers.
+or SSSO computer 
+A FAST mass storage device. Speeds up 
+e Many BYrE subscribers appreciate this controlled use of
+any program requiring disk access. 
+our mailing list, and look forward to finding information of
+No head seek time, no motor startup time, 
+Introductory 
+e no moving parts. interest to them in the mail. Used are our subscribers'
+Price $1 095. Standard 256K bytes of storage expandable names and addresses only (no other information we may plus tax and shipping e to I megabyte. have is ever given). 
+Independent regulated power supply. 
+e Automatic power failure detect and battery 
+While we believe the distribution of this information is of
+e backup. 
+benefit to our subscribers, we firmly respect the wishes of 
+Haroware error detection and write protect. 
+SEND FOR any subscriber who does not want to receive such 
+e
+• Only 4 bytes-ports of address I/0 space used 
+promotional literature. Should you wish to restrict the use
+FREE • Hardware optimized for block transfers BROCHURE and access. of your name, simply send your request to the following 
+Identify your model. Drivers, diagnostics, and utilities software address. 
+e 
+provided. BYTE Publications Inc 
+Attn: Circulation Department 70 Main St 
+Tel.l617)648-1717 
+PION, INC. Peterborough NH74 Appleton St., Arlington, MA 021-74 03458 
+*Trade Mark Apple **Trade Mark Tandy Corp. 
+216 February 1983 © BYfE Publications Inc Circle 338 on inquiry card. 
+DESIGNATION AND 
+
+INVOCATION OF C-SET 
+IN-USE TABLE 
+MAXELL 
+EMOREX
+5'/.!W"Single Side, Single/DoubleAll mini's have hubrings except
+MAXELL MEMOREX 
+M01 3481 
+MH1-10 3483
+29.95 26.95
+MH1-16 3493 
+SCOTCH VERBATIM 
+7440.-() M0525-01 7440-10 
+26.95 
+M0525-10 28 95
+7440-16 M0525-16 • 
+5 V. "Double Side, Double Density
+3495 
+5 '!. "Double Side, 96TPI 
+47.06
+VERBATIM 
+41 95 3062 
+
+27.95 ...ci 
+Double
+MEMOREX
+41 95 3090 
+34.95 ..0.4 
+MEMOREX 
+
+44.95 ...4 
+VERBATIM Kit. 8.•• 10 Disks. 15.95 
+MAXELL MEMOREX. 
+42.95 
+MH2-16 
+M01-00 3504 
+VERB34.ATIM 1115
+I
+38,96 
+36.96 
+48.96 
+50.96 
+• 
+44.96 
+• 
+MAXELL
+48•95 
+SCOTCH SCOTCH 
+DESIGNATION OF 
+
+M0577.o()1
+ESC,2/ll,(F) 
+
+39.06
+746-0 
+I 
+ESC,2115,(F)
+I 
+
+I
+MAXELL MEMOREX 
+M02-00 3501
+ESC,2/12,(F) 
+
+SCOTCH 
+M0557-01 
+50.96 
+B"!W
+MEMOREX
+7/11 
+
+F01 
+24.95
+FH1 3015
+7110 
+
+3066
+SCOTCH VERBATIM
+7113 
+
+35.95
+740-0 
+5/7
+G-SET 
+
+B"!W
+I 
+MEMOREX 
+740/2 
+1729
+4/2 
+
+45.96 
+(F) CHARACTERS 
+
+MAXELL 
+32 95
+• 
+F01 3091FH1 
+VERBATIM
+41-.95
+Figure 6: A diagram showing the NAPLPS code-extension technique in an 8-bit environ­
+SCOTCH 
+ment. By swapping various 96-charactergraphicssets into and out of the graphics areas 741-0 of the "in use" table, we can access a large number of characters or commands. Four 
+38 95
+• 
+graphics sets (or G-sets) are selected from the G-set repertory and placed in designated 
+F02 
+3102
+sets (GO through G3). Then, two of these designated sets are placed in thegraphics areas FH2 
+VERBATIMSCOTCH
+(GRand GL) of the 256-code "in use" table. Various code sequences (e.g., ESC 6114) or 
+49.96
+control codes (e.g., SI) are used to swap the G-sets. The notation "6114" represents the 743 number 6E in hexadecimal. "(F)" refers to a single-code name of a particular G-set. 
+20.85 
+table; the 96-code set will require six columns. 
+As you can see, the large 256-char­acter table has now been divided into four smaller regions. These regions (or sets) allow us to group codes of similar use into tables of manageable size. The two small tables are called control sets or C-sets; the two large tables, graphics sets or G-sets. 
+As we mentioned before, a mecha­nism has been designed to allow a variety of code sets to be swapped in­to and out of these four areas of the large table. Currently, however, code-set swapping is done only with the large 96-character G-sets. Although a mechanism exists for swapping the small areas (C-sets), it is not being used at this time. 
+Before a G-set is swapped into one of the large areas, it must be selected from a repertory and placed into one of four designated sets. Two of these 
+February1983 © BYTE PubliC<Otions Inc 
+designated sets are then placed into GL and GR, the two large areas in figure Sc. Codes are then interpreted based on the current G-sets that are in use in the large table. 
+Figure 6 illustrates this mechanism for the 8-bit code-extension tech­nique. The arrows and labels indicate special code sequences that are used to cause the swapping. Most of these code sequences begin with the Escape character. The notation "6114" used in figure 6 is an alternate way of specifying a code with a specific bit pattern. On a 16 by 16 table, 6114 represents the bit pattern that refers to column 6 and row 14 of the table. In hexadecimal, 6/14 would be 6E; in decimal, (6 X 16) + 14 110.
+= 
+To move a G-set from the reper­tory to one of the designated sets, a three-character sequence is used. The third character in the sequence (repre­sented by "(F)" in figure 6) is the "name" of the G-set. Each G-set has a unique name that is specified in the NAPLPS standard. For example, the name of the ASCII G-set is 4/2 (42 in hexadecimal). To move the ASCII G-set from the repertory to the GO designated set, you would use the following sequence: ESC, 2/8, 4/2. New G-sets can be added at a later date by specifying a new-name that has not been used .. 
+If figure 6 looks confusing, the following analogy may help. Imagine that figure 6 illustrates a complex jukebox that has a number of albums 
+The Primary Character Set contains 96 "oldies but goodies" ... 
+(G-sets) stored in a rack (repertory) and four turntables (designated sets GO, G1, G2, and G3). Buttons are · available (e.g., the sequence ESC, 2/8, (F)) that allow you to specify which album should be placed on which turntable. Furthermore, this jukebox has two sound systems (GL and GR). And more buttons 
+
+
+
+
+Need to Measure Your Corporate Communications? 
+Want to define your company's image? Measure competitive strengths? Determine the acceptance of your company publications? Gauge reactions to your annual report? Determine the effectiveness of your corporate advertising? Monitor the impact of important trends and developments on your company's business? 
+Call McGraw-Hill 
+
+Research 
+Backed by 30 years of research experience covering scores of markets and fields, McGraw-Hill Research professionals design custom projects that can make a big difference in the success of your corporate communications efforts. The Corporate Commu­nications Research Center will meet your research needs promptly, at a reasonable price. 
+Put McGraw-Hill Research to work for you. 
+For a quote or proposal, call 
+Joan Bullen, Director-Corporate Communications Research Center at (212) 997-3517 or Eleanor Nicoletti, Project Director, at (212) 997-3095. Or, write Corpo­rate Communications Research Center, 1221 Avenue of the Americas, New York, NY 10020 
+If it's a communications problem, we probably pioneered the solution. 
+
+220 February 1983 © BYTE Publications Inc 
+(SO-Shift Out, SI-Shift In, ESC 6114, etc.) are provided that allow turntables to be connected to one (or both) of the sound systems. 
+As we continue our analogy, imag­ine that each album has exactly 96 songs, and that the turntable can very quickly locate and play any of these songs. Furthermore, both sound systems have 96 buttons that can be used to select and play any of the songs instantly. 
+It should be noted that in order to lessen the amount of record changing involved, four turntables are provid­ed. With two sound systems, we can have two albums or 192 (96 X 2) songs available instantly. Also, we can have another 192 songs available simply by switching the correct turn­table to a sound system. We can play an almost unlimited number of songs if we are willing to go to the trouble of selecting an album, placing it on one of the turntables, switching the turntable to one of the sound sys­tems, and finally selecting a song. 
+At this point, you are probably wondering what this has to do with text, graphics, NAPLPS, and the price of tea in China. You are also probably wondering what albums are available in the repertory. 
+NAPLPS currently has six selec­
+tions available in the repertory (this record industry is still in its infancy). The Primary Character Set, also known as ASCII, is full of 96 oldies but goodies like 0, 1, 2, ... A, B, C, and x, y, z, etc. The Supplementary Character Set is full of 96 new and old international favorites, most of which are rarely played in the U.S. These in­clude a and (3. The Picture­Description Instructions album (POls) contains selections like "Line," "Arc," and "Draw Me a Polygon." Some of the hottest hits going are on this album. The Mosaics album is full of some very old songs that all sound the same. It is seldom played except by people over 40. The Macro album contains songs that cause other songs to be played. (You get a lot for your quarter here.) The Dynamically Redefinable Character Set album (ORCS) is initially blank. It can be used to mix existing songs together to form new songs. (Yes, on this juke-
+Text continued on page 224 
+COMMA NOS 
+MOVE TO (0.5, 0.25) 
+LINE (+0.45, +0.125) 
+Ll N E (-0.45,+0.375) 
+LINE (-0.25, -0.25) 
+ARC (+0.125, -0.125, 
++0.125, +0.125) MOVE TO (0.413, 0.578) CIRCLE (0.05,0.0) 
+
+(0.0, 0.0) ( 1.0, 0.0) 
+UNIT SCREEN 
+Figure 7: The unit screen of NAPLPS. All coordinates are represented as fractions be­tween 0.0 and 1.0. The figure on the screen was drawn with the commands listed on the left. The advantage of this coordinate scheme is that it can be easily implemented on display screens of various resolutions and sii.es. 
+
+(0.0, 1.0) (1.0, 1.0))
+, 
+------------l
+r--------­
+I I 
+I I 
+
+(0.0, 
+0 0 0 
+
+1981  
+
+
+
+(0.0, 0.0) (1.0, 0.0) 
+Figure 8: The unit screen is square, but most display screens are rectangular. The con­vention that has been adopted is to represent on the display screen only the lower 75 percent of the unit screen. That is, any point with a y coordinate greater than 0. 75 will not be seen. 
+224 February1983 © BYTE Publications Inc 
+box you can record as well as play.) 
+As mentioned before, default selec­tions have been set up so that no swapping commands are needed in many applications. As shown in figure 6, the ASCII character set is the default for the GO designated set, and whatever is in GO is the default for GL. Therefore; the codes in GL (decimaln32 to 127) will be mapped to the ASCII character set as the default condition. (Isn't it amazing how the simplicity of the present can be represented as a subset of the cmn­plexity of the future?) 
+The default for the Gl designated set is the PDI set, and Gl in turn is the default for GR. This arrangement allows text and graphics to be used without any swapping. 
+The default for G2 is the Sup­plementary Graphics Set, and the default for G3 is the Mosaic Set. We believe that the Macros and ORCS should have been the defaults. When you devise a standard, however, someti.mes a little "default diplomacy" is necessary. 
+The entire NAPLPS code-extension structure is designed to support future growth in an organized manner·. As can be seen, it provides a means of in­creasing the number of codes far beyond the 256 codes we would have had if there were no code-extension techniques. The overhead has been kept to a minimum while maintaining compatibility with existing ASCII systems. 
+The Unit Screen 
+and Coordinate System 
+Now that we have plenty of room for character sets and commands, we can get down to the real purpose of NAPLPS-creating pictures. 
+
+In NAPLPS, pictures are drawn on a unit screen. As shown in figure 7, the unit screen is a square area of unknownn. resolution and size. The lower left corner of the screen has 
+x-y x y x-y
+coordinates equal to (0.0, 0.0); the upper right-hand corner of the screen has coordinates of (1.0, 1.0). 
+The name "unit screen" is derived from the fact that all coordinates in the unit screen have an and com­ponent between 0.0 and 1.0. In NAPLPS, all coordinates and dis­
+(SIGN BIT (0,POSITIVE I, NEGATIVE) 
+BOTH NUMBERS REPRESENT THE co SAME DECIMAL N v N
+<D VALUE 
+....
+s . . s s . .... 
+IXI/2= 0.5± 0X1/4=0.0 
+8BITS 0 0 IX1/8=0.125 IX1/16=0.0625 0X1/32=0.0 
+•.......__BINARY IX1/64=0.015625 POINT + OXI/128=0.0 
+=0.703125 
+The decimal value of a number is determined in a manner similar to in­tegers. A number such as 0.1011010000000 represents a posi­tive number (the sign bit of 0) equal to 1/2 1/8 1/16 1/64 or
++ + +
+0.703125, which of course is less than 
+1.0. An infinite number of zeros is assumed on the right of the number, just as with decimal numbers that are less than 1. Of course, the number will never equal 1.0 no matter how many 1s are placed on the right. (If you do not believe it, try figuring out what the fixed-point binary number 0.111111111111111 is in decimal.) 
+When coordinates are encoded in NAPLPS, each byte can contain 6 bits of data. (The other 2 bits will be ac­counted for later.) The standard two­dimensional format is shown on the left of figure 10 (page 227). On the right side of figure 10 is a three­dimensional format. Some three­dimensional capability is supported by NAPLPS today, but many more three-dimensional options will be available in the future. In that case, coordinates are specified in a unit cube rather than a unit screen. 
+In the two-dimensional format, the 6 data bits are used for 3 bits of x and 3 bits of y. Obviously, multiple bytes are needed if high-precision coor­dinates are used. As shown in figure 11, as each new byte is added to a coordinate specification, the x and 
+ycomponents each obtain 3 more bits of precision. The least significant bits are obtained after the most significant bits. A terminal may choose to throw away some of the least significant bits if more bits are sent than are needed for the resolution of that particular terminal. When most people are first exposed to this method of coordinate encod­ing, their first reaction is that it will be too complex for a simple micro­processor to handle. On the contrary, there is a very easy way to handle this encoding technique: just ignore the binary point and the fractional con­cepts and treat the bits as integers. To do this, you must first choose an adequate integer size for internal representations. On 16-bit micropro­cessors, 16 bits are commonly used. If signed 16-bit numbers are used, a grid 
+co 
+N "' N 
+N co "' '"'
+"'
+.... !!!.... -.... -....
+± 
+;:; ;:; ;:;
+16BITS 0 0 0 0 
+· 
+........__EBINARY 
+POINT 
+0 o o o o
+;:;
+FIXED-POINT BINARY FORMATS 
+
+Figure 9: NAPLPS coordinates are formatted as "fixed-point binary numbers.e" The B­and 16-bit numbers given here represent the same decimal number, 0. 703125. 
+'"' N N
+"' N 
+-
+0 0 0 
+tances are specified thus in subunits relative to the unit screen. The advan­
+tage of specifying the coordinates in this manner is that the pictures will be independent of any particular hard­ware configuration. Another advan­tage is that objects in pictures will re­main in the same relative position with respect to each other even though the resolution of the physical display may be increased. 
+In order that pictures may be seen, the unit coordinates must be mapped to a physical display. The only re­quirement imposed (under normal conditions) when making this map­ping is that the squareness (common­ly called aspect ratio) of the unit screen should be preserved. Unfor­tunately, when the unit screen is mapped to the rectangular screen of a television set, some of the unit screen cannot be seen. This is shown in techniques may be added to NAPLPS that will allow the unit screen to be 
+scaled, rotated, and mapped to the physical screen in a variety of ways. These capabilities will be added at the same time that three-dimensional features are defined. 
+Now that we know that all coor­dinates must be between 0.0 and 1.0, a problem arises: How do we repre­sent these coordinates? Floating-point 
+representations could be used. But this would make it difficult for integer-oriented microprocessors to handle the coordinates. Instead of a floating-point format, a fixed-point binary (not binary-coded decimal or BCD) format was chosen. This for­mat is the same as a typical integer format, except the binary point is assumed to be on the left between the sign bit and the data bits. Figure 9 il­lustrates the formats for 8-and 16-bit 
+figure 8. The convention that has . systems. 
+been adopted is that only the lower 75 percent of the unit screen will be visi­ble on the physical screen. Thus, any point with a coordinate greater than
+y
+0.75 (it is usually closer to 0.78) will not be displayed on a television screen. 
+This technique of mapping points on the unit screen to the physical screen is called one-to-one mapping. In the future, additional mapping 
+226 February 1983 © BYTE Publications Inc 
+The important thing to note about this format is that, unlike integers, as more bits of precision are added, they are added on the right instead of the left. Also, the values of the binary places work from the left to the right. The value of the bit position im­
+mediately to the right of the binary point is 1/2. The next bit position to the right is worth 1/4. The next ones are worth 1/8, 1/16, 1/32, etc. 
+
+can be set up that ranges from 
+TWO-DIMENSIONAL MODE THREE-DIMENSIONAL MODE 
+-32,768 to 32,767 in both the andy 
+x
+
+directions (see figure 12). The display 
+b7 b6 bs 
+
+b bb
+b3 b2 bi o b7 b6 s b4 b3 z bi bo 
+screen or unit screen would occupy the first quadrant. The unit screen 
+would then be 32,768 by 32,768, which is far more resolution than almost all graphics devices have to­day. 
+In this 16-bit internal form, an in­teger such as 0100000000000000 would have a decimal value of 
+16,384. This is equal to Vz of 32,768, which should not be surpnsmg because we originally said that the binary number 0.100000000000000 was equal to 1/z (it's all done with mir­rors!). The integer 0101101000000000 
+that we used before would of course be equal to 23,040 (16,384 + 4096 2048 + 512). A quick check with+ a calculator shows that 23,040/32,768 is exactly 0. 703125. (Does this number look familiar?) 
+It should be clear that treating the fixed-point binary numbers as normal integers is the same as moving the binary point 15 places to the right (for a 16-bit system), which is the same as multiplying the binary fractions by 32,768. We can recover the fractional form by dividing by 32,768, which was demonstrated above. 
+In order to map the unit screen to a physical display screen, more simple shifting can be used. The sign bits of the andny components must be posi­
+x
+tive for the coordinate to be in the unit screen. If the rightmost 7 bits of the 16 bits above are dropped by shifting the integer right seven places, the numbers that result are in the range 0 to 255. 
+This operation maps the 32K-by 32K-bit grid to a 256 by 256 grid. Each point on the 256 by 256 grid then represents a 128 by 128 area on the original grid. This indicates that when 16-bit integers are used, 128 would have to be added to a coor­dinate component to move to a dif­ferent point on the physical display. 
+If a 512-by 512-bit-resolution display screen is available, another bit on the right of the coordinate in­teger would be saved. (The 16-bit in­teger would be shifted right six places instead of seven.) In this case, each point on the 512 by 512 grid 
+
+-DATA-BYTES STREAM 
+
+
+Figure 11: The data bytes shown in figure 10 can be combined to specify coordinates of almost unlimited resolution. Here, 4 data bytes in the two-dimensional mode are com­bined to form a pair of 12-bit coordinates. This would support a resolution of 2048 by 2048. 
+(0,32767) (32767, 32767) 
+
+
+--,I I 
+I 
+
+UNIT I 
+SCREEN 
+I 
+I 
+I 
+I 
+
+(0, 0) ( 32767, 0) (-32768, 0) 
+(0, -32768) 
+Figure 12: The maximum resolution of a 16-bit coordinate system. The unit screen oc­cupies only the first quadrant of the grid. 
+
+February 1983 © BYrE Publications Inc 227 
+
+
+-DATA-BYTE STREAM 
+beginning of the article. Imagine that the robot has one pen and three ink­wells filled with the primary colors red, blue, and green. By mixing various amounts of each of these col­ors in the pen, the robot can draw in almost any color. For example, we could instruct the robot to mix three drops of red, one drop of blue, and seven drops of green, and then tell the robot to draw various shapes or text characters. When we tell the robot to mix a new color, the robot would automatically clean out the pen and mix the next color. 
+In NAPLPS, color is similarly specified in terms of its red, green, and blue intensities. Each byte of col­or data contains 6 bits of color infor­mation, 2 each for red, green, and blue. Several bytes, however, can be grouped together so that colors can be specified with as much precision as
+Figure 13: Color information is encoded in a manner similar to that used for coor­
+desired. In figure 13, 2 bytes have
+dinates. Each data byte contains 2 bits of information for each of the primary color 
+
+components: red, green, and blue. A varying number of bytes can be combined to been used to yield a total of 12 bits of 
+specify colors with almost unlimited precision. Here, 2 data bytes have been combined color information (i.e., 4096 possible 
+to yield 4 bits of information on each red, green, and blue component of a color. colors). As with coordinate encoding, 
+
+
+
+
++ 
+<D BRICKEE ASSOnATES 191'\:! 
+
+SINGLE BOARD COMPUTER 
+
+FEATURES:
+
+16 bit Motorola 68000 CPU operating at 5 MHz or 10 MHz, 20K of on 
+board fast static RAM, 16K bytes of on board EPROM space, 7 
+autovectored interrupts, 3 memory/device expansion buses, 2 serial 
+communication ports (RS-232 C), 16 bit bidirectional parallel port, 
+5-16 bit counter/timers with vectored interrupt and time of the day 
+clock. On board monitor allows to downJoad and debug programs 
+generated on APPLE II,TRS-80 and CP/M using our M68000 Cross 
+Assembler. 
+PRICE:
+
+M68K Bare board with documentation ................................ $ 99.95 
+M68MON monitor & mapping PROM's ................................ $135.00 
+M68000-6 CPU ................................................................. $ 95.00 
+M68K Parts Kit ................................................................. $249.00 
+M68000 Cross Assembler .................................................. $125.00 
+M68K Documentation only ................................................ $ 15.00 
+Shipping & handling (Domestic) .... $ 3.50 
+(foreign) .... $ 15.00 
+
+
+TEMS .=:::.:.:F::N:::-.......::EA::9:.3:s
+System• · · 0· · 
+17141 SSJ-0133 
+
+
+
+230 February 1983 © BYTE Publications Inc Circle 339 on Inquiry card. Circle 16!Won inquiry card.
+1 
+
+DISPLAY 
+MEMORY 
+256X256X4 
+BITS 
+32K BYTES 
+TO MICROPROCESSOR 
+DISPLAY 
+MEMORY 
+4 BITS 
+256 X 256 X 4 
+BITS 
+32K BYTES 
+l 
+TO MICROPROCESSOR 
+
+Figure 14: Two popular schemes for storing color information. Both use the same amount of display memory. In the top scheme, the 4 bits for each pixel specify 16 fixed colors. In the lower scheme, the 4 bits specify 16 color registers in the color map. Each color register in turn specifies one of 4096 colors. Dl A designates a digital-to-analog con­
+verter. 
+the most significant bits are sent first, and a terminal is free to ignore the least significant bits. 
+With this kind of system, a tremen­dous spectrum of colors may be displayed, depending on the amount of memory available. 
+Most personal computers have only a small number of colors available. In the above analogy, the robot might have 8 or 16 pens with premixed colors. When we gave the robot instructions to mix a certain color, it would merely pick the pen with the color closest to the specified color. 
+The advantage of color mode 0 is that it can be received on almost all terminals. An inexpensive color ter­minal can display the same pic­ture-although much less vividly-as an expensive, dedicated graphics ter­minal. 
+Color mapping, which is used in color modes 1 and 2, allows a ter­minal to display a wide spectrum of colors without requiring a large amount of memory. The Atari 400 and 800 are two of the few home computers that make use of this technology (see "Computer Anima­
+16 Fl XED COLORS 
+RED 
+12 BITS 
+0 
+®0 
+4096 VARIABLE COLORS 
+tion with Color Registers" by David Fox and Mitchell Waite, BYTE, November 1982, page 194). 
+In color mapping, if we return to the above analogy, the robot has the three primary-color inkwells again and a set of, say, 16 pens numbered 0 through 15. Using NAPLPS, we can instruct the robot to mix various col-
+With NAPLPS, an inexpensive color terminal can display the same picture­although much less vividly-as an expensive, dedicated graphics terminal. 
+ors in each of the pens. We can then instruct the robot to draw with a given pen, referring t. it by its num­ber rather than by its color. In a com­puter, we would store the color infor­mation not in a pen, but in a color register as part of a color map or col­or table. 
+
+
+In figure 14, we compare a system using fixed colors with one using col­or mapping. Both have the same amount of display memory (32K bytes). In the fixed-color system, the 4 bits in memory for each pixel specify one of 16 combinations of red, green, blue, and intensity. In the color-mapped system, the 4 bits refer to one of 16 color registers, each of which in turn refers to one of 4096 combinations of red, green, and blue. 
+Another important advantage of color mapping is that if we instruct the robot to change the color in a given pen, everything previously drawn with that pen will also change color. This amazing capability can be used to create some dramatic anima­tion effects. These effects are typical­ly referred to as color-table anima­tion. 
+Color-table animation is a very complex area of NAPLPS. A mecha­nism has been provided that allows you to specify color interchanges in the color map based on timed rela­tionships. (This command has been given the innocuous name BLINK.) Time intervals can be set in units ofYto of a second, which allows com­patibility with 60-Hz (U.S.) and 50-Hz (Europe) systems. Color-table animation will be discussed in greater detail in the third part of this series. 
+As we mentioned before, the major drawback of color modes 1 and 2 is the dependence on special hardware to achieve the full capabilities of the modes. This drawback was known at the time NAPLPS was designed, but it was determined that because of the incredible special effects that can be achieved using these modes they would be included. Anyone who does not have a need for these special ef­fects should concentrate on using col­or mode 0 to insure portability of in­formation. 
+Text Features 
+
+Text is handled as a subset of graphics. Text is a special form of
+' 
+graphics thatninvolves predefined "templates" that are rectangular in shape. The rectangular templates can be scaled to any size and positioned anywhere on the unit . screen. The 
+February 1983 © BYfE Publications Inc 235 
+
+Circle 169 on inquiry card. 
+CP/M 
+GRAPHICS 
+
+
+SOFTWARE 
+PLOTWARE-z 
+-.D.d·.:J..-rD 
+
+
+ilfl 
+
+
+r:...liiJ. 
+......;·">::,.:'l'":. .. 
+IIAI\fHOU.fS. tiT LOCAl lOll 
+
+On ALTOS, APPLE, OSBORNE, ZENITH, and most others. 
+THE MOST COMPLETE: 
+Use THREE ways: 
+1. 
+"MENU" GRAPHICS (easy, friendly) 
+
+2. 
+"COMMAND FILES" (powerful, flexible) 
+
+3. 
+"COMPILER LINKED" (Fortran, etc.) 
+
+
+Use on: most CRT's, dot matrix printers, 
+plotters, word processing printers 
+THE MOST PROVEN: 
+2 years in the field 
+THE MOST IMPLEMENTED: 
+1. 
+8 bit and 16 bit machines 
+
+2. 
+USER MODIFIABLE 
+
+3. 
+many applications programs 
+
+
+$399 complete 
+$35 manual only 
+VISA, MC, C.O.D., CHECK, M.O. 
+
+
+THE ENERCOMP COMPANY 
+P.O. Box 28014 
+Lol<.ewood,CJOJ) Colorado 80228 988-1E648 
+... 
+g
+Also Available Through 
+25 VandZant Street • Norwalk. Connect•cut 06855 
+
+(203)853-6880 • Telex 643788 
+Figure 15: The Primary Character Set, which is very similar to ASCII. Note that bit 7 is 
+not shown. The value of bit 7 would depend on which graphics area (GL or GR) this 
+and selected dealers. 
+
+G-set was placed in. 
+236 February 1983 © BYrE Publications Inc 
+
+
+
+"pattern" on the template is trans­character set. The Primary Character ferred to the screen, overwriting only Set (ASCII) is shown in figure 15 on those areas drawn with the template. page 236. Most text is taken from this 
+As mentioned earlier, NAPLPS set. The ASCII character set is the currently specifies three fixed default for the GO and GL sets in character sets and one redefinable figure 6. Therefore, it is accessed via 
+238 February 1983 ©bBYTE Publications Inc 
+the usual codes, 32 through 127 decimal. 
+A Supplementary Character Set has also been specified in NAPLPS (see figure 16). This character set con­tains a smorgasbord of symbols and international characters. Most appli­cations will require only a few of these symbols. This character set is the default for the G2 designated set, and must be moved to GL or GR be­fore these characters can be accessed. 
+The Mosaic Character Set is the third of the fixed sets (see figure 17 on page 242). Although the Mosaic characters do not look like text characters, they are treated exactly like text because of their rectangular shape. The Mosaics have very little use because of the extensive graphics capabilities contained in NAPLPS. The Mosaics are the default for the G3 designated set. Thus, they cannot be directly accessed without a G-set change. (We should have made it harder than that to use.) 
+The fourth text set in NAPLPS is the Dynamically Redefinable Char­acter Set (ORCS). The templates in this character set are initially blank rectangles. We can define each tem­plate, however, by using NAPLPS to draw a pattern on the unit screen and mapping that pattern to the template. The pattern can be drawn with either graphics or text commands. Once the template is defined, it can be used just like any other character. (Yes, ex­isting ORCS characters can even be used to define a new ORCS character.) Thus, the 96 characters in the ORCS set can be used to create custom fonts and special symbols. 
+NAPLPS provides a variety of text­oriented features, which can be ap­plied to any of the four text sets. Figure 18 on page 244 illustrates many of the available capabilities. In parts 2 and 3 of this series, we will 
+describe how these features selected and applied.  are  
+Graphics Features The graphics instructions  (.r  
+
+primitives) are specified using codes from the Picture-Description Instruc­tion (POI) G-set. As shown in figure 19 on page 246, the POI G-set is a 96-character set that is divided into 
+
+characters are graphics operation code data for these op codes. These codes. These op codes are used to data bytes are encoded and inter­specify text control, drawing preted according to the preceding op primitives, and color control. code. Six bits are available for infor­The 64 codes in the right four col-mation in each byte. Many of the op 
+codes require multiple data bytes to encode one data item. Coordinates, for example, are typically encoded in 3 consecutive data bytes. 
+As shown in figure 20 on page 250, this distinction of op codes and data within the POI G-set leads to a conve­nient decoding structure. Once it has been determined that a code falls in the POI set, bit 6 (the seventh from the right) can be used to determine if an op code is specified or data. If bit 6 is 0, the byte is interpreted as an op code; if it is 1, it is a data byte. 
+Such a distinction is necessary be­cause the picture-description instruc­tions have been set up so that a variable amount of data can follow an op code. The bytes following the op code are assumed to be data as long as bit 6 is a 1. 
+Figure 21 on page 250 illustrates how text, graphics, and color can be integrated to draw a simple picture. Approximately 180 bytes of NAPLPS were needed to specify this picture. In parts 2 and 3, we will describe in detail how graphics commands for such pictures are encoded. 
+Control 
+Up to this point, the emphasis has been on the 96-character G-sets. Two C-sets (control sets), CO and C1, are also specified in NAPLPS. These con­trol sets contain the codes needed to accomplish the G-and C-set swap­ping. They also contain codes for moving the cursor, controlling the ORCS, clearing the screen, and so on. 
+Figure 22 on page 252 illustrates the CO and C1 control sets. The CO set should be familiar to those of you who have worked with ASCII. The C1 set contains a variety of codes associated with the new features of NAPLPS. 
+A mechanism has been provided, but not used, that allows C-sets to be changed like G-sets. The C-sets were originally going to be used whenever a small (fewer than 32) number of similar codes were added to NAPLPS. As it turns out, the 96-character G-sets have proven to be more useful. The C-sets have ended up becoming a catchall for codes that do not seem to "fit" (either physically or logically) anywhere else. This 
+242 February 1983 © BYfE Publications Inc 
+
+
+the rest of NAPLPS in an elegant WRAP 
+manner. Certain areas or fields of the ScALiNg THIS IS NOT WO unit screen can be designated as user­RD WRAP input areas. These areas are called un­
+THIS IS WORD 
+protected fields. 
+The user can enter information into the unprotected fields using a variety of input devices such as keyboards, light pens, joysticks, graphics tablets, 
+
+
+ProportionaEl Spacing 
+and even a "mouse." Information entered in the fields is stored as NAPLPS data. The user must even­
+;u p
+
+0 CHARACTER tually indicate (usually via a Send--1
+l> T key) that all the information has been 
+--1 
+H 
+
+entered and should be sent to the
+0 
+
+z CURSOR CONTROL host. 
+When the host computer receives 
+
+Figure 18: Some examples of the text and Mosaic features of NAPLPS. 
+the block of information, it may or 
+may not decode it, depending on the compromise was not desired, but overlooked. User input is needed to application. For example, a graphics compromises such as this occur fre­allow a terminal user to enter infor­electronic-mail message would mere­quently when standards are being mation that will eventually be sent to ly be sent to the appropriate ad­developed. the central host computer. This input dressee and would not have to be 
+could be used to request information decoded. User Input from a database, order products, The text of a message does not have 
+Because of the heavy emphasis on schedule an airline reservation, or to be entered on rigid lines as in most text and graphics in NAPLPS, the send electronic mail. terminal systems. In applications user-input features are often User input has been integrated with such as electronic mail, a user who 
+BDOSeERROR 
+ON B:BAD SECTOR 
+Before disk errors ruin your work again order BAD LIM. 
+• 
+BAD LIM assures the reliability of your CP/M computer. 
+
+• 
+You can use your disks 10 times longer without losing your data AND your time. 
+
+• 
+BAD LIM checks thoroughly your disk marking all 
+
+the blocks which have defective sectors. The operating system will know that those sectors should be skipped. 
+
+• 
+BAD LIM is the only program that gives protection for soft and hard errors. 
+
+• 
+The first time BADLIM will list which files in your disk are on bad sectors, so you can take action to correct it. 
+
+• 
+But thereafter the bad areas in your disk will be 
+
+
+automatically by-passed. 
+
+A Complete Winchester/Floppy Disk System. 
+• Disk controller with 4 ports; supports wide range of drives; 5 Y. • 
+For CP/M 1.4 single density and for CP/M 2.xx of 
+• 
+and B'drives can be on same cable. 
+
+any format and density. It is a must for Winchester 
+• ZBO CPU includes 4MHz, 64KRAM, 2 serial 1/0, l parallel, CTC. 
+as the media cannot be replaced. 
+• Supports lOMB streaming tape. CPIM"' and BIOS included. 
+• Package price: $1,195.00. 
+
+ro!WB
+use a compu!Wter you need AD LIM cost only $73. Whatever the reason you have BAD LIM. Contact your 
+
+dealer 
+or call us today: 
+
+
+May be purchased separately. Disk and streaming drives available. 
+BLAT R&D Corp., 8016 188th. St SW, Edmonds WA 98020. Phone: [206] 771 -1 408 
+SIGEN 
+1800 Wyatt Dr., #6, Santa Clara, CA 95054 
+
+DEALER INQUIRIES INVITED. BADUM
+Contact: Allen Hauptman, 408/988-2527 
+CP/M is a trademark of Digital Research. 
+
+February 1983 © BYTE Publications Inc Circle 478on inquiry card. Circle 56 on inquiry card. 
+Circle334 onInquiry card. 
+DISTINCTNE for the 
+IBM PC 
+A Serious Monthly Magazine for the IBM PC User 
+Each issue is packed with in·depth hardware & software reviews, detailed how-to articles, reader tips, Q & A, special interest columns and much more ... dearly written for either novice or computer veteran. 
+In Recent Issues: 
+• 
+A Primer on Moderns. 
+
+• 
+Legal Rights of Software Buyers. 
+
+• 
+How to make your BASIC programs run faster. 
+
+
+•Word Processing from A-Z. 
+• 
+BASIC v. Pascal: Which is li>r you' 
+
+• 
+How to Program your Printer for maximum.perli>rmance. 
+
+
+• Free Utility Programs 
+DON'T MISS ANOTHER EXCITING ISSUE­SUBSCRIBE NOW!
+12 Colorful issues $24.00 
+CALL TOLL FREE: 
+800-824-7888 operator 77 California only 
+800-852-7777 operator 77 
+WELCOME! 
+For more info & foreign rates, write: Or we'll bill you. 
+Personal Computer Age 
+10057 Commerce Ave. Tujunga, CA 91042 
+
+246 February 1983 © BYTE Publications Inc 
+
+
+
+
+
+
+Get the best of your first micro. 
+There's an easier way. 
+It's called dBASE II)'M a relational database management system that uses powerful, English-like commands. 
+With a word or two, you create databases, append new data, update, modify and replace fields, records and entire databases. Display any informa­tion, report months worth of data in minutes and zip through input screens and output forms. 
+You can use it interactively and get your answers right now. Or save your instructions and repeat everything with two words: do Manhours, do Project X,do whatever has to be done. 
+It's being used for accounting, project management and hundreds of other applications. 
+To try dBASE II free for 30 days, drop by your local computer store. Or if they're sold out, call us at 
+
+
+(213) 204-5570. If you don't like it, you get your money back. 
+But we think you'll keep it. 
+Because having dBASE II is like having a black belt in micros. 
+250 February 1983 © BYrE Publications Inc 
+
+Ashton .fate 
+© 1982 Ashton-Tate 
+CP/M is a trademark of Digital Research 
+Circle 34 onInquirycard. 
+
+OP CODE OP CODE 
+DATA BYTE 
+DATA BYTES 
+dddddd -6 BITS OF DATA PER BYTE 
+
+Figure 20: In the PDI G-set of NAPLPS, op codes are distinguished from data bytes by bit 6. If bit 6 is 0, the byte is an op code; otherwise, it is a data byte. 
+has the appropriate input device can even send handwritten messages using NAPLPS as the encoding mech­anism. 
+The best analogy to describe user input in NAPLPS is to imagine that the user is handed one or more blank sheets of paper. (When the three-
+POl NTS 
+• 
+
+
+• 0e
+"" 
+' 
+RECTA NGLES 
+
+
+LINE 
+POLYGONS 
+
+Figure 21: Some examples of pictures that can be created with NAPLPS instructions. Approximately 180 bytes would be used to encode the entire figure. The signature alone 
+requires 51 bytes. 
+
+dimensional mode is supported, the user will be given an empty box.) The user is able to type on the paper, draw a sketch on the paper, or do anything that his or her terminal allows. 
+The "paper" is eventually passed to a host computer, where it can be for­warded to another user (electronic mail), stored for later recall, or analyzed by the host. The analysis by the host can be minimal or extensive, again depending on the application. 
+
+At this point, remember that NAPLPS is only a sixth-level specification in a seven-level model. 
+
+SOH 
+STX 
+ETX 
+EOT 
+
+ENQ 
+APU 
+(VT) 
+cs 
+(FFl 
+APR 
+(CRl 
+so 
+
+Sl 
+OLE 
+DC1 
+DCz 
+DC3 
+DC4 
+
+NAK END 
+0 1 1 0
+SYN 
+
+ETB 0 1 1 1 
+CAN 1 0 0 0 
+SS2 
+
+SUB 1 0 1 0 10 
+ESC 
+APS 
+SS3 
+APH 
+
+NSR 1 1 1 ·15 
+
+
+
+
+
+PROTECT 
+EOC 1 
+EDC
+z 
+EDC3 
+
+EDC4 
+
+WORD 
+WRAP 
+ON 
+
+WORD 
+WRAP 
+OFF 
+
+SCROLL 
+ON 
+
+SCROLL 
+OFF 
+UNDER 
+LINE 
+START 
+UNDER 
+LINE 
+STOP 
+FLASH 
+CURSOR 
+STEADY 
+CURSOR 
+CURSOR 
+OFF 
+BLINK 
+STOP 
+UN PRO­
+TECT 
+
+Figure 22: The two control sets used in NAPLPS. 
+NAPLPS merely provides a vehicle 
+·
+
+for the seventh level (commonly called the application level) that com­prises the application programs and software (e.g., a banking program) 
+252 February 1983 © BYTE Publications Inc 
+that will run on NAPLPS. Many special applications can be developed and standardized at level 7 using NAPLPS as a foundation. These ap­plications may be very specialized should be noted that NAPLPS was not developed as a standard to be used for massive amounts of data en­try in large data-processing centers. NAPLPS was developed to be used by people at home, at work, and at play. It was designed to be elegant and free-form. 
+and  might  use  only  a  subset  of  
+NAPLPS.  
+When  we  discuss user  input,  it  
+
+NAPLPS was designed in this man­ner based on the assumption that most people do not want to interact with computers in robot-like ways. People will enter data by looking at menus and pointing to selections, rather than learning some complex command syntax. As we mentioned earlier, with a graphics tablet or other digitizer, people will even be able to input handwritten messages. Studies have shown that people want as much of their personality as possible to be reflected in their communica­tion. And they expect that if they enter something reasonable, that it should be accepted and handled in a reasonable manner. 
+Macros 
+Macros (or macroinstructions) are specified in NAPLPS to reduce the amount of data that must be trans­mitted from the host to the terminal. Macros provide a mechanism where­by a frequently used multibyte string of text and/ or graphics can be repre­sented by a single-character macro. If the name of that macro appears later in the incoming data stream, the ter­minal retrieves the multibyte string and inserts it into the incoming stream in place of the macro name. 
+Once the string has been inserted into the incoming stream, the ter­minal processes it as if it had come from the host. Also, nesting of macros is allowed so that one macro can be used to retrieve several other macros. Of course, you must be careful to avoid looping and recursive macros that will endlessly refer to each other. 
+Ninety-six macro names are avail­able. NAPLPS allows a unique, vari­able-length string to be stored for each name. Also, macros can be used in two directions: from the host to the 
+'e
+Everybodyes Logic Analyzer 
+U Channels 16EWords 
+A logic probe and oscilloscope are no longer adequate for analysis in today's digital world. For testing or debugging microcomputer or other digital logic circuits you need a real logic analyzer. 
+The LA-12 captures, stores and displays 
+TTL and LSTTL digital data so that 
+the instantaneous meaning of the data stream (e.g. data value, ASCII code, address) can be understood and 
+analyzed long after the actual events 
+have passed. 
+• 
+Easy to Use • 10 MHz • Clock Qualifier • Trigger input • 3 Trigger Qualifiers • Built-in LED Display ­No oscilloscope needed • Compact 
+
+• 
+Expandable • Low Cost 
+
+
+30 day trial 
+Purchase an LA-12, use it, and if you are not completely satisfied, return it within 30 days and receive a full refund. 
+Free Offer 
+Q 
+If you order within 45 days, and mention this magazine,Description  
+Price ­ Total  
+Logic Analyzer  $379.00  
+Input Cable  49.95  
+20 Color-coded microclips  44.95  
+Connecticut residents add 7 Vz OJo sales tax  
+Shipping& Handling  $10.00  
+
+
+you will receive a $49.95 input cable free wiih each LA-12 ordered. 
+Save $28.95 
+In addition, if you enclose payment with your order you can deduct 5'7o and we will pay shipping charges. 
+All prices are in US dollars for 120VAC. 
+To order in the Continental US call 
+TOLL FREE 
+Connecticut microComputer, Inc. 
+36 Del Mar Drive, Brookfield, CT 06804 (203) 775-4595 TWX: 710-456-0052 
+Total 
+0 Company purchase order enclosed (Rated Firms only) 
+0 Check 0 VISA 0MasterCard 
+Acct. 
+Signature Exp. Date __ 
+Name (Print) 
+Dealer inquiries invited 
+
+254 February 1983 © BYrE Publications Inc 
+NAPLdPS CODE 
+DEFINE MACRO 26 SELECT BLUE 
+CLEAR SCREEN SELECT WHITE POSITION (.05, .25) 
+" 
+TEXT "READY: 
+END 
+
+• 
+MACRO 26 
+RESULdT 
+
+
+Figure 23: An example of the use of macros in NAPLPS. Each time the code for Macro 26 occurs in the data stream, the word "R,EADY:e" will appear on a blank screen. 
+terminal and vice versa. The direction can be specified when the macro is defined. The typical direction is to ex­pand the macro into the terminal as described above. In the so-called transmit macros, the expansion of the macro occurs toward the host. 
+Transmit macros are usually asso­ciated with programmable function keys on the terminal. When a key is pressed, the string associated with the macro and the key is sent to the host. 
+Figure 23 illustrates a typical ap­plication of macros. Here, a macro has been defined. In this case, it was given the number 26. Later in the stream of NAPLPS instructions, the macro name 26 appears and the macro is expanded and processed by the terminal. The screen will be cleared to blue, the color white will be selected, and the word "READY:" will appear one-fourth of the way up the screen and a little in from the left edge. (Note that on the display screen the word "READY:" may appear to be one-third of the way up from the bottom; this results from the fact that the top quarter of the unit screen is not displayed.) Only 1 byte was sent to invoke this multibyte sequence. With this type of compression, a system can be made to appear very fast, even over 300-bit-per-second data links. 
+The Future of NAPLPS 
+NAPLPS has finally started to emerge as the most extensive text and graphics standard in existence. Many companies have hundreds of people working on NAPLPS-related proj­ects. A survey in Data Communica­tions magazine predicted that NAPLPS will be one of the most sig­nificant achievements in information exchange in the latter half of this cen­tury. 
+Part of the reason for this populari­ty is the fact that NAPLPS is not only a video-graphics protocol but an in­formation-exchange language. NAPLPS has been used to encode pic­tures for plotters, printers, laser printers, and phototypesetters. 
+' 
+
+NAPLPS can benused to encode pre­cise descriptions of logos, trade­marks, and physical objects, things which heretofore have been very dif­ficult to describe precisely. 
+NAPLPS comes at a time when the information industry is bursting with new technology that exceeds existing standards for information inter­change. NAPLPS is a standard that pushes this new technology to its limits and still provides the capability to accommodate unknown expan­sions. 
+NAPLPS is only the tip of the iceberg. In subsequent parts of this series, we will describe how NAPLPS fits into the larger scheme of local and regional area networks and distribut­ed in telligen t-termirial systems. Topics such as down-loading, file transfer, and operating-system evolu­
+
+tion  and  compatibility  will  be  
+covered.  
+Next  month,  we  will  begin  to  
+
+describe in detail how to write and decode NAPLPS information. In the meantime, anyone interested in ob­taining more information about NAPLPS should obtain a copy of the ANSI standard specification. • 
+Circle 10 on Inquiry card . .......,. 
+
+
+
+

@@ -509,6 +509,24 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    [ObservableProperty]
+    private string displayRatio = "0.80";
+
+    [RelayCommand]
+    private async Task SetDisplayRatio(string ratio)
+    {
+        if (float.TryParse(ratio, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value))
+        {
+            DisplayRatio = ratio;
+            NaplpsUtils.DisplayRatio = value;
+
+            if (drawContext != null)
+            {
+                await UpdateCanvas();
+            }
+        }
+    }
+
     [RelayCommand]
     private void SetStretchMode(string mode)
     {

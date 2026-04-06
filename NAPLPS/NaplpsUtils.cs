@@ -6,7 +6,12 @@ namespace NAPLPS;
 
 public static class NaplpsUtils
 {
-    private const float NAPLPS_DISPLAY_RATIO = 0.80f;
+    /// <summary>
+    /// Display ratio: the visible portion of the unit screen's Y axis.
+    /// ANSI X3.110 spec: "lower 75 percent" (0.75), Byte Magazine 1983: "usually closer to 0.78".
+    /// Default 0.80 matches historical PP3/Prodigy rendering. Configurable for different displays.
+    /// </summary>
+    public static float DisplayRatio { get; set; } = 0.80f;
 
 
 
@@ -36,7 +41,7 @@ public static class NaplpsUtils
 
     public static (int, int) ConvertNormalizedToScreenScale(Size size, double normalizedX, double normalizedY)
     {
-        var shrunkY = normalizedY / NAPLPS_DISPLAY_RATIO;
+        var shrunkY = normalizedY / DisplayRatio;
 
         int actualX = (int)(normalizedX * size.Width);
         int actualY = (int)(shrunkY * size.Height);
@@ -71,7 +76,7 @@ public static class NaplpsUtils
     public static (float, float) ConvertNormalizedToScreenF(Size size, float normalizedX, float normalizedY)
     {
         float screenX = normalizedX * size.Width;
-        float screenY = size.Height - (normalizedY / NAPLPS_DISPLAY_RATIO * size.Height);
+        float screenY = size.Height - (normalizedY / DisplayRatio * size.Height);
         return (screenX, screenY);
     }
 
@@ -81,7 +86,7 @@ public static class NaplpsUtils
     public static (float, float) ConvertScreenToNormalizedF(Size size, float screenX, float screenY)
     {
         float normX = screenX / size.Width;
-        float normY = (size.Height - screenY) / size.Height * NAPLPS_DISPLAY_RATIO;
+        float normY = (size.Height - screenY) / size.Height * DisplayRatio;
         return (normX, normY);
     }
 
@@ -102,10 +107,10 @@ public static class NaplpsUtils
 
         // Clamp the normalized coordinates to their valid ranges
         normalizedX = Math.Clamp(normalizedX, 0, 1);
-        normalizedY = Math.Clamp(normalizedY, 0, NAPLPS_DISPLAY_RATIO);
+        normalizedY = Math.Clamp(normalizedY, 0, DisplayRatio);
 
         // Adjust normalizedY by shrinking it to the 0-1 range
-        var shrunkY = normalizedY / NAPLPS_DISPLAY_RATIO;
+        var shrunkY = normalizedY / DisplayRatio;
 
         // Convert normalized starting point to pixels
         int startX = (int)(normalizedX * size.Width);

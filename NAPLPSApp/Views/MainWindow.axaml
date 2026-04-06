@@ -101,6 +101,11 @@
 					<MenuItem Header="2048x1536" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="2048x1536" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='2048x1536'}" />
 					<MenuItem Header="4096x3072" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="4096x3072" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='4096x3072'}" />
 				</MenuItem>
+				<MenuItem Header="_Display Ratio" i:MenuItem.Icon="fa-solid fa-tv">
+					<MenuItem Header="0.75 (ANSI X3.110 Spec)" Command="{Binding SetDisplayRatioCommand}" ToggleType="Radio" CommandParameter="0.75" IsChecked="{Binding DisplayRatio, Converter={StaticResource EqualityConverter}, ConverterParameter='0.75'}" />
+					<MenuItem Header="0.78 (Byte Magazine 1983)" Command="{Binding SetDisplayRatioCommand}" ToggleType="Radio" CommandParameter="0.78" IsChecked="{Binding DisplayRatio, Converter={StaticResource EqualityConverter}, ConverterParameter='0.78'}" />
+					<MenuItem Header="0.80 (PP3/Prodigy)" Command="{Binding SetDisplayRatioCommand}" ToggleType="Radio" CommandParameter="0.80" IsChecked="{Binding DisplayRatio, Converter={StaticResource EqualityConverter}, ConverterParameter='0.80'}" />
+				</MenuItem>
 				<MenuItem Header="_Stretch" i:MenuItem.Icon="fa-solid fa-maximize">
 					<MenuItem Header="None" Command="{Binding SetStretchModeCommand}" CommandParameter="None" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.None}}" />
 					<MenuItem Header="Fill" Command="{Binding SetStretchModeCommand}" CommandParameter="Fill" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.Fill}}" />
@@ -140,6 +145,10 @@
 
 				<i:Icon Value="fa-solid fa-display" Margin="0,0,5,0" />
 				<TextBlock Text="{Binding CanvasSize}" VerticalAlignment="Center" />
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<i:Icon Value="fa-solid fa-tv" Margin="0,0,5,0" />
+				<TextBlock Text="{Binding DisplayRatio}" VerticalAlignment="Center" />
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 				<i:Icon Value="fa-solid fa-maximize" Margin="0,0,5,0" />
