@@ -130,7 +130,10 @@ public class AsciiCharCommand : NaplpsCommand
         {
             case TextPath.Right:
             {
-                return fieldWidth > 0 && pen.X > fieldRight;
+                // Tolerance of one full char width to match PP3's integer arithmetic boundary
+                // behavior. PP3's fixed-point pen accumulation differs from our float math,
+                // causing slight position drift that triggers wraps PP3 doesn't hit.
+                return fieldWidth > 0 && pen.X > fieldRight + state.CharSize.X * 3f;
             }
 
             case TextPath.Left:
@@ -214,8 +217,9 @@ public class AsciiCharCommand : NaplpsCommand
 
             if (state.TextSpacing == TextSpacing.Proportional)
             {
-                float widthRatio = DrawableAsciiChar.GetCharWidthRatio(AsciiCharacter);
-                advance = state.CharSize.X * widthRatio;
+                // GCU confirmed: advance = charW * displacement[row][class] / n
+                // where n = floor(charW * 256), row = clamp(n, 6, 11) - 6
+                advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, AsciiCharacter);
             }
             else
             {

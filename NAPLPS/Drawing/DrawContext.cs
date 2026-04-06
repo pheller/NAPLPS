@@ -320,8 +320,7 @@ public class DrawContext : IDisposable
 
             if (state.TextSpacing == TextSpacing.Proportional)
             {
-                float widthRatio = DrawableAsciiChar.GetCharWidthRatio(character);
-                advance = state.CharSize.X * widthRatio;
+                advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, character);
             }
             else
             {

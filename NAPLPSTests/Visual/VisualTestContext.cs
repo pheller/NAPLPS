@@ -300,10 +300,12 @@ public static class VisualTestContext
         sb.AppendLine("</div>");
 
         sb.AppendLine("<div class='filters'>");
-        sb.AppendLine("<button class='filter active' onclick='filterBy(\"all\")'>All</button>");
+        sb.AppendLine("<button class='filter' onclick='filterBy(\"all\")'>All</button>");
+        sb.AppendLine("<button class='filter active' onclick='filterBy(\"fail\")'>Failed</button>");
         sb.AppendLine("<button class='filter' onclick='filterBy(\"pass\")'>Passed</button>");
-        sb.AppendLine("<button class='filter' onclick='filterBy(\"fail\")'>Failed</button>");
         sb.AppendLine("<button class='filter' onclick='filterBy(\"new\")'>New</button>");
+        sb.AppendLine("<button class='filter' onclick='filterBy(\"reviewed\")'>Reviewed</button>");
+        sb.AppendLine("<button class='filter' onclick='filterBy(\"unreviewed\")'>Unreviewed</button>");
         if (errors > 0)
         {
             sb.AppendLine("<button class='filter' onclick='filterBy(\"error\")'>Errors</button>");
@@ -311,7 +313,7 @@ public static class VisualTestContext
         sb.AppendLine("</div>");
 
         sb.AppendLine("<table id='results'>");
-        sb.AppendLine("<thead><tr><th>Status</th><th>File</th><th>Frames</th><th>Diff Pixels</th><th>Details</th></tr></thead>");
+        sb.AppendLine("<thead><tr><th>Status</th><th>File</th><th>Frames</th><th>Diff Pixels</th><th>Details</th><th>Reviewed</th></tr></thead>");
         sb.AppendLine("<tbody>");
 
         foreach (var result in sorted)
@@ -326,7 +328,8 @@ public static class VisualTestContext
                 _ => "?"
             };
 
-            sb.AppendLine($"<tr class='row {statusClass}' data-status='{statusClass}'>");
+            var fileKey = HtmlEncode(result.RelativePath).Replace("\\", "/");
+            sb.AppendLine($"<tr class='row {statusClass}' data-status='{statusClass}' data-file='{fileKey}'>");
             sb.AppendLine($"<td class='status {statusClass}'>{statusIcon}</td>");
             sb.AppendLine($"<td>{HtmlEncode(result.RelativePath)}</td>");
             sb.AppendLine($"<td>{result.FrameCount}</td>");
@@ -346,6 +349,7 @@ public static class VisualTestContext
                 sb.AppendLine("<td></td>");
             }
 
+            sb.AppendLine($"<td class='review-cell' data-file='{fileKey}'></td>");
             sb.AppendLine("</tr>");
         }
 
@@ -474,20 +478,78 @@ public static class VisualTestContext
         .command { background: #0d1117; padding: 10px 14px; border-radius: 6px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; color: #79c0ff; overflow-x: auto; white-space: pre; cursor: pointer; border: 1px solid #30363d; }
         .command:hover { border-color: #58a6ff; }
         .row.hidden { display: none; }
+        .review-btn { padding: 2px 8px; border: 1px solid #30363d; background: #161b22; color: #8b949e; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .review-btn:hover { border-color: #58a6ff; }
+        .review-btn.reviewed { background: #0d2818; color: #3fb950; border-color: #238636; }
+        .review-time { color: #8b949e; font-size: 11px; display: block; margin-top: 2px; }
         """;
 
     private static string ReportJs() => """
+        const STORAGE_KEY = 'vr_reviewed';
+
+        function getReviewed() {
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+        }
+
+        function setReviewed(file, timestamp) {
+            const data = getReviewed();
+            data[file] = timestamp;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function removeReviewed(file) {
+            const data = getReviewed();
+            delete data[file];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function toggleReview(file) {
+            const reviewed = getReviewed();
+            if (reviewed[file]) {
+                removeReviewed(file);
+            } else {
+                setReviewed(file, new Date().toISOString());
+            }
+            renderReviewButtons();
+        }
+
+        function renderReviewButtons() {
+            const reviewed = getReviewed();
+            document.querySelectorAll('.review-cell').forEach(cell => {
+                const file = cell.dataset.file;
+                const ts = reviewed[file];
+                if (ts) {
+                    const date = new Date(ts);
+                    const timeStr = date.toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+                    cell.innerHTML = `<button class='review-btn reviewed' onclick='toggleReview("${file}")'>&#10004; Reviewed</button><span class='review-time'>${timeStr}</span>`;
+                    cell.closest('tr').dataset.reviewed = 'true';
+                } else {
+                    cell.innerHTML = `<button class='review-btn' onclick='toggleReview("${file}")'>Mark Reviewed</button>`;
+                    cell.closest('tr').dataset.reviewed = 'false';
+                }
+            });
+        }
+
         function filterBy(status) {
             document.querySelectorAll('.filter').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
             document.querySelectorAll('.row').forEach(row => {
-                if (status === 'all' || row.dataset.status === status) {
-                    row.classList.remove('hidden');
-                } else {
-                    row.classList.add('hidden');
-                }
+                let show = false;
+                if (status === 'all') show = true;
+                else if (status === 'reviewed') show = row.dataset.reviewed === 'true';
+                else if (status === 'unreviewed') show = row.dataset.reviewed !== 'true' && row.dataset.status === 'fail';
+                else show = row.dataset.status === status;
+
+                row.classList.toggle('hidden', !show);
             });
         }
+
+        // Init review buttons on load
+        renderReviewButtons();
+
+        // Default to showing failed
+        filterBy('fail');
+
         document.querySelectorAll('.command').forEach(el => {
             el.title = 'Click to copy';
             el.addEventListener('click', () => {

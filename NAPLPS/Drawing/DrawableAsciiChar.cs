@@ -204,14 +204,13 @@ public class DrawableAsciiChar : Drawable, IDrawable
     }
 
     /// <summary>
-    /// Proportional spacing displacement matching PP3's implementation.
-    /// PP3 uses the ANSI X3.110 displacement table (Phase 1) but does NOT
-    /// implement the Phase 2 multiply/divide algorithm — confirmed via Ghidra
-    /// (zero MUL instructions in overlay code). PP3 clamps to table bounds.
+    /// Proportional spacing: advance = charW * displacement[row][class] / n.
+    /// GCU confirmed via Ghidra: pre-selects a displacement row based on text size,
+    /// then adds displacement directly to pen position. The ratio disp/n is constant
+    /// per class regardless of text size.
     /// </summary>
     public static float GetProportionalDisplacement(float charFieldWidth, char c)
     {
-        // Get width class for this character
         int widthClass;
         if (c >= 0x20 && c <= 0x7E)
         {
@@ -219,19 +218,17 @@ public class DrawableAsciiChar : Drawable, IDrawable
         }
         else
         {
-            widthClass = 9; // Full width for supplementary/unknown
+            widthClass = 9;
         }
 
-        // Compute n = floor(charFieldWidth * 256)
         int n = (int)(charFieldWidth * 256f);
-
-        // Clamp to table range: PP3 has rows for n=6 through n=11.
-        // For n < 6, clamp to row 6. For n >= 12, clamp to row 11.
-        // PP3 has no Phase 2 algorithm (no MUL/DIV instructions in overlay).
-        int row = Math.Clamp(n, 6, 11) - 6;
+        int clampedN = Math.Clamp(n, 6, 11);
+        int row = clampedN - 6;
 
         int disp = _displacementTable[row, widthClass];
-        return disp / 256f;
+
+        // advance = charW * disp / n (ratio is disp/n, applied to actual charW)
+        return charFieldWidth * disp / clampedN;
     }
 
     /// <summary>
@@ -410,12 +407,36 @@ public class DrawableAsciiChar : Drawable, IDrawable
         var penPoint = ConvertNormalizedToPoint(size, state.Pen.X, state.Pen.Y);
         var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
 
-        float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
         float fullCellW = MathF.Max(1f, MathF.Abs(charSizeX));
-        float cellW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
         float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
 
-        float cellTopX = penPoint.X;
+        // Glyph at proportional width, centered in advance cell.
+        // Prevents narrow chars (i, l, t) from stretching to full cell width.
+        float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
+        float glyphW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
+
+        // Advance cell depends on spacing mode
+        float advanceCellW;
+        if (state.TextSpacing == TextSpacing.Proportional)
+        {
+            float propDisp = GetProportionalDisplacement(state.CharSize.X, _command.AsciiCharacter);
+            var (propW, _) = ConvertNormalizedToScreenScale(size, propDisp, 0);
+            advanceCellW = MathF.Max(1f, MathF.Abs(propW));
+        }
+        else
+        {
+            float spacingMul = state.TextSpacing switch
+            {
+                TextSpacing.FiveQuarters => 1.25f,
+                TextSpacing.ThreeHalves => 1.5f,
+                _ => 1.0f
+            };
+            advanceCellW = fullCellW * spacingMul;
+        }
+
+        float cellW = glyphW;
+        float centerOffset = MathF.Max(0, (advanceCellW - glyphW) / 2f);
+        float cellTopX = penPoint.X + centerOffset;
 
         float cellTopY = penPoint.Y - cellH;
 
@@ -504,11 +525,35 @@ public class DrawableAsciiChar : Drawable, IDrawable
         var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
 
         float fullCellW = MathF.Max(1f, MathF.Abs(charSizeX));
-        float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
-        float cellW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
         float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
 
-        float cellTopX = penPoint.X;
+        // Glyph at proportional width, centered in advance cell.
+        // Prevents narrow chars (i, l, t) from stretching to full cell width.
+        float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
+        float glyphW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
+
+        // Advance cell depends on spacing mode
+        float advanceCellW;
+        if (state.TextSpacing == TextSpacing.Proportional)
+        {
+            float propDisp = GetProportionalDisplacement(state.CharSize.X, _command.AsciiCharacter);
+            var (propW, _) = ConvertNormalizedToScreenScale(size, propDisp, 0);
+            advanceCellW = MathF.Max(1f, MathF.Abs(propW));
+        }
+        else
+        {
+            float spacingMul = state.TextSpacing switch
+            {
+                TextSpacing.FiveQuarters => 1.25f,
+                TextSpacing.ThreeHalves => 1.5f,
+                _ => 1.0f
+            };
+            advanceCellW = fullCellW * spacingMul;
+        }
+
+        float cellW = glyphW;
+        float centerOffset = MathF.Max(0, (advanceCellW - glyphW) / 2f);
+        float cellTopX = penPoint.X + centerOffset;
         float cellTopY = penPoint.Y - cellH;
 
         var rect = new RectangleF(cellTopX, cellTopY, cellW, cellH);
