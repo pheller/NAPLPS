@@ -9,24 +9,37 @@ namespace NAPLPSTests.Visual;
 public class VisualRegressionTest
 {
     [TestMethod]
-    [TestCategory("VR")]
     public void VisualBaselines()
     {
         VisualTestContext.CleanOutputDirs();
 
         var files = VisualTestContext.DiscoverExampleFiles().ToList();
+        var failures = new System.Collections.Concurrent.ConcurrentBag<string>();
 
         Parallel.ForEach(files, relativePath =>
         {
-            ProcessFile(relativePath);
+            ProcessFile(relativePath, failures);
         });
 
         VisualTestContext.GenerateReport(VisualTestContext.Results);
+
+        if (failures.Count > 0)
+        {
+            Assert.Fail($"{failures.Count} visual regression(s) detected. See report: {VisualTestContext.ReportPath}");
+        }
+
+        var newCount = VisualTestContext.Results.Values.Count(r => r.Status == VisualTestStatus.New);
+
+        if (newCount > 0)
+        {
+            Assert.Inconclusive($"{newCount} new baseline(s) need to be accepted. See report: {VisualTestContext.ReportPath}");
+        }
     }
 
-    private static void ProcessFile(string relativePath)
+    private static void ProcessFile(string relativePath, System.Collections.Concurrent.ConcurrentBag<string> failures)
     {
         var fullPath = Path.Combine(VisualTestContext.ExamplesDir, relativePath);
+        var baselinePath = VisualTestContext.GetBaselinePath(relativePath);
         var actualPath = VisualTestContext.GetActualPath(relativePath);
 
         Image<Rgba32>? apng = null;
@@ -37,7 +50,7 @@ public class VisualRegressionTest
         }
         catch (Exception ex)
         {
-            VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, null, 0, ex.Message);
+            VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.Error, baselinePath, null, null, 0, 0, 0, ex.Message);
             return;
         }
 
@@ -48,14 +61,34 @@ public class VisualRegressionTest
             var frameCount = apng.Frames.Count;
             apng.Dispose();
 
-            var viewerPath = VisualTestContext.GetViewerHtmlPath(relativePath);
-            VisualTestContext.GenerateViewerHtml(relativePath, actualPath, frameCount, viewerPath);
+            if (!System.IO.File.Exists(baselinePath))
+            {
+                VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.New, null, actualPath, null, frameCount, 0, 0, null);
+                return;
+            }
 
-            VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, actualPath, frameCount, null);
+            var comparison = VisualTestContext.CompareApngs(baselinePath, actualPath);
+
+            if (comparison.AreIdentical)
+            {
+                VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.Pass, baselinePath, actualPath, null, frameCount, 0, 0, null);
+                return;
+            }
+
+            var diffHtmlPath = VisualTestContext.GetDiffHtmlPath(relativePath);
+            VisualTestContext.GenerateDiffHtml(relativePath, comparison, baselinePath, actualPath, diffHtmlPath);
+
+            foreach (var fd in comparison.FrameDiffs)
+            {
+                fd.DiffImage?.Dispose();
+            }
+
+            VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.Fail, baselinePath, actualPath, diffHtmlPath, frameCount, comparison.FrameDiffs.Count(f => f.DiffPixelCount > 0), comparison.TotalDiffPixels, null);
+            failures.Add(relativePath);
         }
         catch (Exception ex)
         {
-            VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, null, 0, ex.Message);
+            VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.Error, baselinePath, actualPath, null, 0, 0, 0, ex.Message);
         }
     }
 }
