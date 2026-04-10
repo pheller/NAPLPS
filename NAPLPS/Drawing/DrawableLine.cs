@@ -62,55 +62,23 @@ public class DrawableLine : Drawable, IDrawable
 
     /// <summary>
     /// Computes the convex hull of the logical pel swept from P1 to P2.
-    /// The pel adds thickness PERPENDICULAR to the line direction but does not
-    /// extend past the endpoints along the line direction — matching PP3's Bresenham
-    /// behavior where the pel determines line thickness, not length.
+    /// ANSI X3.110: the rectangular pel is placed at every point along the path.
+    /// The hull of (4 pel corners at P1) + (4 pel corners at P2) gives the correct
+    /// filled region for a straight segment.
     /// (dxMin, dxMax, dyMin, dyMax) define the pel rectangle offset from the drawing point.
     /// </summary>
     internal static PointF[] ConvexHullOfSweptPel(PointF p1, PointF p2, float dxMin, float dxMax, float dyMin, float dyMax)
     {
-        // Determine line direction to separate parallel vs perpendicular pel components
-        float lineX = p2.X - p1.X;
-        float lineY = p2.Y - p1.Y;
-        float lineLen = MathF.Sqrt(lineX * lineX + lineY * lineY);
-
-        if (lineLen < 0.001f)
-        {
-            // Degenerate (zero-length) line: just draw a pel at the point
-            return
-            [
-                new PointF(p1.X + dxMin, p1.Y + dyMin),
-                new PointF(p1.X + dxMax, p1.Y + dyMin),
-                new PointF(p1.X + dxMax, p1.Y + dyMax),
-                new PointF(p1.X + dxMin, p1.Y + dyMax)
-            ];
-        }
-
-        // Unit direction along line and perpendicular
-        float dirX = lineX / lineLen;
-        float dirY = lineY / lineLen;
-        float perpX = -dirY; // perpendicular (rotated 90°)
-        float perpY = dirX;
-
-        // Project the pel offsets onto the perpendicular direction to get thickness only.
-        // Use all 4 corners of the pel and find the min/max perpendicular extent.
-        float[] perpProj =
-        [
-            dxMin * perpX + dyMin * perpY,
-            dxMax * perpX + dyMin * perpY,
-            dxMax * perpX + dyMax * perpY,
-            dxMin * perpX + dyMax * perpY
-        ];
-
-        float perpMin = perpProj.Min();
-        float perpMax = perpProj.Max();
-
-        // Build the 4 corners: P1 and P2 each offset by perpendicular min/max
-        var allPoints = new PointF[4];
-        allPoints[0] = new PointF(p1.X + perpMin * perpX, p1.Y + perpMin * perpY);
-        allPoints[1] = new PointF(p1.X + perpMax * perpX, p1.Y + perpMax * perpY);
-        allPoints[2] = new PointF(p2.X + perpMin * perpX, p2.Y + perpMin * perpY);
-        allPoints[3] = new PointF(p2.X + perpMax * perpX, p2.Y + perpMax * perpY);
+        // 8 corners: full pel rectangle at both endpoints
+        var allPoints = new PointF[8];
+        allPoints[0] = new PointF(p1.X + dxMin, p1.Y + dyMin);
+        allPoints[1] = new PointF(p1.X + dxMax, p1.Y + dyMin);
+        allPoints[2] = new PointF(p1.X + dxMax, p1.Y + dyMax);
+        allPoints[3] = new PointF(p1.X + dxMin, p1.Y + dyMax);
+        allPoints[4] = new PointF(p2.X + dxMin, p2.Y + dyMin);
+        allPoints[5] = new PointF(p2.X + dxMax, p2.Y + dyMin);
+        allPoints[6] = new PointF(p2.X + dxMax, p2.Y + dyMax);
+        allPoints[7] = new PointF(p2.X + dxMin, p2.Y + dyMax);
 
         return ComputeConvexHull(allPoints);
     }

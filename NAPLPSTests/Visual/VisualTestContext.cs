@@ -267,6 +267,51 @@ public static class VisualTestContext
         System.IO.File.WriteAllText(outputPath, sb.ToString());
     }
 
+    public static void GenerateViewHtml(string relativePath, string actualPath, int frameCount, string outputPath)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+        var actualFrames = ExtractFramesAsBase64(actualPath);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html><head><meta charset='utf-8'>");
+        sb.AppendLine($"<title>New: {HtmlEncode(relativePath)}</title>");
+        sb.AppendLine("<style>");
+        sb.AppendLine(DiffPageCss());
+        sb.AppendLine("</style></head><body>");
+        var reportRelative = Path.GetRelativePath(Path.GetDirectoryName(outputPath)!, ReportPath).Replace('\\', '/');
+        sb.AppendLine($"<div class='breadcrumb'><a href='{HtmlEncode(reportRelative)}'>&larr; Back to Report</a></div>");
+        sb.AppendLine($"<h1>New: {HtmlEncode(relativePath)}</h1>");
+        sb.AppendLine($"<div class='summary'>{frameCount} frame{(frameCount != 1 ? "s" : "")} | No baseline</div>");
+        sb.AppendLine($"<div class='timestamp'>Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}</div>");
+
+        sb.AppendLine("<script>");
+        sb.AppendLine($"const baselineFrames = [];");
+        sb.AppendLine($"const actualFrames = {JsonArrayFromList(actualFrames)};");
+        sb.AppendLine($"const diffFrames = [];");
+        sb.AppendLine($"const frameDiffs = [{string.Join(",", Enumerable.Repeat("0", frameCount))}];");
+        sb.AppendLine($"const frameTotals = [{string.Join(",", Enumerable.Repeat("0", frameCount))}];");
+        sb.AppendLine($"let currentFrame = 0;");
+        sb.AppendLine($"let currentView = 'actual';");
+        sb.AppendLine(DiffPageJs());
+        sb.AppendLine("</script>");
+
+        sb.AppendLine("<div class='frame-nav'>");
+        sb.AppendLine("<button class='nav-btn' onclick='prevFrame()' title='Left Arrow'>&larr; Prev</button>");
+        sb.AppendLine("<span id='frameCounter'>Frame 1 / 1</span>");
+        sb.AppendLine("<button class='nav-btn' onclick='nextFrame()' title='Right Arrow'>Next &rarr;</button>");
+        sb.AppendLine("<span class='nav-sep'>|</span>");
+        sb.AppendLine("<span id='frameStats'></span>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("<div id='viewer' class='viewer'></div>");
+        sb.AppendLine("<script>updateView();</script>");
+        sb.AppendLine("</body></html>");
+
+        System.IO.File.WriteAllText(outputPath, sb.ToString());
+    }
+
     public static void GenerateReport(ConcurrentDictionary<string, VisualTestResult> results)
     {
         Directory.CreateDirectory(OutputDir);
@@ -335,10 +380,11 @@ public static class VisualTestContext
             sb.AppendLine($"<td>{result.FrameCount}</td>");
             sb.AppendLine($"<td>{(result.TotalDiffPixels > 0 ? result.TotalDiffPixels.ToString("N0") : "")}</td>");
 
-            if (result.Status == VisualTestStatus.Fail && result.DiffHtmlPath != null)
+            if (result.DiffHtmlPath != null)
             {
                 var diffRelative = Path.GetRelativePath(OutputDir, result.DiffHtmlPath);
-                sb.AppendLine($"<td><a href='{HtmlEncode(diffRelative.Replace('\\', '/'))}'>View Diff</a></td>");
+                var linkText = result.Status == VisualTestStatus.Fail ? "View Diff" : "View";
+                sb.AppendLine($"<td><a href='{HtmlEncode(diffRelative.Replace('\\', '/'))}'>{linkText}</a></td>");
             }
             else if (result.Status == VisualTestStatus.Error)
             {
@@ -378,6 +424,7 @@ public static class VisualTestContext
         }
 
         sb.AppendLine("<script>");
+        sb.AppendLine($"const RUN_ID = '{DateTime.Now:yyyyMMddHHmmss}';");
         sb.AppendLine(ReportJs());
         sb.AppendLine("</script>");
         sb.AppendLine("</body></html>");
@@ -485,7 +532,15 @@ public static class VisualTestContext
         """;
 
     private static string ReportJs() => """
-        const STORAGE_KEY = 'vr_reviewed';
+        const STORAGE_KEY = 'vr_reviewed_' + RUN_ID;
+
+        // Clean up reviewed state from previous runs
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('vr_reviewed_') && key !== STORAGE_KEY) {
+                localStorage.removeItem(key);
+            }
+        }
 
         function getReviewed() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }

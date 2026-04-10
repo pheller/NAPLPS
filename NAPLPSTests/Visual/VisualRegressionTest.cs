@@ -9,6 +9,7 @@ namespace NAPLPSTests.Visual;
 public class VisualRegressionTest
 {
     [TestMethod]
+    [TestCategory("VR")]
     public void VisualBaselines()
     {
         VisualTestContext.CleanOutputDirs();
@@ -61,9 +62,12 @@ public class VisualRegressionTest
             var frameCount = apng.Frames.Count;
             apng.Dispose();
 
+            var diffHtmlPath = VisualTestContext.GetDiffHtmlPath(relativePath);
+
             if (!System.IO.File.Exists(baselinePath))
             {
-                VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.New, null, actualPath, null, frameCount, 0, 0, null);
+                VisualTestContext.GenerateViewHtml(relativePath, actualPath, frameCount, diffHtmlPath);
+                VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.New, null, actualPath, diffHtmlPath, frameCount, 0, 0, null);
                 return;
             }
 
@@ -71,11 +75,11 @@ public class VisualRegressionTest
 
             if (comparison.AreIdentical)
             {
-                VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.Pass, baselinePath, actualPath, null, frameCount, 0, 0, null);
+                VisualTestContext.GenerateDiffHtml(relativePath, comparison, baselinePath, actualPath, diffHtmlPath);
+                VisualTestContext.Results[relativePath] = new VisualTestResult(relativePath, VisualTestStatus.Pass, baselinePath, actualPath, diffHtmlPath, frameCount, 0, 0, null);
                 return;
             }
 
-            var diffHtmlPath = VisualTestContext.GetDiffHtmlPath(relativePath);
             VisualTestContext.GenerateDiffHtml(relativePath, comparison, baselinePath, actualPath, diffHtmlPath);
 
             foreach (var fd in comparison.FrameDiffs)
