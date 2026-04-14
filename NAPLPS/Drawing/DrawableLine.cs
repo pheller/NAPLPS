@@ -84,6 +84,52 @@ public class DrawableLine : Drawable, IDrawable
     }
 
     /// <summary>
+    /// Perpendicular-only hull for shape outlines (rectangles, polygons, arcs).
+    /// Projects the pel onto the perpendicular axis only, so the stroke doesn't
+    /// overshoot past shared vertices at corners. This avoids ear/bump artifacts
+    /// where consecutive outline edges meet.
+    /// </summary>
+    internal static PointF[] PerpendicularHullOfSweptPel(PointF p1, PointF p2, float dxMin, float dxMax, float dyMin, float dyMax)
+    {
+        float lineX = p2.X - p1.X;
+        float lineY = p2.Y - p1.Y;
+        float lineLen = MathF.Sqrt(lineX * lineX + lineY * lineY);
+
+        if (lineLen < 0.001f)
+        {
+            return
+            [
+                new PointF(p1.X + dxMin, p1.Y + dyMin),
+                new PointF(p1.X + dxMax, p1.Y + dyMin),
+                new PointF(p1.X + dxMax, p1.Y + dyMax),
+                new PointF(p1.X + dxMin, p1.Y + dyMax)
+            ];
+        }
+
+        float perpX = -lineY / lineLen;
+        float perpY = lineX / lineLen;
+
+        float[] perpProj =
+        [
+            dxMin * perpX + dyMin * perpY,
+            dxMax * perpX + dyMin * perpY,
+            dxMax * perpX + dyMax * perpY,
+            dxMin * perpX + dyMax * perpY
+        ];
+
+        float perpMin = perpProj.Min();
+        float perpMax = perpProj.Max();
+
+        var allPoints = new PointF[4];
+        allPoints[0] = new PointF(p1.X + perpMin * perpX, p1.Y + perpMin * perpY);
+        allPoints[1] = new PointF(p1.X + perpMax * perpX, p1.Y + perpMax * perpY);
+        allPoints[2] = new PointF(p2.X + perpMin * perpX, p2.Y + perpMin * perpY);
+        allPoints[3] = new PointF(p2.X + perpMax * perpX, p2.Y + perpMax * perpY);
+
+        return ComputeConvexHull(allPoints);
+    }
+
+    /// <summary>
     /// Andrew's monotone chain convex hull algorithm. O(n log n).
     /// Returns vertices in counter-clockwise order.
     /// </summary>

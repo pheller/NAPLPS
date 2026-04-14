@@ -307,7 +307,7 @@ public class Drawable
         {
             var p1 = points[i];
             var p2 = points[(i + 1) % points.Length];
-            var hull = DrawableLine.ConvexHullOfSweptPel(p1, p2, dxMin, dxMax, dyMin, dyMax);
+            var hull = DrawableLine.PerpendicularHullOfSweptPel(p1, p2, dxMin, dxMax, dyMin, dyMax);
             ctx.FillPolygon(color, hull);
         }
     }

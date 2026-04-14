@@ -142,12 +142,12 @@ public class DrawableArc : Drawable, IDrawable
                         // Sweep pel along arc curve first (extends fill outward)
                         for (int j = 0; j < arcPoints.Length - 1; j++)
                         {
-                            var hull = DrawableLine.ConvexHullOfSweptPel(arcPoints[j], arcPoints[j + 1], dxMin, dxMax, dyMin, dyMax);
+                            var hull = DrawableLine.PerpendicularHullOfSweptPel(arcPoints[j], arcPoints[j + 1], dxMin, dxMax, dyMin, dyMax);
                             x.FillPolygon(brush, hull);
                         }
 
                         // Sweep pel along the chord (start to end)
-                        var chordHull = DrawableLine.ConvexHullOfSweptPel(arcPoints[0], arcPoints[^1], dxMin, dxMax, dyMin, dyMax);
+                        var chordHull = DrawableLine.PerpendicularHullOfSweptPel(arcPoints[0], arcPoints[^1], dxMin, dxMax, dyMin, dyMax);
                         x.FillPolygon(brush, chordHull);
 
                         // Fill the arc-chord interior LAST to cover any sub-pixel gaps
