@@ -2,6 +2,7 @@
 
 namespace NAPLPS.Commands;
 
+[AddCommand(200, "Incremental Field", "Define an active field region for subsequent text and incremental drawing.", Category = CommandCategory.Incremental, DslKeyword = "field")]
 public class IncrementalFieldCommand : GeometricDrawingCommandBase
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValue;

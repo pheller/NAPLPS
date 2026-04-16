@@ -4,6 +4,7 @@ using System.Collections;
 
 namespace NAPLPS.Commands;
 
+[AddCommand(120, "Mosaic Element", "A 2x3 block-graphics mosaic cell (6 bits).", Category = CommandCategory.Mosaic, DslKeyword = "mosaic")]
 public class MosaicElementCommand : NaplpsCommand
 {
     public bool Bit1 { get; }
@@ -31,6 +32,21 @@ public class MosaicElementCommand : NaplpsCommand
         Bit4 = element[3];
         Bit5 = element[4];
         Bit6 = element[5];
+    }
+
+    /// <summary>
+    /// Reflection-friendly constructor used by NaplpsFormat.TryInstantiateCommand when
+    /// the NCR table stores the 6 bits as 6 separate <c>params object[]</c> elements
+    /// (the inline collection expressions in NaplpsState's MosaicSet do this).
+    /// </summary>
+    public MosaicElementCommand(bool b1, bool b2, bool b3, bool b4, bool b5, bool b6, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
+    {
+        Bit1 = b1;
+        Bit2 = b2;
+        Bit3 = b3;
+        Bit4 = b4;
+        Bit5 = b5;
+        Bit6 = b6;
     }
 
     public MosaicElementCommand(byte element, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)

@@ -51,6 +51,14 @@ public partial class MainWindow : Window
                     }
                 }
             };
+
+            // Re-render grid when the canvas is resized so lines track the layout.
+            if (overlay != null)
+            {
+                overlay.SizeChanged += (_, _) => RenderGrid(vm, overlay);
+                // Initial paint.
+                RenderGrid(vm, overlay);
+            }
         }
     }
 
@@ -255,7 +263,7 @@ public partial class MainWindow : Window
             }
         }
 
-        if (!vm.GridSettings.IsVisible)
+        if (!vm.GridSettings.IsVisible || overlay.Bounds.Width <= 0 || overlay.Bounds.Height <= 0)
         {
             return;
         }
@@ -263,36 +271,44 @@ public partial class MainWindow : Window
         var controlSize = overlay.Bounds.Size;
         var canvasSize = vm.GetSizeObj();
         var stretch = vm.ImageStretch;
-        var gridBrush = new SolidColorBrush(Avalonia.Media.Colors.Gray) { Opacity = 0.3 };
+        var minorBrush = new SolidColorBrush(Avalonia.Media.Colors.Gray) { Opacity = 0.20 };
+        var majorBrush = new SolidColorBrush(Avalonia.Media.Colors.Cyan) { Opacity = 0.35 };
 
-        // Vertical lines
-        for (float x = 0; x <= 1.0f; x += vm.GridSettings.SpacingX)
+        const int MajorEvery = 8;
+        int xCount = 0;
+
+        // Vertical lines (every SpacingX), with cyan major every Nth
+        for (float x = 0; x <= 1.0f + 1e-5f; x += vm.GridSettings.SpacingX, xCount++)
         {
             var top = CoordinateMapper.NaplpsToScreen(x, 0.75f, controlSize, canvasSize, stretch);
             var bottom = CoordinateMapper.NaplpsToScreen(x, 0f, controlSize, canvasSize, stretch);
+            bool isMajor = xCount % MajorEvery == 0;
             var line = new Avalonia.Controls.Shapes.Line
             {
                 StartPoint = top,
                 EndPoint = bottom,
-                Stroke = gridBrush,
-                StrokeThickness = 0.5,
+                Stroke = isMajor ? majorBrush : minorBrush,
+                StrokeThickness = isMajor ? 1.0 : 0.5,
                 Tag = "grid",
                 IsHitTestVisible = false
             };
             overlay.Children.Insert(0, line); // Insert behind preview shapes
         }
 
+        int yCount = 0;
+
         // Horizontal lines
-        for (float y = 0; y <= 0.75f; y += vm.GridSettings.SpacingY)
+        for (float y = 0; y <= 0.75f + 1e-5f; y += vm.GridSettings.SpacingY, yCount++)
         {
             var left = CoordinateMapper.NaplpsToScreen(0f, y, controlSize, canvasSize, stretch);
             var right = CoordinateMapper.NaplpsToScreen(1.0f, y, controlSize, canvasSize, stretch);
+            bool isMajor = yCount % MajorEvery == 0;
             var line = new Avalonia.Controls.Shapes.Line
             {
                 StartPoint = left,
                 EndPoint = right,
-                Stroke = gridBrush,
-                StrokeThickness = 0.5,
+                Stroke = isMajor ? majorBrush : minorBrush,
+                StrokeThickness = isMajor ? 1.0 : 0.5,
                 Tag = "grid",
                 IsHitTestVisible = false
             };

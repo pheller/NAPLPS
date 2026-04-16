@@ -101,6 +101,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly PolygonTool polygonTool = new();
     private readonly ArcTool arcTool = new();
     private readonly TextTool textTool = new();
+    private readonly FillTool fillTool = new();
+
+    /// <summary>
+    /// Exposes the TextTool instance to XAML so the Attributes panel can bind directly
+    /// to its properties (CharWidth, CharHeight, Rotation, Path, Spacing, Interrow).
+    /// </summary>
+    public TextTool TextToolInstance => textTool;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSelectToolActive))]
@@ -110,6 +117,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(IsPolygonToolActive))]
     [NotifyPropertyChangedFor(nameof(IsArcToolActive))]
     [NotifyPropertyChangedFor(nameof(IsTextToolActive))]
+    [NotifyPropertyChangedFor(nameof(IsFillToolActive))]
     [NotifyPropertyChangedFor(nameof(ActiveToolName))]
     private EditorToolBase activeTool;
 
@@ -133,6 +141,42 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private int selectedCommandIndex = -1;
+
+    /// <summary>
+    /// NAPLPS-normalized cursor coordinates updated on canvas pointer-move.
+    /// Bind to a status-bar TextBlock to surface the user's current pointer position.
+    /// </summary>
+    [ObservableProperty]
+    private string coordReadout = string.Empty;
+
+    /// <summary>True while the macro recorder is actively capturing tool commits into the macro buffer.</summary>
+    [ObservableProperty]
+    private bool isMacroRecording;
+
+    /// <summary>
+    /// The character slot the current recording will be saved into when StopMacroRecording
+    /// fires. Defaults to 'A'; user can change it before starting a new recording.
+    /// </summary>
+    [ObservableProperty]
+    private char macroRecordingSlot = 'A';
+
+    /// <summary>Buffered raw bytes of the in-progress macro recording. Flushed on StopMacroRecording.</summary>
+    private readonly List<byte> _macroRecordingBuffer = [];
+
+    /// <summary>
+    /// The Telidraw source text for the currently loaded file. Decompiled automatically
+    /// from .nap on load; editable in the text pane. Changes trigger a debounced recompile
+    /// that updates the canvas. For .td files, this is the source-of-truth.
+    /// </summary>
+    [ObservableProperty]
+    private string telidrawSource = string.Empty;
+
+    /// <summary>Set by the text-pane edit handler; cleared after recompile fires.</summary>
+    private bool _telidrawSourceDirty;
+
+    /// <summary>Whether the Telidraw text pane is visible (toggle via View menu or button).</summary>
+    [ObservableProperty]
+    private bool isTelidrawPaneVisible;
 
     [ObservableProperty]
     private IBrush foregroundColorBrush = new SolidColorBrush(Avalonia.Media.Colors.White);
@@ -167,6 +211,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool IsPolygonToolActive => ActiveTool is PolygonTool;
     public bool IsArcToolActive => ActiveTool is ArcTool;
     public bool IsTextToolActive => ActiveTool is TextTool;
+    public bool IsFillToolActive => ActiveTool is FillTool;
     public string ActiveToolName => ActiveTool?.Name ?? "Select";
 
     public MainWindowViewModel()
@@ -208,6 +253,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         var fileTypes = new FilePickerFileType[]
         {
             new("NAPLPS Files") { Patterns = ["*.nap", "*.naplps"] },
+            new("Telidraw Source") { Patterns = ["*.td"] },
             new("All Files") { Patterns = ["*.*"] }
         };
 
@@ -284,7 +330,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         var fileTypes = new FilePickerFileType[]
         {
-            new("NAPLPS Files") { Patterns = ["*.nap"] }
+            new("NAPLPS Files") { Patterns = ["*.nap"] },
+            new("Telidraw Source") { Patterns = ["*.td"] }
         };
 
         var options = new FilePickerSaveOptions
@@ -300,7 +347,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (result != null)
         {
             var savePath = result.Path.LocalPath;
-            loadedFile.Save(savePath);
+
+            if (savePath.EndsWith(".td", StringComparison.OrdinalIgnoreCase))
+            {
+                // Save as Telidraw source — decompile the current format to text.
+                var tdSource = NAPLPS.Telidraw.Decompiler.Decompile(loadedFile);
+                await System.IO.File.WriteAllTextAsync(savePath, tdSource);
+            }
+            else
+            {
+                loadedFile.Save(savePath);
+            }
+
             loadedFilePath = savePath;
             FileName = IOPath.GetFileName(savePath);
             TitleBar = $"{FileName} - {DEFAULT_APP_NAME} [{Program.Version}]";
@@ -473,7 +531,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (sequenceWindow == null)
         {
-            sequenceWindow = new SequenceWindow(drawContext);
+            sequenceWindow = new SequenceWindow(drawContext, undoManager);
 
             if (sequenceWindow.DataContext == null)
             {
@@ -601,8 +659,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             "Polygon" => polygonTool,
             "Arc" => arcTool,
             "Text" => textTool,
+            "Fill" => fillTool,
             _ => selectTool
         };
+
+        // Keep FillTool's format reference current so hit-tests are against the active file.
+        if (ActiveTool is FillTool ft)
+        {
+            ft.Format = loadedFile;
+        }
 
         // Pass format to SelectTool for hit testing
         if (ActiveTool is SelectTool st)
@@ -688,20 +753,41 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         foreach (var kvp in NaplpsState.ColorMapDefaults)
         {
-            var nc = kvp.Value;
-            var avaloniaColor = Avalonia.Media.Color.FromRgb(
-                (byte)(nc.Red * 255),
-                (byte)(nc.Green * 255),
-                (byte)(nc.Blue * 255));
+            var entry = new PaletteColor { Index = kvp.Key };
 
-            colors.Add(new PaletteColor
-            {
-                Index = kvp.Key,
-                Brush = new SolidColorBrush(avaloniaColor)
-            });
+            // Seed R/G/B from the 0-255 NaplpsColor, which triggers RefreshBrush internally.
+            // LoadFromNaplpsColor bypasses the RgbChanged event so bulk init doesn't emit
+            // N SetColor commands.
+            entry.LoadFromNaplpsColor(kvp.Value);
+            entry.RgbChanged += OnPaletteEntryEdited;
+
+            colors.Add(entry);
         }
 
         PaletteColors = colors;
+    }
+
+    /// <summary>
+    /// Handler invoked when the user mutates R/G/B on a palette entry from the Palette
+    /// Editor. Emits SELECT COLOR (target entry) + SET COLOR (new RGB) + SELECT COLOR
+    /// (restore) so the edited slot is updated without disturbing the user's current
+    /// foreground selection. Routes through the shared UndoManager.
+    /// </summary>
+    private void OnPaletteEntryEdited(object? sender, EventArgs e)
+    {
+        if (loadedFile == null || sender is not PaletteColor entry)
+        {
+            return;
+        }
+
+        var prevForeground = EditorForegroundIndex;
+
+        var selectEdited = NaplpsCommandBuilder.BuildSelectColor(entry.Index);
+        var setColor = NaplpsCommandBuilder.BuildSetColorRgb(entry.Green, entry.Red, entry.Blue);
+        var selectRestore = NaplpsCommandBuilder.BuildSelectColor(prevForeground);
+
+        var action = new AddCommandsAction([selectEdited, setColor, selectRestore]);
+        undoManager.Execute(action, loadedFile);
     }
 
     private void UpdateColorBrushes()
@@ -786,6 +872,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         normY = GridSettings.SnapY(normY);
         ActiveTool.OnPointerMoved(normX, normY);
 
+        // Status-bar coord readout in NAPLPS-normalized coords (X: 0..1, Y: 0..0.75).
+        CoordReadout = $"X={normX:F4}  Y={normY:F4}";
+
         // Update rubber-band preview
         EditorPreview = ActiveTool.GetPreview();
     }
@@ -846,12 +935,229 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             commands.Insert(0, (colorOp, colorOps));
         }
 
+        // If the macro recorder is running, also copy each command's raw bytes into the
+        // recording buffer. The buffer gets wrapped with DefMacro + End when the user
+        // clicks Stop, producing a single macro-definition sequence.
+        if (IsMacroRecording)
+        {
+            foreach (var (opcode, operands) in commands)
+            {
+                _macroRecordingBuffer.Add(opcode);
+                _macroRecordingBuffer.AddRange(operands);
+            }
+        }
+
         var action = new AddCommandsAction(commands);
         undoManager.Execute(action, loadedFile);
         IsFileDirty = true;
 
         BuildDrawContext();
         await UpdateCanvas();
+        SyncTelidrawFromFormat();
+    }
+
+    /// <summary>
+    /// Open the DRCS character designer as a modal. When the user commits, emit a
+    /// DEF DRCS control command with the slot char + simplified 8×10 bitmap bytes,
+    /// followed by END.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenDrcsDesigner(Window parent)
+    {
+        if (loadedFile == null)
+        {
+            return;
+        }
+
+        var result = await DrcsDesignerWindow.PromptAsync(parent);
+
+        if (result is not var (slot, bitmap))
+        {
+            return;
+        }
+
+        var operands = new NaplpsOperands { (byte)slot };
+        operands.AddRange(bitmap);
+
+        var defDrcs = (NaplpsCommandBuilder.OpDefDrcs, operands);
+        var end = (NaplpsCommandBuilder.OpEnd, new NaplpsOperands());
+
+        undoManager.Execute(new AddCommandsAction([defDrcs, end]), loadedFile);
+        IsFileDirty = true;
+
+        BuildDrawContext();
+        await UpdateCanvas();
+    }
+
+    /// <summary>
+    /// Open the texture mask designer as a modal. When committed, emit DEF TEXTURE with
+    /// the mask id (4/1-4/4) + pattern bytes + mask bytes, followed by END.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenTextureDesigner(Window parent)
+    {
+        if (loadedFile == null)
+        {
+            return;
+        }
+
+        var result = await TextureDesignerWindow.PromptAsync(parent);
+
+        if (result is not var (maskId, pattern, mask))
+        {
+            return;
+        }
+
+        // DefTexture operand layout per spec: first byte is 4/1..4/4 selecting mask A..D.
+        var operands = new NaplpsOperands { (byte)(0x41 + maskId) };
+        operands.AddRange(pattern);
+        operands.AddRange(mask);
+
+        var defTexture = (NaplpsCommandBuilder.OpDefTexture, operands);
+        var end = (NaplpsCommandBuilder.OpEnd, new NaplpsOperands());
+
+        undoManager.Execute(new AddCommandsAction([defTexture, end]), loadedFile);
+        IsFileDirty = true;
+
+        BuildDrawContext();
+        await UpdateCanvas();
+    }
+
+    /// <summary>
+    /// Called by the generated OnTelidrawSourceChanged partial when the text pane content
+    /// changes. Recompiles the source and updates the canvas. Uses BareFormat so the
+    /// raw commands round-trip byte-identically.
+    /// </summary>
+    partial void OnTelidrawSourceChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || loadedFile == null)
+        {
+            return;
+        }
+
+        _telidrawSourceDirty = true;
+
+        try
+        {
+            var tokens = new NAPLPS.Telidraw.Lexer(value).Tokenize();
+            var parser = new NAPLPS.Telidraw.Parser(tokens);
+            var ast = parser.Parse();
+
+            if (parser.Diagnostics.Count > 0)
+            {
+                return; // Don't recompile on parse errors — user is mid-edit
+            }
+
+            var compiler = new NAPLPS.Telidraw.Compiler(ast) { BareFormat = true };
+            var newFormat = compiler.Compile();
+
+            if (compiler.Diagnostics.Count > 0)
+            {
+                return;
+            }
+
+            loadedFile = newFormat;
+            _telidrawSourceDirty = false;
+            IsFileDirty = true;
+
+            BuildDrawContext();
+            _ = UpdateCanvas();
+        }
+        catch
+        {
+            // Swallow — user is typing and the source is temporarily invalid.
+        }
+    }
+
+    /// <summary>
+    /// After any tool action that mutates Commands, refresh the Telidraw text pane with the
+    /// newly decompiled source. Skipped if the text pane triggered this recompile cycle
+    /// (to avoid infinite loops).
+    /// </summary>
+    private void SyncTelidrawFromFormat()
+    {
+        if (_telidrawSourceDirty || loadedFile == null || !IsTelidrawPaneVisible)
+        {
+            return;
+        }
+
+        try
+        {
+            TelidrawSource = NAPLPS.Telidraw.Decompiler.Decompile(loadedFile);
+        }
+        catch
+        {
+            // Decompile failure shouldn't crash the editor.
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleTelidrawPane()
+    {
+        IsTelidrawPaneVisible = !IsTelidrawPaneVisible;
+
+        if (IsTelidrawPaneVisible && loadedFile != null)
+        {
+            SyncTelidrawFromFormat();
+        }
+    }
+
+    /// <summary>Begin capturing subsequent tool commits into the macro recorder buffer.</summary>
+    [RelayCommand]
+    private void StartMacroRecording()
+    {
+        _macroRecordingBuffer.Clear();
+        IsMacroRecording = true;
+    }
+
+    /// <summary>
+    /// Finalize the macro recording: emit DEF MACRO (with the slot char) followed by the
+    /// buffered body bytes, then END. The parser's buffered mode handles the body bytes on
+    /// next load and populates <c>state.Macros[slot]</c>. Routes through UndoManager so the
+    /// whole insertion is one undo step.
+    /// </summary>
+    [RelayCommand]
+    private async Task StopMacroRecording()
+    {
+        if (!IsMacroRecording || loadedFile == null)
+        {
+            IsMacroRecording = false;
+            return;
+        }
+
+        IsMacroRecording = false;
+
+        var bodyBytes = _macroRecordingBuffer.ToArray();
+        _macroRecordingBuffer.Clear();
+
+        if (bodyBytes.Length == 0)
+        {
+            return;
+        }
+
+        // DEF MACRO C1 code (0x80) with the slot character as the first operand byte,
+        // followed by the buffered body. The End sentinel is emitted as a sibling
+        // ControlCommand so the stream reads:  DEF MACRO  <body>  END.
+        var defOperands = new NaplpsOperands { (byte)MacroRecordingSlot };
+        defOperands.AddRange(bodyBytes);
+
+        var defMacroCmd = (NaplpsCommandBuilder.OpDefMacro, defOperands);
+        var endCmd = (NaplpsCommandBuilder.OpEnd, new NaplpsOperands());
+
+        var action = new AddCommandsAction([defMacroCmd, endCmd]);
+        undoManager.Execute(action, loadedFile);
+        IsFileDirty = true;
+
+        BuildDrawContext();
+        await UpdateCanvas();
+    }
+
+    /// <summary>Cancel the current recording without emitting DefMacro. Useful for rethinking a take.</summary>
+    [RelayCommand]
+    private void CancelMacroRecording()
+    {
+        _macroRecordingBuffer.Clear();
+        IsMacroRecording = false;
     }
 
     /// <summary>Called from code-behind when a key is pressed while TextTool is active.</summary>
@@ -1089,7 +1395,22 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            loadedFile = NaplpsFormat.FromFile(filePath);
+            if (filePath.EndsWith(".td", StringComparison.OrdinalIgnoreCase))
+            {
+                // Compile Telidraw source → NaplpsFormat
+                var source = await System.IO.File.ReadAllTextAsync(filePath);
+                var tokens = new NAPLPS.Telidraw.Lexer(source).Tokenize();
+                var parser = new NAPLPS.Telidraw.Parser(tokens);
+                var ast = parser.Parse();
+                var compiler = new NAPLPS.Telidraw.Compiler(ast);
+                loadedFile = compiler.Compile();
+                TelidrawSource = source;
+            }
+            else
+            {
+                loadedFile = NaplpsFormat.FromFile(filePath);
+                TelidrawSource = NAPLPS.Telidraw.Decompiler.Decompile(loadedFile);
+            }
 
             loadedFilePath = filePath;
 

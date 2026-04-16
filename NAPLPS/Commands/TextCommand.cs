@@ -8,6 +8,7 @@ namespace NAPLPS.Commands;
 /// characters, and ORCS are presented. The TEXT opcode takes a two byte,
 /// fixed format operand, followed by a multi-value operand
 /// </summary>
+[AddCommand(260, "Text", "Set text rotation, path, spacing, interrow, move, cursor, and character size.", Category = CommandCategory.Text, DslKeyword = "text")]
 public class TextCommand : GeometricDrawingCommandBase
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.FixedAndMultiValue;

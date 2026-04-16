@@ -144,6 +144,11 @@ public static class NaplpsUtils
 
     public static float ConvertBitsToFraction(List<bool> boolList)
     {
+        if (boolList.Count == 0)
+        {
+            return 0f;
+        }
+
         float fraction = 0f;
         float baseValue = 0.5f; // Starting from the MSB just right of the decimal point
 

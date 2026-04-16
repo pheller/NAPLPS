@@ -109,6 +109,140 @@ public static class CommandHitTester
     }
 
     /// <summary>
+    /// Hit-test every command and return all matching indices. Topmost (highest index) first
+    /// when sorted descending. Empty list if nothing hit. Used by Ctrl+click additive selection.
+    /// </summary>
+    public static List<int> HitTestAll(NaplpsFormat format, float normX, float normY, float tolerance = DefaultTolerance)
+    {
+        var hits = new List<int>();
+
+        for (int i = format.Commands.Count - 1; i >= 0; i--)
+        {
+            if (HitsCommand(format, i, normX, normY, tolerance))
+            {
+                hits.Add(i);
+            }
+        }
+
+        return hits;
+    }
+
+    /// <summary>
+    /// Rubber-band rectangle select: returns indices of every command whose bounding box
+    /// intersects the given rectangle (in normalized coords).
+    /// </summary>
+    public static List<int> HitTestRect(NaplpsFormat format, float x1, float y1, float x2, float y2)
+    {
+        float rectMinX = MathF.Min(x1, x2);
+        float rectMaxX = MathF.Max(x1, x2);
+        float rectMinY = MathF.Min(y1, y2);
+        float rectMaxY = MathF.Max(y1, y2);
+
+        var hits = new List<int>();
+
+        for (int i = 0; i < format.Commands.Count; i++)
+        {
+            var bbox = GetBoundingBox(format, i);
+
+            if (!bbox.HasValue)
+            {
+                continue;
+            }
+
+            var (bx, by, bw, bh) = bbox.Value;
+            float bMaxX = bx + bw;
+            float bMaxY = by + bh;
+
+            // AABB intersection.
+            if (bx <= rectMaxX && bMaxX >= rectMinX && by <= rectMaxY && bMaxY >= rectMinY)
+            {
+                hits.Add(i);
+            }
+        }
+
+        return hits;
+    }
+
+    /// <summary>True if the command at <paramref name="index"/> hits the given point within tolerance.</summary>
+    private static bool HitsCommand(NaplpsFormat format, int index, float normX, float normY, float tolerance)
+    {
+        var (command, state) = format.Commands[index];
+
+        if (command is GeometricDrawingCommandBase geo && geo.Points.Count > 0)
+        {
+            if (command is LineCommand or LineAbsoluteCommand or LineRelativeCommand
+                or LineSetAbsoluteCommand or LineSetRelativeCommand)
+            {
+                for (int j = 0; j < geo.Points.Count - 1; j++)
+                {
+                    var p1 = geo.Points[j];
+                    var p2 = geo.Points[j + 1];
+
+                    if (PointToSegmentDistance(normX, normY, p1.X, p1.Y, p2.X, p2.Y) < tolerance)
+                    {
+                        return true;
+                    }
+                }
+
+                if (geo.Points.Count == 1)
+                {
+                    var p = geo.Points[0];
+
+                    if (Distance(normX, normY, p.X, p.Y) < tolerance)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else if (command is RectangleFilledCommand or RectangleOutlinedCommand
+                or RectangleSetFilledCommand or RectangleSetOutlinedCommand)
+            {
+                if (geo.Vertices.Count > 0)
+                {
+                    var origin = geo.Points[0];
+                    var dims = geo.Vertices[0];
+
+                    float minX = MathF.Min(origin.X, origin.X + dims.X) - tolerance;
+                    float maxX = MathF.Max(origin.X, origin.X + dims.X) + tolerance;
+                    float minY = MathF.Min(origin.Y, origin.Y + dims.Y) - tolerance;
+                    float maxY = MathF.Max(origin.Y, origin.Y + dims.Y) + tolerance;
+
+                    if (normX >= minX && normX <= maxX && normY >= minY && normY <= maxY)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else if (IsNearAnyPoint(geo.Points, normX, normY, tolerance))
+            {
+                return true;
+            }
+        }
+        else if (command is PointCommand)
+        {
+            var pen = state.Pen;
+
+            if (Distance(normX, normY, pen.X, pen.Y) < tolerance)
+            {
+                return true;
+            }
+        }
+        else if (command is AsciiCharCommand)
+        {
+            var pen = state.Pen;
+            float cellW = state.CharSize.X;
+            float cellH = state.CharSize.Y;
+
+            if (normX >= pen.X - tolerance && normX <= pen.X + cellW + tolerance && normY >= pen.Y - tolerance && normY <= pen.Y + cellH + tolerance)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Returns the bounding box (in NAPLPS coords) of the command at the given index,
     /// or null if not calculable.
     /// </summary>

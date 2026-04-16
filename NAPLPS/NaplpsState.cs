@@ -25,6 +25,36 @@ public class NaplpsState
     public static readonly int C1 = 128;
     public static readonly int GRight = 160;
 
+    /// <summary>
+    /// Identifies one of the four G-set slots per ANSI X3.110 §4.3.2.
+    /// G0-G3 designations are independent of GL/GR invocations.
+    /// </summary>
+    public enum GsetSlot
+    {
+        G0,
+        G1,
+        G2,
+        G3,
+    }
+
+    // Current G-set designations (which character set is loaded into each slot).
+    // Defaults per §4.3.3: G0 = Primary, G1 = General PDI (POI), G2 = Supplementary, G3 = Mosaic.
+    private NCR[] _g0Designation = PrimaryCharacterSet;
+    private NCR[] _g1Designation = GeneralPDISet;
+    private NCR[] _g2Designation = SupplementaryCharacterSet;
+    private NCR[] _g3Designation = MosaicSet;
+
+    // Which G-set is currently invoked into each in-use area. Defaults: G0→GL, G1→GR.
+    private GsetSlot _glInvocation = GsetSlot.G0;
+    private GsetSlot _grInvocation = GsetSlot.G1;
+
+    /// <summary>
+    /// One-shot single-shift state per §6.1.3.3 / §6.1.3.4. When set, the very next
+    /// resolved byte (in GL or GR) uses this slot's designation instead of the
+    /// invoked one. Cleared after consumption.
+    /// </summary>
+    public GsetSlot? PendingSingleShift { get; set; }
+
     public NaplpsState()
     {
         Reset();
@@ -34,45 +64,254 @@ public class NaplpsState
 
     public void Reset()
     {
-        // 7-Bit Default In-Use Table
-        C0Set.CopyTo(InUseTable, C0);
-        PrimaryCharacterSet.CopyTo(InUseTable, GLeft);
+        _g0Designation = PrimaryCharacterSet;
+        _g1Designation = GeneralPDISet;
+        _g2Designation = SupplementaryCharacterSet;
+        _g3Designation = MosaicSet;
+        _glInvocation = GsetSlot.G0;
+        _grInvocation = GsetSlot.G1;
+        PendingSingleShift = null;
 
-        // 8-Bit Default In-Use Table
+        // C0 and C1 are fixed (not dynamically designated in NAPLPS).
+        C0Set.CopyTo(InUseTable, C0);
         C1Set.CopyTo(InUseTable, C1);
-        GeneralPDISet.CopyTo(InUseTable, GRight);
+
+        RebuildInUseTable();
     }
 
+    /// <summary>
+    /// Copy the currently invoked G-sets into the GL and GR areas of the in-use table.
+    /// Call after any locking shift or designation that affects an invoked slot.
+    /// </summary>
+    private void RebuildInUseTable()
+    {
+        GetGsetTable(_glInvocation).CopyTo(InUseTable, GLeft);
+        GetGsetTable(_grInvocation).CopyTo(InUseTable, GRight);
+    }
+
+    private NCR[] GetGsetTable(GsetSlot slot)
+    {
+        return slot switch
+        {
+            GsetSlot.G0 => _g0Designation,
+            GsetSlot.G1 => _g1Designation,
+            GsetSlot.G2 => _g2Designation,
+            GsetSlot.G3 => _g3Designation,
+            _ => throw new ArgumentOutOfRangeException(nameof(slot)),
+        };
+    }
+
+    /// <summary>SI (0x0F): invoke G0 into GL.</summary>
     public void DoShiftIn()
     {
-        PrimaryCharacterSet.CopyTo(InUseTable, GLeft);
+        _glInvocation = GsetSlot.G0;
         InLockingManner = true;
+        RebuildInUseTable();
     }
 
+    /// <summary>SO (0x0E): invoke G1 into GL.</summary>
     public void DoShiftOut()
     {
-        GeneralPDISet.CopyTo(InUseTable, GLeft);
+        _glInvocation = GsetSlot.G1;
         InLockingManner = true;
+        RebuildInUseTable();
+    }
+
+    /// <summary>LS2 (ESC 6/14): invoke G2 into GL.</summary>
+    public void DoLockingShiftTwo()
+    {
+        _glInvocation = GsetSlot.G2;
+        InLockingManner = true;
+        RebuildInUseTable();
+    }
+
+    /// <summary>LS3 (ESC 6/15): invoke G3 into GL.</summary>
+    public void DoLockingShiftThree()
+    {
+        _glInvocation = GsetSlot.G3;
+        InLockingManner = true;
+        RebuildInUseTable();
+    }
+
+    /// <summary>LS1R (ESC 7/14 or 6/11): invoke G1 into GR.</summary>
+    public void DoLockingShiftOneRight()
+    {
+        _grInvocation = GsetSlot.G1;
+        InLockingManner = true;
+        RebuildInUseTable();
+    }
+
+    /// <summary>LS2R (ESC 7/13 or 6/12): invoke G2 into GR.</summary>
+    public void DoLockingShiftTwoRight()
+    {
+        _grInvocation = GsetSlot.G2;
+        InLockingManner = true;
+        RebuildInUseTable();
+    }
+
+    /// <summary>LS3R (ESC 7/12 or 6/13): invoke G3 into GR.</summary>
+    public void DoLockingShiftThreeRight()
+    {
+        _grInvocation = GsetSlot.G3;
+        InLockingManner = true;
+        RebuildInUseTable();
+    }
+
+    /// <summary>SS2 (0x19): invoke G2 for the next single byte only.</summary>
+    public void DoSingleShiftTwo()
+    {
+        PendingSingleShift = GsetSlot.G2;
+    }
+
+    /// <summary>SS3 (0x1D): invoke G3 for the next single byte only.</summary>
+    public void DoSingleShiftThree()
+    {
+        PendingSingleShift = GsetSlot.G3;
+    }
+
+    /// <summary>
+    /// Designate (load) a G-set slot with a different character set. Per §4.3.2,
+    /// "if any of the G-sets are redesignated via an escape sequence while in the
+    /// in-use table, the new code interpretations are simultaneously invoked",
+    /// so the in-use table is rebuilt automatically when the slot is currently invoked.
+    /// </summary>
+    public void DesignateGset(GsetSlot slot, NCR[] set)
+    {
+        switch (slot)
+        {
+            case GsetSlot.G0: _g0Designation = set; break;
+            case GsetSlot.G1: _g1Designation = set; break;
+            case GsetSlot.G2: _g2Designation = set; break;
+            case GsetSlot.G3: _g3Designation = set; break;
+        }
+
+        if (_glInvocation == slot || _grInvocation == slot)
+        {
+            RebuildInUseTable();
+        }
+    }
+
+    /// <summary>
+    /// Resolve a single byte to its NCR, consuming any pending single-shift.
+    /// Use this in the main parse loop for byte-to-command dispatch. Use
+    /// <see cref="PeekByteWithoutConsumingShift"/> for lookahead that must not
+    /// trigger the one-shot consumption.
+    /// </summary>
+    public NaplpsCommandReference? ResolveByte(byte opcode)
+    {
+        if (PendingSingleShift.HasValue)
+        {
+            var alt = GetGsetTable(PendingSingleShift.Value);
+
+            // SS2/SS3 only affect the GL or GR areas, not C0/C1.
+            if (opcode >= 0x20 && opcode <= 0x7F)
+            {
+                PendingSingleShift = null;
+                int idx = opcode - 0x20;
+                return idx >= 0 && idx < alt.Length ? alt[idx] : null;
+            }
+
+            if (opcode >= 0xA0)
+            {
+                PendingSingleShift = null;
+                int idx = opcode - 0xA0;
+                return idx >= 0 && idx < alt.Length ? alt[idx] : null;
+            }
+        }
+
+        return InUseTable[opcode];
+    }
+
+    /// <summary>Peek-style byte resolution that does NOT consume PendingSingleShift.</summary>
+    public NaplpsCommandReference? PeekByteWithoutConsumingShift(byte opcode)
+    {
+        return InUseTable[opcode];
     }
 
     public bool DoEscape(NaplpsOperands sequence)
     {
-        // 7-bit escape sequence for C-Set Designation requires two bytes
-        if (sequence.Count < 2)
+        if (sequence.Count == 0)
         {
             return false;
         }
 
-        switch (sequence[0])
+        // Single-byte ESC sequences (no F-byte): C-set designation prefixes and locking shifts.
+        if (sequence.Count == 1)
         {
-            case CC.EscapeC0Set:
+            switch (sequence[0])
             {
-                C0Set.CopyTo(InUseTable, C0);
+                case CC.EscapeC0Set: // ESC 2/1 — not a complete designation on its own
+                {
+                    C0Set.CopyTo(InUseTable, C0);
+                    return true;
+                }
+
+                case 0x6E: DoLockingShiftTwo(); return true;            // LS2
+                case 0x6F: DoLockingShiftThree(); return true;          // LS3
+                case 0x7E: DoLockingShiftOneRight(); return true;       // LS1R
+                case 0x7D: DoLockingShiftTwoRight(); return true;       // LS2R
+                case 0x7C: DoLockingShiftThreeRight(); return true;     // LS3R
+                case 0x6B: DoLockingShiftOneRight(); return true;       // LS1R alt
+                case 0x6C: DoLockingShiftTwoRight(); return true;       // LS2R alt
+                case 0x6D: DoLockingShiftThreeRight(); return true;     // LS3R alt
             }
-            break;
+
+            return false;
         }
 
-        return true;
+        // Two-byte ESC I F sequences: G-set designation per §4.3 / Table 1.
+        if (sequence.Count >= 2)
+        {
+            // Legacy single-case handling for ESC 2/1 (C0 designation) when followed by another byte.
+            if (sequence[0] == CC.EscapeC0Set)
+            {
+                C0Set.CopyTo(InUseTable, C0);
+                return true;
+            }
+
+            GsetSlot? slot = sequence[0] switch
+            {
+                0x28 => GsetSlot.G0,        // 2/8 — 94-char into G0
+                0x29 => GsetSlot.G1,        // 2/9 — into G1
+                0x2A => GsetSlot.G2,        // 2/10 — into G2
+                0x2B => GsetSlot.G3,        // 2/11 — into G3
+                0x2D => GsetSlot.G1,        // 2/13 — 96-char alt into G1
+                0x2E => GsetSlot.G2,        // 2/14 — 96-char alt into G2
+                0x2F => GsetSlot.G3,        // 2/15 — 96-char alt into G3
+                _ => null,
+            };
+
+            if (slot.HasValue)
+            {
+                var newSet = ResolveSetFromFinalByte(sequence[1]);
+                if (newSet != null)
+                {
+                    DesignateGset(slot.Value, newSet);
+                }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Map an ESC I F final byte to a G-set table per §4.3 Table 1. Returns null
+    /// for sets we don't yet have static tables for (Macro Set, DRCS) — those
+    /// are currently dynamic per-character lookups handled elsewhere.
+    /// </summary>
+    private static NCR[]? ResolveSetFromFinalByte(byte finalByte)
+    {
+        return finalByte switch
+        {
+            0x42 => PrimaryCharacterSet,            // 4/2 — Primary
+            0x7C => SupplementaryCharacterSet,      // 7/12 — Supplementary
+            0x57 => GeneralPDISet,                  // 5/7 — POI / PDI
+            0x7D => MosaicSet,                      // 7/13 — Mosaic
+            // 0x7A — Macro Set (dynamic per-character; not a static table)
+            // 0x7B — DRCS Set (dynamic per-character; not a static table)
+            _ => null,
+        };
     }
 
     /* In-Use Tables */

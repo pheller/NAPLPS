@@ -5,6 +5,7 @@ namespace NAPLPS.Commands;
 /// <summary>
 /// The SET COLOR command is used to specify color values applied to all subsequent graphics commands.
 /// </summary>
+[AddCommand(220, "Set Color", "Define an RGB color or allocate a palette entry (mode-dependent).", Category = CommandCategory.Attribute, DslKeyword = "setColor")]
 public class SetColorCommand : NaplpsCommand
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValue;

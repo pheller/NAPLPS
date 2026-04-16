@@ -227,7 +227,9 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         int disp = _displacementTable[row, widthClass];
 
-        // advance = charW * disp / n (ratio is disp/n, applied to actual charW)
+        // PP3-matching formula: displacement is the table value scaled to the actual
+        // char field width. Preserves visual parity with reference PP3 renders even when
+        // the char field doesn't fall on an exact 1/256th boundary.
         return charFieldWidth * disp / clampedN;
     }
 

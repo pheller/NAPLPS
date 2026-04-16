@@ -5,6 +5,7 @@ using TexturePatterns = NAPLPS.NaplpsTexture.TexturePatterns;
 
 namespace NAPLPS.Commands;
 
+[AddCommand(220, "Texture", "Set line texture, fill pattern, highlight, and mask size for subsequent geometry.", Category = CommandCategory.Attribute, DslKeyword = "texture")]
 public class TextureCommand : GeometricDrawingCommandBase
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.FixedAndMultiValue;

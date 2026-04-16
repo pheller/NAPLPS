@@ -17,6 +17,12 @@ public class DrawableRectangleFilled : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
+        // ANSI X3.110 §5.3.2.5.1: a transparent drawing color produces no output.
+        if (state.IsTransparent)
+        {
+            return;
+        }
+
         var startPoint = _command.Points.FirstOrDefault();
         var dimensions = _command.Dimensions;
 

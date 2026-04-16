@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:NAPLPSApp.ViewModels"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="360"
+		Width="500" Height="360"
+		x:Class="NAPLPSApp.Views.OperandEditWindow"
+		x:DataType="vm:OperandEditViewModel"
+		Icon="/Assets/naplps.ico"
+		Title="Edit Operands"
+		WindowStartupLocation="CenterOwner">
+	<DockPanel Margin="12">
+		<StackPanel DockPanel.Dock="Top" Orientation="Vertical" Spacing="6" Margin="0,0,0,10">
+			<TextBlock Text="{Binding CommandName}" FontWeight="Bold" FontSize="16"/>
+			<StackPanel Orientation="Horizontal" Spacing="8">
+				<TextBlock Text="{Binding Opcode, StringFormat='Opcode: 0x{0:X2}'}" FontFamily="Consolas,monospace"/>
+				<TextBlock Text="{Binding DslKeyword, StringFormat='DSL: {0}'}" Opacity="0.7" FontFamily="Consolas,monospace"/>
+			</StackPanel>
+			<TextBlock Text="{Binding Description}" TextWrapping="Wrap" Opacity="0.8" FontSize="11"/>
+		</StackPanel>
+
+		<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+			<TextBlock Text="{Binding ParseError}" Foreground="#F55" VerticalAlignment="Center" FontSize="11"/>
+			<Button Content="Cancel" Command="{Binding CancelCommand}" CommandParameter="{Binding $parent[Window]}"/>
+			<Button Content="Commit"
+					Command="{Binding CommitCommand}"
+					CommandParameter="{Binding $parent[Window]}"
+					Classes="accent"/>
+		</StackPanel>
+
+		<DockPanel>
+			<TextBlock DockPanel.Dock="Top"
+					   Text="Operand bytes (space-separated hex, e.g. C0 C8 D5):"
+					   Margin="0,0,0,4"/>
+			<TextBox Text="{Binding OperandHex}"
+					 AcceptsReturn="True"
+					 FontFamily="Consolas,monospace"
+					 TextWrapping="Wrap"/>
+		</DockPanel>
+	</DockPanel>
+</Window>

@@ -22,6 +22,12 @@ public class DrawableRectangleSetFilled : Drawable, IDrawable
             return;
         }
 
+        // ANSI X3.110 §5.3.2.5.1: a transparent drawing color produces no output.
+        if (state.IsTransparent)
+        {
+            return;
+        }
+
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
         var vertices = _command.Vertices;
 

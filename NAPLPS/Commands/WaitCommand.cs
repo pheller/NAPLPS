@@ -2,6 +2,7 @@
 
 namespace NAPLPS.Commands;
 
+[AddCommand(160, "Wait", "Pause the display stream for N tenths of a second.", Category = CommandCategory.Attribute, DslKeyword = "wait")]
 public class WaitCommand : NaplpsCommand
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.Fixed;

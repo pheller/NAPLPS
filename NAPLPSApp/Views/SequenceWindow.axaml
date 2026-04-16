@@ -38,10 +38,32 @@
 				
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
-				<Button i:Attached.Icon="fa-solid fa-plus" VerticalAlignment="Center" Command="{Binding AddCommand}" CommandParameter="{Binding $parent[Window]}"/>
-				<Button i:Attached.Icon="fa-solid fa-pencil" VerticalAlignment="Center"/>
-				<Button i:Attached.Icon="fa-solid fa-trash" VerticalAlignment="Center" Command="{Binding DeleteCommand}" CommandParameter="{Binding $parent[Window]}"/>
-				
+				<Button i:Attached.Icon="fa-solid fa-plus" VerticalAlignment="Center" Command="{Binding AddCommand}" CommandParameter="{Binding $parent[Window]}" ToolTip.Tip="Add command"/>
+				<Button i:Attached.Icon="fa-solid fa-pencil" VerticalAlignment="Center" Command="{Binding EditOperandsCommand}" CommandParameter="{Binding $parent[Window]}" ToolTip.Tip="Edit operand bytes of the selected command"/>
+				<Button i:Attached.Icon="fa-solid fa-trash" VerticalAlignment="Center" Command="{Binding DeleteCommand}" CommandParameter="{Binding $parent[Window]}" ToolTip.Tip="Delete selected"/>
+
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<Button i:Attached.Icon="fa-solid fa-arrow-up" VerticalAlignment="Center" Command="{Binding MoveUpCommand}" ToolTip.Tip="Move selected command up"/>
+				<Button i:Attached.Icon="fa-solid fa-arrow-down" VerticalAlignment="Center" Command="{Binding MoveDownCommand}" ToolTip.Tip="Move selected command down"/>
+				<Button i:Attached.Icon="fa-solid fa-clone" VerticalAlignment="Center" Command="{Binding DuplicateSelectedCommand}" ToolTip.Tip="Duplicate selected"/>
+
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<Button i:Attached.Icon="fa-solid fa-scissors" VerticalAlignment="Center" Command="{Binding CutCommand}" ToolTip.Tip="Cut to clipboard"/>
+				<Button i:Attached.Icon="fa-solid fa-copy" VerticalAlignment="Center" Command="{Binding CopyCommand}" ToolTip.Tip="Copy to clipboard"/>
+				<Button i:Attached.Icon="fa-solid fa-paste" VerticalAlignment="Center" Command="{Binding PasteCommand}" ToolTip.Tip="Paste after selection"/>
+
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<Button i:Attached.Icon="fa-solid fa-bookmark" VerticalAlignment="Center" Command="{Binding ToggleBookmarkCommand}" ToolTip.Tip="Bookmark selected (F2)"/>
+				<Button i:Attached.Icon="fa-solid fa-angle-left" VerticalAlignment="Center" Command="{Binding PreviousBookmarkCommand}" ToolTip.Tip="Previous bookmark"/>
+				<Button i:Attached.Icon="fa-solid fa-angle-right" VerticalAlignment="Center" Command="{Binding NextBookmarkCommand}" ToolTip.Tip="Next bookmark"/>
+
+				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+
+				<TextBox Text="{Binding SearchText}" Width="180" Watermark="Search opcode / type / DSL keyword..." VerticalAlignment="Center"/>
+
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 				<Button i:Attached.Icon="{Binding TimelineSyncIcon}" Command="{Binding ToggleTimelineSyncLockCommand}" />

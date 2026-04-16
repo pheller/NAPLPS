@@ -40,10 +40,12 @@ public class WordWrapTests
     [TestMethod]
     public void AutoWrap_PenReturnsToFieldOriginX()
     {
-        var state = CreateFieldState(0.1f, 0.5f); // Very narrow field
-        state.Pen = new Vector3(0.09f, 0.4f, 0); // Near right edge
+        // Field width 0.1, char width 0.025, wrap tolerance is 3x char width = 0.075.
+        // Threshold for wrap = fieldRight (0.1) + 0.075 = 0.175. Pen starts at 0.16
+        // so a char advance to 0.185 crosses the threshold.
+        var state = CreateFieldState(0.1f, 0.5f);
+        state.Pen = new Vector3(0.16f, 0.4f, 0);
 
-        // This character should trigger auto-wrap
         var cmd = new AsciiCharCommand('X', state, 0x58, new NaplpsOperands([]));
 
         // Pen X should have wrapped to field origin
@@ -53,9 +55,10 @@ public class WordWrapTests
     [TestMethod]
     public void WordWrapOn_SpaceAtEndOfLine_IsDiscarded()
     {
+        // Same threshold setup as AutoWrap_PenReturnsToFieldOriginX above.
         var state = CreateFieldState(0.1f, 0.5f);
         state.IsWordWrapMode = true;
-        state.Pen = new Vector3(0.09f, 0.4f, 0); // Near right edge
+        state.Pen = new Vector3(0.16f, 0.4f, 0);
 
         var cmd = new AsciiCharCommand(' ', state, 0x20, new NaplpsOperands([]));
 
@@ -67,7 +70,7 @@ public class WordWrapTests
     {
         var state = CreateFieldState(0.1f, 0.5f);
         state.IsWordWrapMode = false;
-        state.Pen = new Vector3(0.09f, 0.4f, 0);
+        state.Pen = new Vector3(0.16f, 0.4f, 0);
 
         var cmd = new AsciiCharCommand(' ', state, 0x20, new NaplpsOperands([]));
 
@@ -121,8 +124,9 @@ public class WordWrapTests
     [TestMethod]
     public void AutoWrap_PenMovesDownByInterrowSpacing()
     {
+        // Pen at 0.16, advances to 0.185, crosses 0.175 wrap threshold.
         var state = CreateFieldState(0.1f, 0.5f);
-        state.Pen = new Vector3(0.09f, 0.4f, 0);
+        state.Pen = new Vector3(0.16f, 0.4f, 0);
         float penYBefore = state.Pen.Y;
 
         var cmd = new AsciiCharCommand('X', state, 0x58, new NaplpsOperands([]));

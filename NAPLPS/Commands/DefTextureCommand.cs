@@ -25,6 +25,7 @@ namespace NAPLPS.Commands;
 /// before execution (see 5.3.3.6.3), causing the actual area defined to be smaller
 /// than requested.
 /// </summary>
+[AddCommand(240, "Define Texture", "Define one of four programmable texture masks (A-D).", Category = CommandCategory.Definition, DslKeyword = "defTexture")]
 public class DefTextureCommand : EscCommand
 {
     public ushort MaskId { get; }

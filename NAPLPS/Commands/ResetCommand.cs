@@ -8,6 +8,7 @@ namespace NAPLPS.Commands;
 /// border color, home the cursor, and clear the DRCS set, texture attributes,
 /// macros, and unprotected fields.
 /// </summary>
+[AddCommand(200, "Reset", "Selectively reinitialize control/attribute parameters to defaults.", Category = CommandCategory.System, DslKeyword = "reset")]
 public class ResetCommand : NaplpsCommand
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.Fixed;

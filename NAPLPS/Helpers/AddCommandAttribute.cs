@@ -10,4 +10,8 @@ public class AddCommandAttribute(int height, string name, string description) : 
     public string Name { get; } = name;
 
     public string Description { get; } = description;
+
+    public CommandCategory Category { get; set; } = CommandCategory.Unknown;
+
+    public string DslKeyword { get; set; } = string.Empty;
 }

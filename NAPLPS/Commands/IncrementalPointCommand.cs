@@ -6,6 +6,7 @@ namespace NAPLPS.Commands;
 /// INCREMENTAL POINT (0x39) - Displays a color bitmap within the active field.
 /// Each pixel is drawn using one logical pel with the color specified in the bitmap.
 /// </summary>
+[AddCommand(240, "Incremental Point", "Display a color bitmap within the active field, one pel per pixel.", Category = CommandCategory.Incremental, DslKeyword = "bitmap")]
 public class IncrementalPointCommand : NaplpsCommand
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.FixedAndString;

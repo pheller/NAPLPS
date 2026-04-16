@@ -10,6 +10,7 @@ namespace NAPLPS.Commands;
 /// Once set, these parameters do not change until acted upon by either the
 /// RESET command, another DOMAIN command, or the NSR control code
 /// </summary>
+[AddCommand(200, "Domain", "Set operand precision, dimensionality, and logical pel size.", Category = CommandCategory.Attribute, DslKeyword = "domain")]
 public class DomainCommand : GeometricDrawingCommandBase
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.FixedAndMultiValue;

@@ -1,0 +1,95 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:NAPLPSApp.ViewModels"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:i="https://github.com/projektanker/icons.avalonia"
+		mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="420"
+		Width="560" Height="420"
+		x:Class="NAPLPSApp.Views.TextureDesignerWindow"
+		x:DataType="vm:TextureDesignerViewModel"
+		Icon="/Assets/naplps.ico"
+		Title="Texture Mask Designer"
+		WindowStartupLocation="CenterOwner">
+	<DockPanel Margin="10">
+		<StackPanel DockPanel.Dock="Top" Orientation="Vertical" Spacing="6" Margin="0,0,0,10">
+			<TextBlock Text="{Binding MaskIdDisplay}" FontWeight="Bold"/>
+			<StackPanel Orientation="Horizontal" Spacing="6">
+				<TextBlock Text="Target slot:" VerticalAlignment="Center"/>
+				<ComboBox SelectedIndex="{Binding MaskId}" Width="120">
+					<ComboBoxItem Content="A"/>
+					<ComboBoxItem Content="B"/>
+					<ComboBoxItem Content="C"/>
+					<ComboBoxItem Content="D"/>
+				</ComboBox>
+				<Button Content="Clear Pattern" Command="{Binding ClearPatternCommand}"/>
+				<Button Content="Clear Mask" Command="{Binding ClearMaskCommand}"/>
+			</StackPanel>
+			<TextBlock Text="Left: fill pattern (what gets drawn). Right: mask (where the pattern is applied). Both are 8×8 (first 6 columns encoded to bytes)."
+					   FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+		</StackPanel>
+
+		<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+			<Button Content="Cancel" Command="{Binding CancelCommand}" CommandParameter="{Binding $parent[Window]}"/>
+			<Button Content="Commit Texture"
+					Command="{Binding CommitCommand}"
+					CommandParameter="{Binding $parent[Window]}"
+					Classes="accent"/>
+		</StackPanel>
+
+		<Grid ColumnDefinitions="*,10,*">
+			<Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Background="#111">
+				<DockPanel>
+					<TextBlock DockPanel.Dock="Top" Text="PATTERN" HorizontalAlignment="Center" FontWeight="Bold" Margin="2"/>
+					<ItemsControl ItemsSource="{Binding PatternCells}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Columns="8" Rows="8"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ToggleButton IsChecked="{Binding IsOn}" Margin="1" Padding="0" BorderThickness="0">
+									<ToggleButton.Styles>
+										<Style Selector="ToggleButton">
+											<Setter Property="Background" Value="#333"/>
+										</Style>
+										<Style Selector="ToggleButton:checked">
+											<Setter Property="Background" Value="#FFC"/>
+										</Style>
+									</ToggleButton.Styles>
+								</ToggleButton>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</DockPanel>
+			</Border>
+			<Border Grid.Column="2" BorderBrush="Gray" BorderThickness="1" Background="#111">
+				<DockPanel>
+					<TextBlock DockPanel.Dock="Top" Text="MASK" HorizontalAlignment="Center" FontWeight="Bold" Margin="2"/>
+					<ItemsControl ItemsSource="{Binding MaskCells}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Columns="8" Rows="8"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ToggleButton IsChecked="{Binding IsOn}" Margin="1" Padding="0" BorderThickness="0">
+									<ToggleButton.Styles>
+										<Style Selector="ToggleButton">
+											<Setter Property="Background" Value="#333"/>
+										</Style>
+										<Style Selector="ToggleButton:checked">
+											<Setter Property="Background" Value="#5CE"/>
+										</Style>
+									</ToggleButton.Styles>
+								</ToggleButton>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</DockPanel>
+			</Border>
+		</Grid>
+	</DockPanel>
+</Window>

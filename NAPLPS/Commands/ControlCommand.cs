@@ -2,6 +2,7 @@
 
 namespace NAPLPS.Commands;
 
+[AddCommand(160, "Control", "C0 or C1 control code. See the Command property for the specific function.", Category = CommandCategory.Control)]
 public class ControlCommand : NaplpsCommand
 {
     public const byte EscapeC0Set = 0x21;

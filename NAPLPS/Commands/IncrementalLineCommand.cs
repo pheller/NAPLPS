@@ -6,6 +6,7 @@ namespace NAPLPS.Commands;
 /// INCREMENTAL LINE (0x3A) - Defines a scribble which is an efficient representation
 /// for certain types of polylines such as a signature.
 /// </summary>
+[AddCommand(240, "Incremental Line", "Efficient polyline via 2-bit motion codes (signatures, scribbles).", Category = CommandCategory.Incremental, DslKeyword = "scribble")]
 public class IncrementalLineCommand : GeometricDrawingCommandBase
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValueAndString;

@@ -4,6 +4,7 @@ using NAPLPS.Drawing;
 
 namespace NAPLPS.Commands;
 
+[AddCommand(120, "ASCII Character", "A single alphanumeric glyph from the active Primary or Supplementary set.", Category = CommandCategory.Character, DslKeyword = "char")]
 public class AsciiCharCommand : NaplpsCommand
 {
     /// <summary>

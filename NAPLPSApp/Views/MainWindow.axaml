@@ -60,6 +60,35 @@
 				<Separator/>
 				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
 			</MenuItem>
+			<MenuItem Header="_Assets">
+				<MenuItem Header="_DRCS Character..."
+						  Command="{Binding OpenDrcsDesignerCommand}"
+						  CommandParameter="{Binding $parent[Window]}"
+						  IsEnabled="{Binding IsFileLoaded}"
+						  i:MenuItem.Icon="fa-solid fa-keyboard"
+						  ToolTip.Tip="Design a custom 8\u00d710 bitmap character and commit it as a DEF DRCS command"/>
+				<MenuItem Header="_Texture Mask..."
+						  Command="{Binding OpenTextureDesignerCommand}"
+						  CommandParameter="{Binding $parent[Window]}"
+						  IsEnabled="{Binding IsFileLoaded}"
+						  i:MenuItem.Icon="fa-solid fa-grip"
+						  ToolTip.Tip="Design a fill pattern + mask and commit as a DEF TEXTURE command"/>
+				<Separator/>
+				<MenuItem Header="_Macro Recording">
+					<MenuItem Header="_Start Recording"
+							  Command="{Binding StartMacroRecordingCommand}"
+							  IsEnabled="{Binding IsFileLoaded}"
+							  i:MenuItem.Icon="fa-solid fa-circle"/>
+					<MenuItem Header="_Stop &amp; Save Macro"
+							  Command="{Binding StopMacroRecordingCommand}"
+							  IsEnabled="{Binding IsMacroRecording}"
+							  i:MenuItem.Icon="fa-solid fa-stop"/>
+					<MenuItem Header="_Cancel Recording"
+							  Command="{Binding CancelMacroRecordingCommand}"
+							  IsEnabled="{Binding IsMacroRecording}"
+							  i:MenuItem.Icon="fa-solid fa-ban"/>
+				</MenuItem>
+			</MenuItem>
 			<MenuItem Header="_Render">
 				<MenuItem Header="_Re-render" Command="{Binding RerenderCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-recycle"/>
 				<Separator/>
@@ -88,6 +117,7 @@
 			</MenuItem>
 			<MenuItem Header="_View">
 				<MenuItem Header="_Sequence" Command="{Binding ToggleSequenceCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-shoe-prints"/>
+				<MenuItem Header="_Telidraw Source" Command="{Binding ToggleTelidrawPaneCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-code" ToggleType="CheckBox" IsChecked="{Binding IsTelidrawPaneVisible}"/>
 				<Separator/>
 				<MenuItem Header="_Canvas Size" i:MenuItem.Icon="fa-solid fa-display">
 					<MenuItem Header="160x120" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="160x120" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='160x120'}" />
@@ -183,6 +213,8 @@
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsEditorMode}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 				<Border Width="12" Height="12" Background="{Binding ForegroundColorBrush}" BorderBrush="White" BorderThickness="1" VerticalAlignment="Center" IsVisible="{Binding IsEditorMode}" Margin="0,0,2,0"/>
 				<Border Width="12" Height="12" Background="{Binding BackgroundColorBrush}" BorderBrush="Gray" BorderThickness="1" VerticalAlignment="Center" IsVisible="{Binding IsEditorMode}"/>
+					<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsEditorMode}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+					<TextBlock Text="{Binding CoordReadout}" VerticalAlignment="Center" FontFamily="Consolas,monospace" FontSize="11" IsVisible="{Binding IsEditorMode}" ToolTip.Tip="Cursor position in NAPLPS-normalized coordinates (X 0..1, Y 0..0.75)"/>
 			</StackPanel>
 		</Border>
 
@@ -216,6 +248,10 @@
 				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsTextToolActive}" ToolTip.Tip="Text"
 							 Command="{Binding SetActiveToolCommand}" CommandParameter="Text">
 					<i:Icon Value="fa-solid fa-font" FontSize="16"/>
+				</RadioButton>
+				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsFillToolActive}" ToolTip.Tip="Fill (click an outlined shape to duplicate it as filled)"
+							 Command="{Binding SetActiveToolCommand}" CommandParameter="Fill">
+					<i:Icon Value="fa-solid fa-fill-drip" FontSize="16"/>
 				</RadioButton>
 				<Separator Margin="0,4"/>
 				<CheckBox IsChecked="{Binding IsFilledMode}" ToolTip.Tip="Filled">
@@ -251,20 +287,166 @@
 						<DataTemplate>
 							<Button Width="16" Height="16" Padding="0" Margin="1"
 									Background="{Binding Brush}"
+									ToolTip.Tip="Left-click selects as foreground &#8226; Right-click to edit R/G/B"
 									Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectPaletteColorCommand}"
-									CommandParameter="{Binding Index}"/>
+									CommandParameter="{Binding Index}">
+								<Button.ContextFlyout>
+									<Flyout Placement="Right">
+										<StackPanel Width="260" Spacing="8">
+											<TextBlock Text="{Binding Index, StringFormat='Palette Slot {0}'}" FontWeight="Bold"/>
+											<Border Height="32" Background="{Binding Brush}" BorderBrush="Gray" BorderThickness="1" CornerRadius="2"/>
+											<Grid ColumnDefinitions="20,*,70" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="6">
+												<TextBlock Grid.Row="0" Grid.Column="0" Text="R" VerticalAlignment="Center" Foreground="#F55"/>
+												<Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="255" Value="{Binding Red}"/>
+												<NumericUpDown Grid.Row="0" Grid.Column="2" Minimum="0" Maximum="255" Value="{Binding Red}" FormatString="0"/>
+												<TextBlock Grid.Row="1" Grid.Column="0" Text="G" VerticalAlignment="Center" Foreground="#5F5"/>
+												<Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="255" Value="{Binding Green}"/>
+												<NumericUpDown Grid.Row="1" Grid.Column="2" Minimum="0" Maximum="255" Value="{Binding Green}" FormatString="0"/>
+												<TextBlock Grid.Row="2" Grid.Column="0" Text="B" VerticalAlignment="Center" Foreground="#55F"/>
+												<Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="255" Value="{Binding Blue}"/>
+												<NumericUpDown Grid.Row="2" Grid.Column="2" Minimum="0" Maximum="255" Value="{Binding Blue}" FormatString="0"/>
+											</Grid>
+											<TextBlock Text="Dragging a slider emits SELECT COLOR + SET COLOR + SELECT COLOR via UndoManager." FontSize="10" Opacity="0.7" TextWrapping="Wrap"/>
+										</StackPanel>
+									</Flyout>
+								</Button.ContextFlyout>
+							</Button>
 						</DataTemplate>
 					</ItemsControl.ItemTemplate>
 				</ItemsControl>
 			</StackPanel>
 		</Border>
 
-		<Grid Background="#222222">
-			<Image Source="{Binding CanvasImage}" Name="CanvasImageControl"
-				   HorizontalAlignment="Center" VerticalAlignment="Center"
-				   Stretch="{Binding ImageStretch}"/>
-			<Canvas Name="EditorOverlay" Background="Transparent"
-					IsVisible="{Binding IsEditorMode}"/>
+		<Border DockPanel.Dock="Right"
+				Background="{DynamicResource SystemControlBackgroundBase}"
+				BorderBrush="{DynamicResource SystemControlForegroundBaseHighBrush}"
+				BorderThickness="1,0,0,0"
+				Width="240"
+				Padding="8"
+				IsVisible="{Binding IsEditorMode}">
+			<ScrollViewer VerticalScrollBarVisibility="Auto">
+				<StackPanel Orientation="Vertical" Spacing="10">
+					<TextBlock Text="Attributes" FontSize="14" FontWeight="Bold"/>
+
+					<Expander Header="Color Mode" IsExpanded="True">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="0,4,0,0">
+							<TextBlock Text="Foreground Index:" FontSize="11"/>
+							<NumericUpDown Value="{Binding EditorForegroundIndex}" Minimum="0" Maximum="15" FormatString="0"/>
+							<TextBlock Text="Background Index:" FontSize="11" Margin="0,4,0,0"/>
+							<NumericUpDown Value="{Binding EditorBackgroundIndex}" Minimum="0" Maximum="15" FormatString="0"/>
+						</StackPanel>
+					</Expander>
+
+					<Expander Header="Text Attributes"
+							  IsExpanded="True"
+							  DataContext="{Binding TextToolInstance}">
+						<StackPanel Orientation="Vertical" Spacing="6" Margin="0,4,0,0">
+							<TextBlock Text="Char Width (unit):" FontSize="11"/>
+							<NumericUpDown Value="{Binding CharWidth}" Minimum="0.005" Maximum="0.5" Increment="0.005" FormatString="0.0000"/>
+
+							<TextBlock Text="Char Height (unit):" FontSize="11"/>
+							<NumericUpDown Value="{Binding CharHeight}" Minimum="0.005" Maximum="0.5" Increment="0.005" FormatString="0.0000"/>
+
+							<TextBlock Text="Rotation:" FontSize="11"/>
+							<ComboBox SelectedIndex="{Binding Rotation}" HorizontalAlignment="Stretch">
+								<ComboBoxItem Content="0&#176;"/>
+								<ComboBoxItem Content="90&#176;"/>
+								<ComboBoxItem Content="180&#176;"/>
+								<ComboBoxItem Content="270&#176;"/>
+							</ComboBox>
+
+							<TextBlock Text="Path:" FontSize="11"/>
+							<ComboBox SelectedIndex="{Binding Path}" HorizontalAlignment="Stretch">
+								<ComboBoxItem Content="Right"/>
+								<ComboBoxItem Content="Left"/>
+								<ComboBoxItem Content="Up"/>
+								<ComboBoxItem Content="Down"/>
+							</ComboBox>
+
+							<TextBlock Text="Inter-character Spacing:" FontSize="11"/>
+							<ComboBox SelectedIndex="{Binding Spacing}" HorizontalAlignment="Stretch">
+								<ComboBoxItem Content="One"/>
+								<ComboBoxItem Content="5/4"/>
+								<ComboBoxItem Content="3/2"/>
+								<ComboBoxItem Content="Proportional"/>
+							</ComboBox>
+
+							<TextBlock Text="Inter-row Spacing:" FontSize="11"/>
+							<ComboBox SelectedIndex="{Binding Interrow}" HorizontalAlignment="Stretch">
+								<ComboBoxItem Content="One"/>
+								<ComboBoxItem Content="5/4"/>
+								<ComboBoxItem Content="3/2"/>
+								<ComboBoxItem Content="Two"/>
+							</ComboBox>
+						</StackPanel>
+					</Expander>
+
+					<Expander Header="Macro Recorder" IsExpanded="False">
+						<StackPanel Orientation="Vertical" Spacing="6" Margin="0,4,0,0">
+							<StackPanel Orientation="Horizontal" Spacing="4">
+								<TextBlock Text="Slot:" VerticalAlignment="Center"/>
+								<TextBox Text="{Binding MacroRecordingSlot}" Width="40" MaxLength="1"/>
+								<Ellipse Width="10" Height="10" Fill="Red" VerticalAlignment="Center" IsVisible="{Binding IsMacroRecording}"/>
+							</StackPanel>
+							<Button Content="Start Recording"
+									Command="{Binding StartMacroRecordingCommand}"
+									IsEnabled="{Binding !IsMacroRecording}"
+									HorizontalAlignment="Stretch"/>
+							<Button Content="Stop &amp; Save"
+									Command="{Binding StopMacroRecordingCommand}"
+									IsEnabled="{Binding IsMacroRecording}"
+									HorizontalAlignment="Stretch"/>
+							<Button Content="Cancel"
+									Command="{Binding CancelMacroRecordingCommand}"
+									IsEnabled="{Binding IsMacroRecording}"
+									HorizontalAlignment="Stretch"/>
+						</StackPanel>
+					</Expander>
+				</StackPanel>
+			</ScrollViewer>
+		</Border>
+
+		<Grid>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="400" MinWidth="200" MaxWidth="800"/>
+			</Grid.ColumnDefinitions>
+
+			<!-- Canvas (left) -->
+			<Grid Grid.Column="0" Background="#222222">
+				<Image Source="{Binding CanvasImage}" Name="CanvasImageControl"
+					   HorizontalAlignment="Center" VerticalAlignment="Center"
+					   Stretch="{Binding ImageStretch}"/>
+				<Canvas Name="EditorOverlay" Background="Transparent"
+						IsVisible="{Binding IsEditorMode}"/>
+			</Grid>
+
+			<!-- Splitter -->
+			<GridSplitter Grid.Column="1" Width="4" Background="#444"
+						  IsVisible="{Binding IsTelidrawPaneVisible}"/>
+
+			<!-- Telidraw text pane (right) -->
+			<Border Grid.Column="2" Background="#1e1e1e"
+					BorderBrush="#333" BorderThickness="1,0,0,0"
+					IsVisible="{Binding IsTelidrawPaneVisible}">
+				<DockPanel>
+					<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#2d2d2d" Margin="0,0,0,1">
+						<TextBlock Text="Telidraw" FontWeight="Bold" VerticalAlignment="Center" Margin="8,4"/>
+						<TextBlock Text=".td" Opacity="0.5" VerticalAlignment="Center"/>
+					</StackPanel>
+					<TextBox Text="{Binding TelidrawSource}"
+							 AcceptsReturn="True"
+							 AcceptsTab="True"
+							 FontFamily="Consolas,Courier New,monospace"
+							 FontSize="12"
+							 Background="#1e1e1e"
+							 Foreground="#D4D4D4"
+							 BorderThickness="0"
+							 TextWrapping="NoWrap"
+							 Padding="8"/>
+				</DockPanel>
+			</Border>
 		</Grid>
 	</DockPanel>
 </Window>

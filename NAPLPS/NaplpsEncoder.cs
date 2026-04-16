@@ -102,4 +102,183 @@ public static class NaplpsEncoder
 
         return operands;
     }
+
+    /// <summary>
+    /// Decode a 2D vertex from NAPLPS operand bytes. Exact inverse of
+    /// <see cref="EncodeVertex2D"/>. Returns the (x, y) pair.
+    /// </summary>
+    public static (float x, float y) DecodeVertex2D(NaplpsOperands operands, int offset = 0, int multiByteValue = 3)
+    {
+        if (operands.Count == 0 || offset >= operands.Count)
+        {
+            return (0f, 0f);
+        }
+
+        int bitsPerAxis = multiByteValue * 3;
+        var xBits = new List<bool>(bitsPerAxis);
+        var yBits = new List<bool>(bitsPerAxis);
+
+        for (int i = 0; i < multiByteValue; i++)
+        {
+            if (offset + i >= operands.Count)
+            {
+                break;
+            }
+
+            byte b = operands[offset + i];
+
+            xBits.Add((b & (1 << 5)) != 0);
+            xBits.Add((b & (1 << 4)) != 0);
+            xBits.Add((b & (1 << 3)) != 0);
+
+            yBits.Add((b & (1 << 2)) != 0);
+            yBits.Add((b & (1 << 1)) != 0);
+            yBits.Add((b & (1 << 0)) != 0);
+        }
+
+        float x = NaplpsUtils.ConvertBitsToFraction(xBits);
+        float y = NaplpsUtils.ConvertBitsToFraction(yBits);
+
+        return (x, y);
+    }
+
+    /// <summary>
+    /// Pack 6 data bits (bits 1-6, 1-indexed) into a single operand byte with the
+    /// 0xC0 numerical-data base. Use for fixed-format bytes that the parser reads
+    /// via <c>operands[i, N]</c> bit accessors.
+    /// </summary>
+    public static byte EncodeFixedFormatByte(byte dataBits)
+    {
+        return (byte)(NumericalDataBase | (dataBits & 0x3F));
+    }
+
+    /// <summary>
+    /// Encode a 4-bit palette index into a single operand byte for SelectColor /
+    /// Blink-to-entry operands. Index occupies bits 3-6 (1-indexed).
+    /// </summary>
+    public static byte EncodePaletteIndexByte(byte paletteIndex)
+    {
+        return (byte)(NumericalDataBase | ((paletteIndex & 0x0F) << 2));
+    }
+
+    /// <summary>
+    /// Encode a 6-bit "wait interval" or "blink interval" value (range 0-63, in 1/10 second
+    /// units for Wait or animation-frame units for Blink). Goes in bits 1-6 of an operand byte.
+    /// </summary>
+    public static byte EncodeIntervalByte(byte tenthsOrFrames)
+    {
+        return (byte)(NumericalDataBase | (tenthsOrFrames & 0x3F));
+    }
+
+    /// <summary>
+    /// Encode the Domain command's first fixed byte.
+    /// Bits 1-2: singleByteValue-1 (1-4 stored as 0-3).
+    /// Bits 3-5: multiByteValue-1 (1-8 stored as 0-7).
+    /// Bit 6:    dimensionality (true if 3D, false if 2D).
+    /// </summary>
+    public static byte EncodeDomainFixedByte(byte singleByteValue, byte multiByteValue, byte dimensionality)
+    {
+        if (singleByteValue < 1 || singleByteValue > 4)
+        {
+            throw new ArgumentOutOfRangeException(nameof(singleByteValue), "Must be 1-4.");
+        }
+
+        if (multiByteValue < 1 || multiByteValue > 8)
+        {
+            throw new ArgumentOutOfRangeException(nameof(multiByteValue), "Must be 1-8.");
+        }
+
+        if (dimensionality != 2 && dimensionality != 3)
+        {
+            throw new ArgumentOutOfRangeException(nameof(dimensionality), "Must be 2 or 3.");
+        }
+
+        byte data = (byte)((singleByteValue - 1) & 0x03);
+        data |= (byte)(((multiByteValue - 1) & 0x07) << 2);
+        data |= (byte)((dimensionality == 3 ? 1 : 0) << 5);
+
+        return EncodeFixedFormatByte(data);
+    }
+
+    /// <summary>
+    /// Encode the Texture command's first fixed byte.
+    /// Bits 1-2: line texture (0-3).
+    /// Bit 3:    highlight (outline filled objects).
+    /// Bits 4-6: texture pattern (0-7).
+    /// </summary>
+    public static byte EncodeTextureFixedByte(byte lineTexture, bool highlight, byte texturePattern)
+    {
+        byte data = (byte)(lineTexture & 0x03);
+        data |= (byte)((highlight ? 1 : 0) << 2);
+        data |= (byte)((texturePattern & 0x07) << 3);
+
+        return EncodeFixedFormatByte(data);
+    }
+
+    /// <summary>
+    /// Encode the Text command's first fixed byte (rotation, path, spacing).
+    /// Bits 1-2: rotation (0-3).
+    /// Bits 3-4: path (0-3).
+    /// Bits 5-6: spacing (0-3).
+    /// </summary>
+    public static byte EncodeTextFixedByte1(byte rotation, byte path, byte spacing)
+    {
+        byte data = (byte)(rotation & 0x03);
+        data |= (byte)((path & 0x03) << 2);
+        data |= (byte)((spacing & 0x03) << 4);
+
+        return EncodeFixedFormatByte(data);
+    }
+
+    /// <summary>
+    /// Encode the Text command's second fixed byte (interrow, move attrs, cursor style).
+    /// Bits 1-2: interrow spacing (0-3).
+    /// Bits 3-4: move attributes (0-3).
+    /// Bits 5-6: cursor style (0-3).
+    /// </summary>
+    public static byte EncodeTextFixedByte2(byte interrowSpacing, byte moveAttributes, byte cursorStyle)
+    {
+        byte data = (byte)(interrowSpacing & 0x03);
+        data |= (byte)((moveAttributes & 0x03) << 2);
+        data |= (byte)((cursorStyle & 0x03) << 4);
+
+        return EncodeFixedFormatByte(data);
+    }
+
+    /// <summary>
+    /// Encode the Reset command's first byte.
+    /// Bit 1:    domain reset.
+    /// Bits 2-3: color mode reset (0-3).
+    /// Bits 4-6: screen/border color reset (0-7).
+    /// </summary>
+    public static byte EncodeResetByte1(bool domainReset, byte colorMode, byte screenBorder)
+    {
+        byte data = (byte)(domainReset ? 1 : 0);
+        data |= (byte)((colorMode & 0x03) << 1);
+        data |= (byte)((screenBorder & 0x07) << 3);
+
+        return EncodeFixedFormatByte(data);
+    }
+
+    /// <summary>
+    /// Encode the Reset command's second byte.
+    /// Bit 1: text/cursor reset.
+    /// Bit 2: blink reset.
+    /// Bit 3: protect unprotected fields.
+    /// Bit 4: texture attributes reset.
+    /// Bit 5: macros reset.
+    /// Bit 6: DRCS chars reset.
+    /// </summary>
+    public static byte EncodeResetByte2(bool textReset, bool blinkReset, bool protectFields, bool textureReset, bool macrosReset, bool drcsReset)
+    {
+        byte data = 0;
+        if (textReset) { data |= 1 << 0; }
+        if (blinkReset) { data |= 1 << 1; }
+        if (protectFields) { data |= 1 << 2; }
+        if (textureReset) { data |= 1 << 3; }
+        if (macrosReset) { data |= 1 << 4; }
+        if (drcsReset) { data |= 1 << 5; }
+
+        return EncodeFixedFormatByte(data);
+    }
 }

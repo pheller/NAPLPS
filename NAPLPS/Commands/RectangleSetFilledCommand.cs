@@ -2,7 +2,7 @@
 
 namespace NAPLPS.Commands;
 
-[AddCommand(200, "Rectangle Set Filled", "Will draw a filled reactangle from the specified point to the specified dimensions.")]
+[AddCommand(200, "Rectangle Set Filled", "Will draw a filled reactangle from the specified point to the specified dimensions.", Category = CommandCategory.Geometric, DslKeyword = "rectSetFilled")]
 public class RectangleSetFilledCommand : RectangleSetCommand
 {
     public RectangleSetFilledCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)

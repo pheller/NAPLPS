@@ -9,6 +9,7 @@ namespace NAPLPS.Commands;
 /// coordinate data, specified as a relative displacement from the intermediate
 /// point. The arc is not filled.
 /// </summary>
+[AddCommand(200, "Arc Outlined", "Draw an unfilled arc through start, mid and end points (relative).", Category = CommandCategory.Geometric, DslKeyword = "arcOutlined")]
 public class ArcOutlinedCommand : ArcCommand
 {
     public ArcOutlinedCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(false, state, opcode, operands)

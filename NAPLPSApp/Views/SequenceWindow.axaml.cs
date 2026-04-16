@@ -11,7 +11,7 @@ public partial class SequenceWindow : Window
         DataContext = new SequenceWindowViewModel();
     }
 
-    public SequenceWindow(DrawContext drawContext) : this()
+    public SequenceWindow(DrawContext drawContext, UndoManager? undoManager = null) : this()
     {
         var vectorPlot = this.Find<AvaPlot>("VectorPlot");
 
@@ -20,6 +20,6 @@ public partial class SequenceWindow : Window
             return;
         }
 
-        DataContext = new SequenceWindowViewModel(drawContext, vectorPlot);
+        DataContext = new SequenceWindowViewModel(drawContext, vectorPlot, undoManager);
     }
 }

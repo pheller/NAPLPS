@@ -10,6 +10,7 @@ namespace NAPLPS.Commands;
 /// are joined by a chord and the resulting figure is filled in the current color(s) with 
 /// the current texture pattern.
 /// </summary>
+[AddCommand(200, "Arc Set Filled", "Draw a filled (chorded) arc with absolute start, plus relative mid and end.", Category = CommandCategory.Geometric, DslKeyword = "arcSetFilled")]
 public class ArcSetFilledCommand : ArcCommand
 {
     public ArcSetFilledCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(true, state, opcode, operands)

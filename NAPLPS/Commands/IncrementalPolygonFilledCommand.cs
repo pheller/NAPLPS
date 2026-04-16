@@ -9,6 +9,7 @@ namespace NAPLPS.Commands;
 /// 3. If an opcode to turn off the draw flag is encountered, the drawing point
 ///    is returned to its last known location
 /// </summary>
+[AddCommand(240, "Incremental Polygon Filled", "Efficient filled polygon via 2-bit motion codes.", Category = CommandCategory.Incremental, DslKeyword = "incrPolyFilled")]
 public class IncrementalPolygonFilledCommand : GeometricDrawingCommandBase
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.MultiValueAndString;

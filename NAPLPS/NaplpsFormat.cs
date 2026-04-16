@@ -60,7 +60,12 @@ public partial class NaplpsFormat
         IsValid = true;
     }
 
-    private NaplpsFormat(NaplpsState state)
+    /// <summary>
+    /// Bare constructor: creates an empty format with the given state and no commands.
+    /// Used by the Telidraw compiler's BareFormat mode where the .td source is the
+    /// complete byte specification (no CAN+NSR sentinels added).
+    /// </summary>
+    internal NaplpsFormat(NaplpsState state)
     {
         State = state;
     }
@@ -302,7 +307,7 @@ public partial class NaplpsFormat
         State.RecordError(severity, type, message, opcode, streamPosition);
     }
 
-    private List<NaplpsSequence> ReadStream(BinaryReader reader)
+    private List<NaplpsSequence> ReadStream(BinaryReader reader, bool isMacroExpansion = false)
     {
         var commands = new List<NaplpsSequence>();
 
@@ -310,6 +315,15 @@ public partial class NaplpsFormat
         {
             while (!reader.IsEOF())
             {
+                // ANSI X3.110 §6.1.6.3: CAN terminates currently executing macros immediately.
+                // Only check inside macro expansion; at top level CAN is a no-op (the flag
+                // is cleared by the outer call when it returns).
+                if (isMacroExpansion && State.IsCancelRequested)
+                {
+                    State.IsCancelRequested = false;
+                    break;
+                }
+
                 var opcode = reader.ReadByte();
 
                 // We operate in 7 bit mode until we get 8 bits,
@@ -325,7 +339,8 @@ public partial class NaplpsFormat
                     continue;
                 }
 
-                var commandReference = State.InUseTable[opcode];
+                // Use ResolveByte so a pending SS2/SS3 single-shift gets consumed by this byte.
+                var commandReference = State.ResolveByte(opcode);
 
                 if (commandReference == null)
                 {
@@ -382,22 +397,31 @@ public partial class NaplpsFormat
     /// </summary>
     private bool HandleBufferedByte(byte opcode, BinaryReader reader, List<NaplpsSequence> commands)
     {
-        // If we're in macro definition mode, buffer bytes until END
+        // If we're in macro definition mode, buffer bytes until END.
+        // Body bytes are ALSO injected as synthetic raw commands so the Telidraw
+        // decompiler can see them and the round-trip preserves every byte.
         if (State.MacroBeingDefined != null)
         {
             if (IsEndCommand(opcode))
             {
-                // End macro definition
                 var macroName = State.MacroBeingDefined.Value;
                 var macroType = State.MacroDefType;
                 State.Macros[macroName] = [.. State.MacroBuffer];
                 State.MacroBeingDefined = null;
+
+                // Inject buffered body bytes as individual raw commands for decompiler fidelity.
+                foreach (var b in State.MacroBuffer)
+                {
+                    commands.Add(new NaplpsSequence(State.Clone(), new NaplpsCommand(State, b, [])));
+                }
+
                 State.MacroBuffer.Clear();
 
-                // If DEFP MACRO (type 1), execute the macro immediately
+                // Inject the END command itself.
+                commands.Add(new NaplpsSequence(State.Clone(), new ControlCommand(NaplpsControlCommands.End, State, opcode, [])));
+
                 if (macroType == 1 && State.Macros.TryGetValue(macroName, out var macroData))
                 {
-                    // Execute macro by parsing its bytes
                     using var macroStream = new MemoryStream(macroData);
                     using var macroReader = new BinaryReader(macroStream);
                     commands.AddRange(ReadStream(macroReader));
@@ -405,41 +429,51 @@ public partial class NaplpsFormat
             }
             else
             {
-                // Buffer this byte as part of the macro
                 State.MacroBuffer.Add(opcode);
             }
 
             return true;
         }
 
-        // If we're in DRCS definition mode, buffer bytes until END
+        // DRCS definition mode
         if (State.DrcsStartCode != null)
         {
             if (IsEndCommand(opcode))
             {
-                // End DRCS definition - parse the bitmap data
                 ParseDrcsData(State.DrcsStartCode.Value, State.DrcsBuffer);
                 State.DrcsStartCode = null;
+
+                foreach (var b in State.DrcsBuffer)
+                {
+                    commands.Add(new NaplpsSequence(State.Clone(), new NaplpsCommand(State, b, [])));
+                }
+
                 State.DrcsBuffer.Clear();
+                commands.Add(new NaplpsSequence(State.Clone(), new ControlCommand(NaplpsControlCommands.End, State, opcode, [])));
             }
             else
             {
-                // Buffer this byte as part of the DRCS data
                 State.DrcsBuffer.Add(opcode);
             }
 
             return true;
         }
 
-        // If we're in texture definition mode, buffer bytes until END
+        // Texture definition mode
         if (State.TextureBeingDefined != null)
         {
             if (IsEndCommand(opcode))
             {
-                // End texture definition - parse the pattern data
                 ParseTextureData(State.TextureBeingDefined.Value, State.TextureBuffer);
                 State.TextureBeingDefined = null;
+
+                foreach (var b in State.TextureBuffer)
+                {
+                    commands.Add(new NaplpsSequence(State.Clone(), new NaplpsCommand(State, b, [])));
+                }
+
                 State.TextureBuffer.Clear();
+                commands.Add(new NaplpsSequence(State.Clone(), new ControlCommand(NaplpsControlCommands.End, State, opcode, [])));
             }
             else
             {
@@ -603,7 +637,14 @@ public partial class NaplpsFormat
         else if (controlCommand == DefMacro) { StartMacroDefinition(additionalParameters, 0); }
         else if (controlCommand == DefPMacro) { StartMacroDefinition(additionalParameters, 1); }
         else if (controlCommand == DefTMacro) { StartMacroDefinition(additionalParameters, 2); }
-        else if (controlCommand == SingleShiftTwo) { ExecuteMacro(additionalParameters, commands); }
+        // ANSI X3.110 §6.1.3.3: SS2 invokes G2 into the in-use table for ONE next byte (nonlocking).
+        // Spec §5.5 macros are invoked by designating the Macro Set into G1/G2/G3 then transmitting
+        // a character from that invoked area — NOT via SS2.
+        else if (controlCommand == SingleShiftTwo) { State.DoSingleShiftTwo(); }
+        // §6.1.3.4: SS3 — same pattern with G3.
+        else if (controlCommand == SingleShiftThree) { State.DoSingleShiftThree(); }
+        // §6.1.6.4: SDC — null operation at the presentation layer.
+        else if (controlCommand == ServiceDelimiterCharacter) { /* no-op per spec */ }
         else if (controlCommand == DefDRCS) { if (additionalParameters.Count > 0) { State.DrcsStartCode = additionalParameters[0]; State.DrcsBuffer.Clear(); } }
         else if (controlCommand == DefTexture) { if (additionalParameters.Count > 0) { State.TextureBeingDefined = additionalParameters[0]; State.TextureBuffer.Clear(); } }
         else if (controlCommand == Repeat)
@@ -781,7 +822,11 @@ public partial class NaplpsFormat
             {
                 using var macroStream = new MemoryStream(macroData);
                 using var macroReader = new BinaryReader(macroStream);
-                commands.AddRange(ReadStream(macroReader));
+                // ANSI X3.110 §6.1.6.3: pass isMacroExpansion = true so a CAN inside the
+                // macro body terminates it immediately. The outer ReadStream resumes
+                // at the next byte after the macro invocation.
+                commands.AddRange(ReadStream(macroReader, isMacroExpansion: true));
+                State.IsCancelRequested = false;
             }
         }
     }

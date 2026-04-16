@@ -2,6 +2,7 @@
 
 namespace NAPLPS.Commands;
 
+[AddCommand(80, "Numerical Data", "Raw numeric operand byte (filler in the GeneralPDISet 0xC0-0xFF range).", Category = CommandCategory.Data, DslKeyword = "numdata")]
 public class NumericalDataCommand : NaplpsCommand
 {
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.

@@ -8,6 +8,7 @@ global using IOPath = System.IO.Path;
 global using NAPLPSApp.ViewModels;
 global using NAPLPSApp.Views;
 global using NAPLPSApp.Classes;
+global using NAPLPSApp.Editor;
 
 // NAPLPS
 global using NAPLPS;

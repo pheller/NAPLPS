@@ -8,6 +8,7 @@ namespace NAPLPS.Commands;
 /// displacement from the start point, and the end point is the third block of coordinate data,
 /// specified as a relative displacement from the intermediate point. The arc is not filled.
 /// </summary>
+[AddCommand(200, "Arc Set Outlined", "Draw an unfilled arc with absolute start, plus relative mid and end.", Category = CommandCategory.Geometric, DslKeyword = "arcSetOutlined")]
 public class ArcSetOutlinedCommand : ArcCommand
 {
     public ArcSetOutlinedCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(true, state, opcode, operands)

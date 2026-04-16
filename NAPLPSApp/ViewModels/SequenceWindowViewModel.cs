@@ -64,9 +64,24 @@ public partial class SequenceWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string extraDetails = string.Empty;
 
+    [ObservableProperty]
+    private string searchText = string.Empty;
+
+    /// <summary>Toggle between raw hex operand display and decoded human-readable form.</summary>
+    [ObservableProperty]
+    private bool isDecodedFormVisible = false;
+
+    /// <summary>
+    /// Set of command indices the user has bookmarked. F2 toggles, NextBookmark / PreviousBookmark
+    /// cycle through. Lives only as long as this ViewModel \u2014 not persisted across sessions yet.
+    /// </summary>
+    public HashSet<int> Bookmarks { get; } = [];
+
     private readonly AvaPlot avaPlot;
 
     private readonly DrawContext context;
+
+    private readonly UndoManager? undoManager;
 
     private NaplpsFormat loadedFile => context.NAPLPS;
 
@@ -80,10 +95,11 @@ public partial class SequenceWindowViewModel : ViewModelBase
         this.avaPlot = new AvaPlot();
     }
 
-    public SequenceWindowViewModel(DrawContext context, AvaPlot avaPlot)
+    public SequenceWindowViewModel(DrawContext context, AvaPlot avaPlot, UndoManager? undoManager = null)
     {
         this.context = context;
         this.avaPlot = avaPlot;
+        this.undoManager = undoManager;
 
         this.avaPlot.Plot.Axes.SetLimits(0, 1, 0, 1);
 
@@ -443,7 +459,17 @@ public partial class SequenceWindowViewModel : ViewModelBase
             return;
         }
 
-        loadedFile.Commands.RemoveAt(index);
+        // Route through the shared UndoManager when available so this delete is undoable
+        // alongside MainWindow tool actions. Falls back to direct removal only if no
+        // UndoManager was passed (legacy parameterless ctor path).
+        if (undoManager != null)
+        {
+            undoManager.Execute(new RemoveCommandsAction(loadedFile, index), loadedFile);
+        }
+        else
+        {
+            loadedFile.Commands.RemoveAt(index);
+        }
 
         LoadCommands();
 
@@ -453,6 +479,283 @@ public partial class SequenceWindowViewModel : ViewModelBase
         }
 
         SelectedIndex = CurrentFrame - 1;
+    }
+
+    /// <summary>
+    /// Open the operand editor for the selected command. When the user commits, replace
+    /// the operands via CompositeAction(Remove + InsertAt) so the change is undoable and
+    /// the command gets re-instantiated with the new bytes.
+    /// </summary>
+    [RelayCommand]
+    private async Task EditOperands(Window parent)
+    {
+        if (!TryGetSelectedIndex(out var index))
+        {
+            return;
+        }
+
+        var src = loadedFile.Commands[index].Command;
+        var newOperands = await OperandEditWindow.PromptAsync(parent, src.OpCode, new NaplpsOperands(src.Operands));
+
+        if (newOperands == null)
+        {
+            return;
+        }
+
+        // Swap the command: remove the old one and insert a fresh instance with new operands.
+        var remove = new RemoveCommandsAction(loadedFile, index);
+        var insert = new InsertAtAction(index, [(src.OpCode, newOperands)]);
+        var composite = CompositeAction.Compose(remove, insert);
+
+        if (undoManager != null)
+        {
+            undoManager.Execute(composite, loadedFile);
+        }
+        else
+        {
+            composite.Execute(loadedFile);
+        }
+
+        LoadCommands();
+        SelectedIndex = index;
+    }
+
+    /// <summary>
+    /// Move the selected command one position toward the start of the sequence.
+    /// Composes a RemoveCommandsAction + InsertAtAction so it's a single undo step.
+    /// </summary>
+    [RelayCommand]
+    private void MoveUp()
+    {
+        if (!TryGetSelectedIndex(out var index) || index <= 0)
+        {
+            return;
+        }
+
+        ExecuteMoveAction(index, index - 1);
+        SelectedIndex = index - 1;
+    }
+
+    /// <summary>Move the selected command one position toward the end.</summary>
+    [RelayCommand]
+    private void MoveDown()
+    {
+        if (!TryGetSelectedIndex(out var index) || index >= loadedFile.Commands.Count - 1)
+        {
+            return;
+        }
+
+        ExecuteMoveAction(index, index + 1);
+        SelectedIndex = index + 1;
+    }
+
+    /// <summary>Duplicate the selected command immediately after itself.</summary>
+    [RelayCommand]
+    private void DuplicateSelected()
+    {
+        if (!TryGetSelectedIndex(out var index))
+        {
+            return;
+        }
+
+        var src = loadedFile.Commands[index].Command;
+        var clone = (src.OpCode, new NaplpsOperands(src.Operands));
+
+        var action = new InsertAtAction(index + 1, [clone]);
+
+        if (undoManager != null)
+        {
+            undoManager.Execute(action, loadedFile);
+        }
+        else
+        {
+            action.Execute(loadedFile);
+        }
+
+        LoadCommands();
+        SelectedIndex = index + 1;
+    }
+
+    /// <summary>Copy the selected command (or all bookmarked commands) to the clipboard.</summary>
+    [RelayCommand]
+    private void Copy()
+    {
+        var indices = GetActionTargetIndices();
+
+        if (indices.Count == 0)
+        {
+            return;
+        }
+
+        CommandClipboard.Copy(indices.Select(i => loadedFile.Commands[i]));
+    }
+
+    /// <summary>Copy + delete the selected command in one undoable composite action.</summary>
+    [RelayCommand]
+    private void Cut()
+    {
+        var indices = GetActionTargetIndices();
+
+        if (indices.Count == 0)
+        {
+            return;
+        }
+
+        CommandClipboard.Copy(indices.Select(i => loadedFile.Commands[i]));
+
+        // Delete in descending order so each remove sees stable indices.
+        var toRemove = indices.OrderByDescending(i => i).ToList();
+
+        if (undoManager != null)
+        {
+            var actions = toRemove.Select(i => (IEditorAction)new RemoveCommandsAction(loadedFile, i)).ToArray();
+            undoManager.Execute(CompositeAction.Compose(actions), loadedFile);
+        }
+        else
+        {
+            foreach (var i in toRemove)
+            {
+                loadedFile.Commands.RemoveAt(i);
+            }
+        }
+
+        LoadCommands();
+    }
+
+    /// <summary>Paste clipboard contents immediately after the selected command (or at end if none).</summary>
+    [RelayCommand]
+    private void Paste()
+    {
+        if (!CommandClipboard.HasContent)
+        {
+            return;
+        }
+
+        int insertAt = TryGetSelectedIndex(out var index)
+            ? index + 1
+            : loadedFile.Commands.Count;
+
+        var action = CommandClipboard.BuildPasteAction(insertAt);
+
+        if (action == null)
+        {
+            return;
+        }
+
+        if (undoManager != null)
+        {
+            undoManager.Execute(action, loadedFile);
+        }
+        else
+        {
+            action.Execute(loadedFile);
+        }
+
+        LoadCommands();
+        SelectedIndex = insertAt;
+    }
+
+    /// <summary>Toggle a bookmark on the selected command.</summary>
+    [RelayCommand]
+    private void ToggleBookmark()
+    {
+        if (!TryGetSelectedIndex(out var index))
+        {
+            return;
+        }
+
+        if (!Bookmarks.Add(index))
+        {
+            Bookmarks.Remove(index);
+        }
+
+        OnPropertyChanged(nameof(Bookmarks));
+    }
+
+    /// <summary>Jump to the next bookmark after the selected index, wrapping around.</summary>
+    [RelayCommand]
+    private void NextBookmark()
+    {
+        if (Bookmarks.Count == 0)
+        {
+            return;
+        }
+
+        var next = Bookmarks.Where(b => b > SelectedIndex).DefaultIfEmpty(Bookmarks.Min()).Min();
+        SelectedIndex = next;
+    }
+
+    /// <summary>Jump to the previous bookmark before the selected index, wrapping around.</summary>
+    [RelayCommand]
+    private void PreviousBookmark()
+    {
+        if (Bookmarks.Count == 0)
+        {
+            return;
+        }
+
+        var prev = Bookmarks.Where(b => b < SelectedIndex).DefaultIfEmpty(Bookmarks.Max()).Max();
+        SelectedIndex = prev;
+    }
+
+    /// <summary>Clear all bookmarks.</summary>
+    [RelayCommand]
+    private void ClearBookmarks()
+    {
+        Bookmarks.Clear();
+        OnPropertyChanged(nameof(Bookmarks));
+    }
+
+    private bool TryGetSelectedIndex(out int index)
+    {
+        if (SelectedCommand == null)
+        {
+            index = -1;
+            return false;
+        }
+
+        index = SelectedCommand.Index - 1;
+
+        if (index < 0 || index >= loadedFile.Commands.Count)
+        {
+            index = -1;
+            return false;
+        }
+
+        return true;
+    }
+
+    private List<int> GetActionTargetIndices()
+    {
+        // For now, single-selection only. Multi-select via canvas / shift-click will route
+        // through SelectedIndices once the SelectTool change in Phase 3.4 lands.
+        return TryGetSelectedIndex(out var i) ? [i] : [];
+    }
+
+    private void ExecuteMoveAction(int from, int to)
+    {
+        if (from == to)
+        {
+            return;
+        }
+
+        var src = loadedFile.Commands[from].Command;
+        var snapshot = (src.OpCode, new NaplpsOperands(src.Operands));
+
+        var remove = new RemoveCommandsAction(loadedFile, from);
+        var insert = new InsertAtAction(to, [snapshot]);
+        var composite = CompositeAction.Compose(remove, insert);
+
+        if (undoManager != null)
+        {
+            undoManager.Execute(composite, loadedFile);
+        }
+        else
+        {
+            composite.Execute(loadedFile);
+        }
+
+        LoadCommands();
     }
 
     [RelayCommand]
@@ -474,17 +777,45 @@ public partial class SequenceWindowViewModel : ViewModelBase
         Commands.Clear();
 
         var index = 0;
+        var filter = SearchText?.Trim() ?? string.Empty;
 
         foreach (var sequence in loadedFile.Commands)
         {
+            ++index;
+
+            var opcodeHex = sequence.Command.OpCode.ToString("X2");
+            var commandType = sequence.Command.ToString().Replace("Command", string.Empty);
+
+            // Filter by hex opcode, command type name, or DSL keyword from the registry.
+            if (filter.Length > 0)
+            {
+                var keyword = CommandRegistry.GetByType(sequence.Command.GetType())?.DslKeyword ?? string.Empty;
+
+                if (!opcodeHex.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                    && !commandType.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                    && !keyword.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+            }
+
             Commands.Add(new CommandInfo
             {
-                Index = ++index,
-                OpCode = sequence.Command.OpCode.ToString("X2"),
-                CommandType = sequence.Command.ToString().Replace("Command", string.Empty),
+                Index = index,
+                OpCode = opcodeHex,
+                CommandType = commandType,
                 State = sequence.State.ToString(),
             });
         }
+    }
+
+    /// <summary>
+    /// Generated by CommunityToolkit.Mvvm when SearchText changes.
+    /// Re-runs the LoadCommands filter so the grid reflects the new query.
+    /// </summary>
+    partial void OnSearchTextChanged(string value)
+    {
+        LoadCommands();
     }
 
     private static string DecodeEscSequence(EscCommand escCommand)

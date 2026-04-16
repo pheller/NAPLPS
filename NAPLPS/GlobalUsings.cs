@@ -2,6 +2,7 @@
 
 // .NET
 // NAPLPS
+global using NAPLPS;
 global using NAPLPS.Commands;
 global using NAPLPS.Helpers;
 // SixLabors

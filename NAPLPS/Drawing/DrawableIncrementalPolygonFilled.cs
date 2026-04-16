@@ -26,6 +26,12 @@ public class DrawableIncrementalPolygonFilled : Drawable, IDrawable
             return;
         }
 
+        // ANSI X3.110 §5.3.2.5.1: a transparent drawing color produces no output.
+        if (state.IsTransparent)
+        {
+            return;
+        }
+
         // Get starting position from current pen + offset
         var startPos = state.Pen;
         startPos.X += _command.StartOffset.X;

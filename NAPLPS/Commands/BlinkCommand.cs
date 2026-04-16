@@ -11,6 +11,7 @@ namespace NAPLPS.Commands;
 /// If additional data bytes follow the start delay, another blink process is started implicitly
 /// with the palette entry incremented using the SET COLOR incrementing algorithm.
 /// </summary>
+[AddCommand(240, "Blink", "Animate a palette entry between two colors over specified on/off intervals.", Category = CommandCategory.Attribute, DslKeyword = "blink")]
 internal class BlinkCommand : NaplpsCommand
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.FixedAndSingleValue;

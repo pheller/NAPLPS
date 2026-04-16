@@ -68,12 +68,12 @@ public class ProportionalSpacingTests
     public void ProportionalDisplacement_DefaultCharSize()
     {
         // Default char size: 1/40 = 0.025. Multiply by 256 = 6.4, truncate to 6.
-        // This should use row 6 of the displacement table.
+        // Per the PP3-matching formula, displacement = charFieldWidth * disp / clampedN.
+        // Row 0 (clampedN=6), class 9 (space) → disp = 6 → 0.025 * 6 / 6 = 0.025.
         float defaultWidth = 1.0f / 40.0f;
         float dispSpace = DrawableAsciiChar.GetProportionalDisplacement(defaultWidth, ' ');
 
-        // Row 6, class 9 → displacement = 6/256 = 0.0234375
-        Assert.AreEqual(6f / 256f, dispSpace, 0.0001f);
+        Assert.AreEqual(defaultWidth, dispSpace, 0.0001f);
     }
 
     [TestMethod]

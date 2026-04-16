@@ -7,6 +7,7 @@ namespace NAPLPS.Commands;
 /// well as select the drawing color for modes 1 and 2, and the background color
 /// for mode 2.
 /// </summary>
+[AddCommand(220, "Select Color", "Pick foreground (and optional background) color index; sets color mode 0/1/2.", Category = CommandCategory.Attribute, DslKeyword = "color")]
 public class SelectColorCommand : NaplpsCommand
 {
     public static new readonly NaplpsOperandType OperandType = NaplpsOperandType.SingleValue;

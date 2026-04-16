@@ -41,6 +41,11 @@ sealed class Program
                 return HandleDiffCommand(args);
             }
 
+            if (command == "compile" || command == "--compile" || command == "-c")
+            {
+                return HandleCompileCommand(args);
+            }
+
             if (command == "help" || command == "--help" || command == "-h" || command == "-?")
             {
                 PrintHelp();
@@ -69,6 +74,7 @@ sealed class Program
         Console.WriteLine("  export <file> [output] [options]        Export file to image format");
         Console.WriteLine("  export --batch <dir> [options]          Batch export all .nap files");
         Console.WriteLine("  diff <file1> <file2> [options]          Compare two NAPLPS files");
+        Console.WriteLine("  compile <file.td> [-o output.nap]       Compile Telidraw source to NAPLPS");
         Console.WriteLine();
         Console.WriteLine("Export Options:");
         Console.WriteLine("  --format=png|gif|apng Output format (default: png)");
@@ -454,6 +460,103 @@ sealed class Program
 
         Console.Error.WriteLine($"Done. {processed} exported, {failed} failed of {total} total.");
         return failed > 0 ? 1 : 0;
+    }
+
+    /// <summary>
+    /// Compile a Telidraw source file (.td) to a NAPLPS binary (.nap).
+    /// Usage: NAPLPSApp compile input.td [-o output.nap]
+    /// When -o is omitted, output goes to input.nap next to the source.
+    /// </summary>
+    private static int HandleCompileCommand(string[] args)
+    {
+        if (args.Length < 2)
+        {
+            Console.Error.WriteLine("Error: Telidraw source file required.");
+            Console.Error.WriteLine("Usage: NAPLPSApp compile <file.td> [-o <output.nap>]");
+            return 1;
+        }
+
+        var inputPath = args[1];
+        string? outputPath = null;
+
+        for (int i = 2; i < args.Length; i++)
+        {
+            if (args[i] == "-o" || args[i] == "--output")
+            {
+                if (i + 1 >= args.Length)
+                {
+                    Console.Error.WriteLine("Error: -o requires a path argument.");
+                    return 1;
+                }
+                outputPath = args[++i];
+            }
+            else if (args[i].StartsWith("--output="))
+            {
+                outputPath = args[i]["--output=".Length..];
+            }
+            else if (args[i].StartsWith("-o="))
+            {
+                outputPath = args[i]["-o=".Length..];
+            }
+        }
+
+        if (!System.IO.File.Exists(inputPath))
+        {
+            Console.Error.WriteLine($"Error: Input file not found: {inputPath}");
+            return 1;
+        }
+
+        outputPath ??= IOPath.ChangeExtension(inputPath, ".nap");
+
+        try
+        {
+            var source = System.IO.File.ReadAllText(inputPath);
+            var tokens = new NAPLPS.Telidraw.Lexer(source).Tokenize();
+            var lexer = new NAPLPS.Telidraw.Lexer(source);
+            var relexed = lexer.Tokenize();
+
+            foreach (var diag in lexer.Diagnostics)
+            {
+                Console.Error.WriteLine($"lex: {diag}");
+            }
+
+            var parser = new NAPLPS.Telidraw.Parser(relexed);
+            var program = parser.Parse();
+
+            foreach (var diag in parser.Diagnostics)
+            {
+                Console.Error.WriteLine($"parse: {diag}");
+            }
+
+            if (parser.Diagnostics.Count > 0)
+            {
+                Console.Error.WriteLine($"Aborting compile due to {parser.Diagnostics.Count} parse error(s).");
+                return 1;
+            }
+
+            var compiler = new NAPLPS.Telidraw.Compiler(program);
+            var format = compiler.Compile();
+
+            foreach (var diag in compiler.Diagnostics)
+            {
+                Console.Error.WriteLine($"compile: {diag}");
+            }
+
+            if (compiler.Diagnostics.Count > 0)
+            {
+                Console.Error.WriteLine($"Aborting compile due to {compiler.Diagnostics.Count} compile error(s).");
+                return 1;
+            }
+
+            format.Save(outputPath);
+            Console.WriteLine($"Compiled {inputPath} \u2192 {outputPath} ({format.Commands.Count} commands, {new System.IO.FileInfo(outputPath).Length} bytes)");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: {ex.Message}");
+            return 1;
+        }
     }
 
     private static int HandleDiffCommand(string[] args)
