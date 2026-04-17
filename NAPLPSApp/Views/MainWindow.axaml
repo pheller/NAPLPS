@@ -112,6 +112,18 @@
 							  i:MenuItem.Icon="fa-solid fa-ban"/>
 				</MenuItem>
 				<Separator/>
+				<MenuItem Header="_Network" i:MenuItem.Icon="fa-solid fa-network-wired">
+					<MenuItem Header="_Start Listener" Command="{Binding StartNetworkListenerCommand}"
+							  IsEnabled="{Binding !IsNetworkListening}" i:MenuItem.Icon="fa-solid fa-circle-play"
+							  ToolTip.Tip="Begin accepting incoming NAPLPS streams on the configured port (default 5510)"/>
+					<MenuItem Header="S_top Listener" Command="{Binding StopNetworkListenerCommand}"
+							  IsEnabled="{Binding IsNetworkListening}" i:MenuItem.Icon="fa-solid fa-circle-stop"/>
+					<Separator/>
+					<MenuItem Header="Send _Document to Remote" Command="{Binding SendDocumentToRemoteCommand}"
+							  IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-paper-plane"
+							  ToolTip.Tip="Push the current .nap byte stream to the configured remote host:port"/>
+				</MenuItem>
+				<Separator/>
 				<MenuItem Header="_Re-render" Command="{Binding RerenderCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-recycle"/>
 				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding IsAnimated}" i:MenuItem.Icon="fa-solid fa-check"/>
 				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding !IsAnimated}"/>
@@ -597,6 +609,29 @@
 							</ComboBox>
 							<CheckBox Content="Transparent" IsChecked="{Binding ColorTransparent}" ToolTip.Tip="When checked, the next color commit emits SET COLOR transparent"/>
 							<Button Content="Emit color-mode command" Command="{Binding ApplyColorModeCommand}" HorizontalAlignment="Stretch"/>
+						</StackPanel>
+					</Expander>
+
+					<Expander Header="Network" IsExpanded="False">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
+							<TextBlock Text="{Binding NetworkStatus}" FontSize="11" Opacity="0.85" TextWrapping="Wrap"/>
+							<Separator Margin="0,2"/>
+							<TextBlock Text="Listen on port:" FontSize="11"/>
+							<NumericUpDown Value="{Binding NetworkListenPort}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" HorizontalAlignment="Stretch"
+										   IsEnabled="{Binding !IsNetworkListening}"/>
+							<Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+								<Button Grid.Column="0" Content="Start" Command="{Binding StartNetworkListenerCommand}"
+										IsEnabled="{Binding !IsNetworkListening}" HorizontalAlignment="Stretch"/>
+								<Button Grid.Column="1" Content="Stop" Command="{Binding StopNetworkListenerCommand}"
+										IsEnabled="{Binding IsNetworkListening}" HorizontalAlignment="Stretch"/>
+							</Grid>
+							<Separator Margin="0,2"/>
+							<TextBlock Text="Remote host:" FontSize="11"/>
+							<TextBox Text="{Binding NetworkRemoteHost}"/>
+							<TextBlock Text="Remote port:" FontSize="11"/>
+							<NumericUpDown Value="{Binding NetworkRemotePort}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" HorizontalAlignment="Stretch"/>
+							<Button Content="Send current document" Command="{Binding SendDocumentToRemoteCommand}"
+									IsEnabled="{Binding IsFileLoaded}" HorizontalAlignment="Stretch"/>
 						</StackPanel>
 					</Expander>
 

@@ -993,6 +993,92 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private int colorModeIndex;  // 0 = direct RGB, 1 = palette mode 1, 2 = palette mode 2
     [ObservableProperty] private bool colorTransparent;
 
+    // ---- Networking (TCP send/receive) ---------------------------------------------------
+    private readonly NAPLPSApp.Networking.NaplpsNetworkService _network = new();
+
+    [ObservableProperty] private bool isNetworkListening;
+    [ObservableProperty] private int networkListenPort = 5510;
+    [ObservableProperty] private string networkRemoteHost = "127.0.0.1";
+    [ObservableProperty] private int networkRemotePort = 5510;
+    [ObservableProperty] private string networkStatus = "Network: idle";
+
+    [RelayCommand]
+    private void StartNetworkListener()
+    {
+        // Hook events on first start (idempotent per service instance).
+        _network.StatusChanged -= HandleNetworkStatus;
+        _network.StatusChanged += HandleNetworkStatus;
+        _network.BytesReceived -= OnNetworkBytesReceived;
+        _network.BytesReceived += OnNetworkBytesReceived;
+
+        _network.ClearReceivedBuffer();
+        _network.StartListening(NetworkListenPort);
+        IsNetworkListening = true;
+    }
+
+    [RelayCommand]
+    private void StopNetworkListener()
+    {
+        _network.StopListening();
+        IsNetworkListening = false;
+    }
+
+    [RelayCommand]
+    private async Task SendDocumentToRemote()
+    {
+        if (loadedFile == null)
+        {
+            NetworkStatus = "Network: no document loaded";
+            return;
+        }
+
+        try
+        {
+            NetworkStatus = $"Network: sending to {NetworkRemoteHost}:{NetworkRemotePort}...";
+            var bytes = loadedFile.ToBytes();
+            await NAPLPSApp.Networking.NaplpsNetworkService.SendAsync(NetworkRemoteHost, NetworkRemotePort, bytes);
+            NetworkStatus = $"Network: sent {bytes.Length} bytes to {NetworkRemoteHost}:{NetworkRemotePort}";
+        }
+        catch (System.Exception ex)
+        {
+            NetworkStatus = $"Network: send failed — {ex.Message}";
+        }
+    }
+
+    private void HandleNetworkStatus(string status)
+    {
+        // Network events fire on worker threads; marshal back to UI thread for VM updates.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            NetworkStatus = $"Network: {status}";
+        });
+    }
+
+    private void OnNetworkBytesReceived(byte[] _)
+    {
+        // Re-parse the entire received buffer and replace the loaded document. Cheap for
+        // small streams, would need incremental rendering for large ones — defer that.
+        Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+        {
+            try
+            {
+                var bytes = _network.SnapshotReceivedBuffer();
+                if (bytes.Length == 0) { return; }
+
+                loadedFile = NaplpsFormat.FromBytes(bytes);
+                IsFileLoaded = true;
+                IsEditorMode = false;  // network-received content is view-mode by default
+                BuildDrawContext();
+                await UpdateCanvas();
+                NetworkStatus = $"Network: rendered {bytes.Length} received bytes";
+            }
+            catch (System.Exception ex)
+            {
+                NetworkStatus = $"Network: parse error — {ex.Message}";
+            }
+        });
+    }
+
     [RelayCommand]
     private void ApplyColorMode()
     {
