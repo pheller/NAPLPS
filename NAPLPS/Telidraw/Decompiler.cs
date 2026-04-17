@@ -634,16 +634,22 @@ public static class Decompiler
 
     private static string Fmt(float value)
     {
-        // Common NAPLPS fractions and their decimal equivalents (within 9-bit precision).
-        // If the value matches one of these, emit the fraction form for readability.
-        if (TryFormatAsFraction(value, 40, out var frac)) { return frac; }
-        if (TryFormatAsFraction(value, 128, out frac)) { return frac; }
-        if (TryFormatAsFraction(value, 64, out frac)) { return frac; }
+        // Try the ENCODER's actual denominators FIRST so any value the encoder can hit
+        // round-trips byte-exact via the fraction literal `N/D`. NAPLPS encodes coords as
+        // 1 sign bit + (totalBits-1) fraction bits at weights 1/2, 1/4, ..., 1/2^(totalBits-1).
+        // Default mv=3 → 9 bits → 8 fraction bits → denominator 256.
+        // mv=2 → 6 bits → 5 fraction → 32. mv=4 → 12 bits → 11 fraction → 2048.
+        if (TryFormatAsFraction(value, 256, out var frac)) { return frac; }
+        if (TryFormatAsFraction(value, 2048, out frac)) { return frac; }
         if (TryFormatAsFraction(value, 32, out frac)) { return frac; }
+
+        // Pretty-printable fractions for human-readable values that happen to align.
+        if (TryFormatAsFraction(value, 40, out frac)) { return frac; }
+        if (TryFormatAsFraction(value, 128, out frac)) { return frac; }
         if (TryFormatAsFraction(value, 80, out frac)) { return frac; }
 
-        // Fall back to decimal. Use enough precision to round-trip through EncodeVertex2D.
-        return value.ToString("0.####", CultureInfo.InvariantCulture);
+        // Fall back to high-precision decimal (8 digits captures all single-precision floats).
+        return value.ToString("0.########", CultureInfo.InvariantCulture);
     }
 
     private static bool TryFormatAsFraction(float value, int denominator, out string result)
@@ -651,7 +657,10 @@ public static class Decompiler
         float numerator = value * denominator;
         int intNumerator = (int)MathF.Round(numerator);
 
-        if (MathF.Abs(numerator - intNumerator) < 0.01f && intNumerator != 0)
+        // Tighter tolerance — the previous 0.01 was sloppy enough to false-positive on
+        // values that don't actually align to the denominator, producing wrong bytes after
+        // round-trip. 1e-4 catches genuine fraction matches without false positives.
+        if (MathF.Abs(numerator - intNumerator) < 1e-4f && intNumerator != 0)
         {
             result = $"{intNumerator}/{denominator}";
             return true;
