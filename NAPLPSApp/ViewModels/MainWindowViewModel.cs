@@ -102,6 +102,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ArcTool arcTool = new();
     private readonly TextTool textTool = new();
     private readonly FillTool fillTool = new();
+    private readonly IncrementalLineTool incrementalLineTool = new();
+    private readonly IncrementalPolygonTool incrementalPolygonTool = new();
+    private readonly IncrementalPointTool incrementalPointTool = new();
 
     /// <summary>
     /// Exposes the TextTool instance to XAML so the Attributes panel can bind directly
@@ -118,6 +121,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(IsArcToolActive))]
     [NotifyPropertyChangedFor(nameof(IsTextToolActive))]
     [NotifyPropertyChangedFor(nameof(IsFillToolActive))]
+    [NotifyPropertyChangedFor(nameof(IsIncrementalLineToolActive))]
+    [NotifyPropertyChangedFor(nameof(IsIncrementalPolygonToolActive))]
+    [NotifyPropertyChangedFor(nameof(IsIncrementalPointToolActive))]
     [NotifyPropertyChangedFor(nameof(ActiveToolName))]
     private EditorToolBase activeTool;
 
@@ -231,6 +237,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool IsArcToolActive => ActiveTool is ArcTool;
     public bool IsTextToolActive => ActiveTool is TextTool;
     public bool IsFillToolActive => ActiveTool is FillTool;
+    public bool IsIncrementalLineToolActive => ActiveTool is IncrementalLineTool;
+    public bool IsIncrementalPolygonToolActive => ActiveTool is IncrementalPolygonTool;
+    public bool IsIncrementalPointToolActive => ActiveTool is IncrementalPointTool;
     public string ActiveToolName => ActiveTool?.Name ?? "Select";
 
     public MainWindowViewModel()
@@ -749,6 +758,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             "Arc" => arcTool,
             "Text" => textTool,
             "Fill" => fillTool,
+            "IncrementalLine" => incrementalLineTool,
+            "IncrementalPolygon" => incrementalPolygonTool,
+            "IncrementalPoint" => incrementalPointTool,
             _ => selectTool
         };
 

@@ -327,6 +327,18 @@
 							  Command="{Binding SetActiveToolCommand}" CommandParameter="Fill" Padding="6">
 					<i:Icon Value="fa-solid fa-fill-drip" FontSize="16"/>
 				</ToggleButton>
+				<ToggleButton IsChecked="{Binding IsIncrementalLineToolActive}" ToolTip.Tip="Scribble (IncrementalLine) — free-form pen-drag path"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="IncrementalLine" Padding="6">
+					<i:Icon Value="fa-solid fa-signature" FontSize="16"/>
+				</ToggleButton>
+				<ToggleButton IsChecked="{Binding IsIncrementalPolygonToolActive}" ToolTip.Tip="Scribble Filled (IncrementalPolygonFilled)"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="IncrementalPolygon" Padding="6">
+					<i:Icon Value="fa-solid fa-paintbrush" FontSize="16"/>
+				</ToggleButton>
+				<ToggleButton IsChecked="{Binding IsIncrementalPointToolActive}" ToolTip.Tip="Raster Paint (IncrementalPoint) — drag to paint 1-bit pixels"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="IncrementalPoint" Padding="6">
+					<i:Icon Value="fa-solid fa-pen-nib" FontSize="16"/>
+				</ToggleButton>
 				<Separator Margin="0,4"/>
 
 				<!-- Fill mode: independent toggle (depressed = filled). Chevron flyout picks

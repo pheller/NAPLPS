@@ -455,26 +455,88 @@ public static class NaplpsCommandBuilder
     /// Stub. The bitstring encoding is implemented when the Phase 4 IncrementalPoint editor
     /// tool lands — see plan.
     /// </summary>
+    /// <summary>
+    /// Encode a pixel bit-stream for IncrementalPoint. <paramref name="pixelValues"/> is
+    /// an array of per-pixel intensities (0..2^bitsPerPixel-1). Pixels are packed MSB-first
+    /// into the 6-bit data area of each operand byte (numerical-data range). First byte
+    /// sits in operands[0] as the "bits-per-pixel" header (1,2,4,8) per spec §5.3.1.
+    /// </summary>
     public static (byte opcode, NaplpsOperands operands) BuildIncrementalPoint(int bitsPerPixel, int[] pixelValues)
     {
-        throw new NotImplementedException("IncrementalPoint bitstring encoder lands with the Phase 4 raster paint tool.");
+        var operands = new NaplpsOperands();
+
+        // Header byte: encode bitsPerPixel in bits 1-3 (1=1bpp, 2=2bpp, 4=4bpp, 8=8bpp).
+        // Bit 7/8 forms the numerical-data base so this byte is a valid operand byte.
+        byte header = (byte)(0xC0 | (bitsPerPixel & 0x3F));
+        operands.Add(header);
+
+        // Pack pixel values into a bit buffer, MSB-first per pixel.
+        var bits = new List<bool>(pixelValues.Length * bitsPerPixel);
+        foreach (var px in pixelValues)
+        {
+            for (int i = bitsPerPixel - 1; i >= 0; i--)
+            {
+                bits.Add(((px >> i) & 1) != 0);
+            }
+        }
+
+        // Emit 6 bits per operand byte (data bits 1-6), MSB first in bit 5 down to bit 0.
+        for (int i = 0; i < bits.Count; i += 6)
+        {
+            byte b = 0xC0;
+            for (int bit = 0; bit < 6 && i + bit < bits.Count; bit++)
+            {
+                if (bits[i + bit])
+                {
+                    b |= (byte)(1 << (5 - bit));
+                }
+            }
+            operands.Add(b);
+        }
+
+        return (OpIncrementalPoint, operands);
     }
 
     /// <summary>
-    /// Stub. The 2-bit motion-code encoding is implemented when the Phase 4 IncrementalLine
-    /// (scribble) tool lands — see plan.
+    /// Encode an IncrementalLine motion-code stream. <paramref name="stepDx"/>/<paramref name="stepDy"/>
+    /// is the base step size (signed deltas); <paramref name="motionCodes"/> is an array of
+    /// 2-bit codes (0-3): 00=meta, 01/10/11=step/draw variants per §5.3.2.4.4 "rolling pen"
+    /// encoding. Each operand byte packs 3 codes MSB-first in bits 5-0.
     /// </summary>
     public static (byte opcode, NaplpsOperands operands) BuildIncrementalLine(float stepDx, float stepDy, byte[] motionCodes)
     {
-        throw new NotImplementedException("IncrementalLine bitstring encoder lands with the Phase 4 scribble tool.");
+        var operands = NaplpsEncoder.EncodeVertex2D(stepDx, stepDy);
+        PackMotionCodes(operands, motionCodes);
+        return (OpIncrementalLine, operands);
     }
 
     /// <summary>
-    /// Stub. Mirrors IncrementalLine but with always-on draw flag. Phase 4.
+    /// Filled-polygon variant of IncrementalLine — same motion-code stream, draw-flag
+    /// forced on so every step fills the area traced. See <see cref="BuildIncrementalLine"/>.
     /// </summary>
     public static (byte opcode, NaplpsOperands operands) BuildIncrementalPolygonFilled(float stepDx, float stepDy, byte[] motionCodes)
     {
-        throw new NotImplementedException("IncrementalPolygonFilled bitstring encoder lands with the Phase 4 scribble tool.");
+        var operands = NaplpsEncoder.EncodeVertex2D(stepDx, stepDy);
+        PackMotionCodes(operands, motionCodes);
+        return (OpIncrementalPolygonFilled, operands);
+    }
+
+    /// <summary>
+    /// Pack a sequence of 2-bit motion codes into operand bytes, 3 codes per byte.
+    /// Bit layout mirrors DrawableIncrementalLine.ParseMotionCodes — bits 5-4 hold code0,
+    /// bits 3-2 hold code1, bits 1-0 hold code2. Bit 7 (0x80) is the numerical-data flag.
+    /// </summary>
+    private static void PackMotionCodes(NaplpsOperands operands, byte[] motionCodes)
+    {
+        byte baseByte = NaplpsEncoder.Use7BitMode ? (byte)0x40 : (byte)0xC0;
+        for (int i = 0; i < motionCodes.Length; i += 3)
+        {
+            byte b = baseByte;
+            if (i < motionCodes.Length) { b |= (byte)((motionCodes[i] & 0x3) << 4); }
+            if (i + 1 < motionCodes.Length) { b |= (byte)((motionCodes[i + 1] & 0x3) << 2); }
+            if (i + 2 < motionCodes.Length) { b |= (byte)(motionCodes[i + 2] & 0x3); }
+            operands.Add(b);
+        }
     }
 
     /// <summary>
