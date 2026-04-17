@@ -37,6 +37,10 @@ public static class Decompiler
         var priorMode = NaplpsEncoder.Use7BitMode;
         NaplpsEncoder.Use7BitMode = format.Is7Bit;
 
+        // Reset cross-file mode tracker; mixed-mode files emit `#bits N` directives at
+        // section boundaries inside EmitCommand based on this.
+        _lastEmittedBitMode = format.Is7Bit ? 7 : 8;
+
         bool inTextRun = false;
         var textBuffer = new StringBuilder();
 
@@ -98,17 +102,36 @@ public static class Decompiler
     /// wins. Falls back to <see cref="EmitRaw"/> when no high-level form matches —
     /// guaranteeing 100% byte fidelity while producing readable output everywhere it's safe.
     /// </summary>
+    /// <summary>
+    /// Tracks the bit mode of the most-recently emitted high-level command so we can insert
+    /// a `#bits N` directive when the next command crosses bit-mode boundaries (mixed-mode
+    /// files like ec1060.nap have 7-bit and 8-bit sections interleaved).
+    /// </summary>
+    [System.ThreadStatic]
+    private static int _lastEmittedBitMode;
+
     private static void EmitCommand(StringBuilder sb, NaplpsCommand cmd, NaplpsState stateBefore)
     {
         foreach (var candidate in HighLevelCandidates(cmd, stateBefore))
         {
             if (RoundTripsExactly(candidate, cmd, stateBefore.Pen))
             {
+                // Original opcode bit 7 tells us which transmission base this command used.
+                // If it differs from the prior emitted high-level form, emit a `#bits N` so
+                // the compiler flips Use7BitMode for this section.
+                int thisMode = cmd.OpCode < 0x80 ? 7 : 8;
+                if (_lastEmittedBitMode != 0 && _lastEmittedBitMode != thisMode)
+                {
+                    sb.AppendLine($"#bits {thisMode}");
+                }
+                _lastEmittedBitMode = thisMode;
+
                 sb.AppendLine(candidate);
                 return;
             }
         }
 
+        // Raw passes the byte verbatim — bit mode doesn't matter, so don't update tracker.
         EmitRaw(sb, cmd);
     }
 
@@ -330,8 +353,25 @@ public static class Decompiler
                 return false;
             }
 
-            var compiler = new Compiler(ast) { BareFormat = true, InitialPenPosition = initialPen };
-            var format = compiler.Compile();
+            // Per-command bit-mode: if the original opcode has bit 7 clear (0x20-0x7F),
+            // it came from a 7-bit transmission section and the compiler must reproduce
+            // those low-base bytes (0x40 numerical-data base, no bit 7 on the opcode).
+            // This is the per-byte refinement of an earlier file-level approach that broke
+            // mixed-mode files.
+            var savedBitMode = NaplpsEncoder.Use7BitMode;
+            NaplpsEncoder.Use7BitMode = original.OpCode < 0x80;
+
+            NaplpsFormat format;
+            Compiler compiler;
+            try
+            {
+                compiler = new Compiler(ast) { BareFormat = true, InitialPenPosition = initialPen };
+                format = compiler.Compile();
+            }
+            finally
+            {
+                NaplpsEncoder.Use7BitMode = savedBitMode;
+            }
 
             if (compiler.Diagnostics.Count > 0 || format.Commands.Count != 1)
             {

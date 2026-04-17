@@ -1125,7 +1125,14 @@ public sealed class Compiler
 
     private void EmitCommand((byte opcode, NaplpsOperands operands) cmd)
     {
-        _format.AddCommand(cmd.opcode, cmd.operands);
+        // 7-bit transmission strips bit 7 from PDI opcodes (0xA0-0xFF → 0x20-0x7F).
+        // The encoder already emits operands at the right base; the opcode byte itself
+        // gets shifted here so the AddCommand path stores the actual on-the-wire byte.
+        byte opcode = (NaplpsEncoder.Use7BitMode && cmd.opcode >= 0xA0)
+            ? (byte)(cmd.opcode & 0x7F)
+            : cmd.opcode;
+
+        _format.AddCommand(opcode, cmd.operands);
     }
 
     private void ExpectArgs(CommandCallNode c, int minCount)
