@@ -52,6 +52,17 @@ public sealed class Compiler
     /// </summary>
     public Vector3 InitialPenPosition { get; set; } = Vector3.Zero;
 
+    /// <summary>
+    /// Initial NaplpsState the compiler starts with (in BareFormat mode). Used by the
+    /// decompiler verifier to seed per-command recompiles with the exact domain / color
+    /// mode / texture attrs the original command saw. When null, defaults to a fresh
+    /// <see cref="NaplpsState"/>. Only consulted when <see cref="BareFormat"/> is true —
+    /// full compiles always get a proper NaplpsFormat.New header.
+    /// </summary>
+    public NaplpsState? InitialState { get; set; }
+
+    private int CurrentMv => _format.State.MultiByteValue;
+
     // Currently-active foreground color index (0-15). Tracked so `with color X { }` can
     // emit a restore SelectColor on block exit even if the body changed colors.
     private byte _currentColor = 7; // nominal white
@@ -99,7 +110,7 @@ public sealed class Compiler
     {
         if (BareFormat)
         {
-            _format = new NaplpsFormat(new NaplpsState());
+            _format = new NaplpsFormat(InitialState?.Clone() ?? new NaplpsState());
         }
         else
         {
@@ -304,25 +315,25 @@ public sealed class Compiler
             case TokenKind.MoveRel:
                 ExpectArgs(c, 2);
                 EmitCommand(NaplpsCommandBuilder.BuildPointSetRelative(
-                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1]))));
+                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1])), CurrentMv));
                 break;
 
             case TokenKind.PointRel:
                 ExpectArgs(c, 2);
                 EmitCommand(NaplpsCommandBuilder.BuildPointRelative(
-                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1]))));
+                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1])), CurrentMv));
                 break;
 
             case TokenKind.LineRel:
                 ExpectArgs(c, 2);
                 EmitCommand(NaplpsCommandBuilder.BuildLineRelative(
-                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1]))));
+                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1])), CurrentMv));
                 break;
 
             case TokenKind.RectOutline:
                 ExpectArgs(c, 2);
                 EmitCommand(NaplpsCommandBuilder.BuildRectangleOutlined(
-                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1]))));
+                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1])), CurrentMv));
                 break;
 
             case TokenKind.ArcOutline:
@@ -369,8 +380,8 @@ public sealed class Compiler
                 float h = (float)NormH(Evaluate(c.Args[3]));
 
                 EmitCommand(filled
-                    ? NaplpsCommandBuilder.BuildRectangleSetFilled(x, y, w, h)
-                    : NaplpsCommandBuilder.BuildRectangleSetOutlined(x, y, w, h));
+                    ? NaplpsCommandBuilder.BuildRectangleSetFilled(x, y, w, h, CurrentMv)
+                    : NaplpsCommandBuilder.BuildRectangleSetOutlined(x, y, w, h, CurrentMv));
                 break;
             }
 
@@ -457,7 +468,8 @@ public sealed class Compiler
                 {
                     EmitCommand(NaplpsCommandBuilder.BuildField(
                         origin: new Vector3((float)NormX(Evaluate(c.Args[0])), (float)NormY(Evaluate(c.Args[1])), 0),
-                        dimensions: new Vector3((float)NormW(Evaluate(c.Args[2])), (float)NormH(Evaluate(c.Args[3])), 0)));
+                        dimensions: new Vector3((float)NormW(Evaluate(c.Args[2])), (float)NormH(Evaluate(c.Args[3])), 0),
+                        multiByteValue: CurrentMv));
                 }
                 else
                 {
@@ -486,19 +498,19 @@ public sealed class Compiler
 
     private void EmitMove(float x, float y)
     {
-        EmitCommand(NaplpsCommandBuilder.BuildPointSetAbsolute(x, y));
+        EmitCommand(NaplpsCommandBuilder.BuildPointSetAbsolute(x, y, CurrentMv));
         _turtle.Position = new Vector3(x, y, 0);
     }
 
     private void EmitPoint(float x, float y)
     {
-        EmitCommand(NaplpsCommandBuilder.BuildPointAbsolute(x, y));
+        EmitCommand(NaplpsCommandBuilder.BuildPointAbsolute(x, y, CurrentMv));
         _turtle.Position = new Vector3(x, y, 0);
     }
 
     private void EmitLine(float x, float y)
     {
-        EmitCommand(NaplpsCommandBuilder.BuildLineAbsolute(x, y));
+        EmitCommand(NaplpsCommandBuilder.BuildLineAbsolute(x, y, CurrentMv));
         _turtle.Position = new Vector3(x, y, 0);
     }
 
@@ -510,11 +522,11 @@ public sealed class Compiler
 
         if (draw)
         {
-            EmitCommand(NaplpsCommandBuilder.BuildLineAbsolute(nx, ny));
+            EmitCommand(NaplpsCommandBuilder.BuildLineAbsolute(nx, ny, CurrentMv));
         }
         else
         {
-            EmitCommand(NaplpsCommandBuilder.BuildPointSetAbsolute(nx, ny));
+            EmitCommand(NaplpsCommandBuilder.BuildPointSetAbsolute(nx, ny, CurrentMv));
         }
 
         _turtle.Position = new Vector3(nx, ny, 0);
@@ -522,7 +534,7 @@ public sealed class Compiler
 
     private void EmitRectFilled(float w, float h)
     {
-        EmitCommand(NaplpsCommandBuilder.BuildRectangleFilled(w, h));
+        EmitCommand(NaplpsCommandBuilder.BuildRectangleFilled(w, h, CurrentMv));
         _turtle.Position = new Vector3(_turtle.Position.X + w, _turtle.Position.Y, 0);
     }
 
@@ -532,7 +544,7 @@ public sealed class Compiler
         // Telidraw surface gives absolutes; convert by subtracting pen position.
         float penX = _turtle.Position.X;
         float penY = _turtle.Position.Y;
-        EmitCommand(NaplpsCommandBuilder.BuildArcFilled(midX - penX, midY - penY, endX - midX, endY - midY));
+        EmitCommand(NaplpsCommandBuilder.BuildArcFilled(midX - penX, midY - penY, endX - midX, endY - midY, CurrentMv));
         _turtle.Position = new Vector3(endX, endY, 0);
     }
 
@@ -540,7 +552,7 @@ public sealed class Compiler
     {
         float penX = _turtle.Position.X;
         float penY = _turtle.Position.Y;
-        EmitCommand(NaplpsCommandBuilder.BuildArcOutlined(midX - penX, midY - penY, endX - midX, endY - midY));
+        EmitCommand(NaplpsCommandBuilder.BuildArcOutlined(midX - penX, midY - penY, endX - midX, endY - midY, CurrentMv));
         _turtle.Position = new Vector3(endX, endY, 0);
     }
 
@@ -567,7 +579,7 @@ public sealed class Compiler
             pen = verts[i];
         }
 
-        EmitCommand(NaplpsCommandBuilder.BuildPolygonFilled(relVerts));
+        EmitCommand(NaplpsCommandBuilder.BuildPolygonFilled(relVerts, CurrentMv));
         _turtle.Position = verts[^1];
     }
 
@@ -592,7 +604,7 @@ public sealed class Compiler
             pen = verts[i];
         }
 
-        EmitCommand(NaplpsCommandBuilder.BuildPolygonOutlined(relVerts));
+        EmitCommand(NaplpsCommandBuilder.BuildPolygonOutlined(relVerts, CurrentMv));
         _turtle.Position = verts[^1];
     }
 
@@ -611,12 +623,12 @@ public sealed class Compiler
         if (relative)
         {
             // line-set-rel emits the bytes verbatim — the args are already deltas.
-            EmitCommand(NaplpsCommandBuilder.BuildLineSetRelative(pts));
+            EmitCommand(NaplpsCommandBuilder.BuildLineSetRelative(pts, CurrentMv));
         }
         else
         {
             // Each absolute vertex is independently encoded; no chain, no precision drift.
-            EmitCommand(NaplpsCommandBuilder.BuildLineSetAbsolute(pts));
+            EmitCommand(NaplpsCommandBuilder.BuildLineSetAbsolute(pts, CurrentMv));
             _turtle.Position = pts[^1];
         }
     }
@@ -632,8 +644,8 @@ public sealed class Compiler
         float ey = (float)NormY(Evaluate(c.Args[5]));
 
         EmitCommand(filled
-            ? NaplpsCommandBuilder.BuildArcSetFilled(sx, sy, mx - sx, my - sy, ex - mx, ey - my)
-            : NaplpsCommandBuilder.BuildArcSetOutlined(sx, sy, mx - sx, my - sy, ex - mx, ey - my));
+            ? NaplpsCommandBuilder.BuildArcSetFilled(sx, sy, mx - sx, my - sy, ex - mx, ey - my, CurrentMv)
+            : NaplpsCommandBuilder.BuildArcSetOutlined(sx, sy, mx - sx, my - sy, ex - mx, ey - my, CurrentMv));
 
         _turtle.Position = new Vector3(ex, ey, 0);
     }
@@ -649,8 +661,8 @@ public sealed class Compiler
         float dey = (float)NormH(Evaluate(c.Args[6]));
 
         EmitCommand(filled
-            ? NaplpsCommandBuilder.BuildArcSetFilled(sx, sy, dmx, dmy, dex, dey)
-            : NaplpsCommandBuilder.BuildArcSetOutlined(sx, sy, dmx, dmy, dex, dey));
+            ? NaplpsCommandBuilder.BuildArcSetFilled(sx, sy, dmx, dmy, dex, dey, CurrentMv)
+            : NaplpsCommandBuilder.BuildArcSetOutlined(sx, sy, dmx, dmy, dex, dey, CurrentMv));
 
         _turtle.Position = new Vector3(sx + dmx + dex, sy + dmy + dey, 0);
     }
@@ -677,8 +689,8 @@ public sealed class Compiler
         }
 
         EmitCommand(filled
-            ? NaplpsCommandBuilder.BuildPolygonSetFilled(new Vector3(sx, sy, 0), rels)
-            : NaplpsCommandBuilder.BuildPolygonSetOutlined(new Vector3(sx, sy, 0), rels));
+            ? NaplpsCommandBuilder.BuildPolygonSetFilled(new Vector3(sx, sy, 0), rels, CurrentMv)
+            : NaplpsCommandBuilder.BuildPolygonSetOutlined(new Vector3(sx, sy, 0), rels, CurrentMv));
 
         var pen = new Vector3(sx, sy, 0);
         foreach (var r in rels) { pen += r; }
@@ -713,8 +725,8 @@ public sealed class Compiler
         }
 
         EmitCommand(filled
-            ? NaplpsCommandBuilder.BuildPolygonSetFilled(start, relTail)
-            : NaplpsCommandBuilder.BuildPolygonSetOutlined(start, relTail));
+            ? NaplpsCommandBuilder.BuildPolygonSetFilled(start, relTail, CurrentMv)
+            : NaplpsCommandBuilder.BuildPolygonSetOutlined(start, relTail, CurrentMv));
 
         _turtle.Position = verts[^1];
     }
@@ -732,7 +744,8 @@ public sealed class Compiler
         {
             EmitCommand(NaplpsCommandBuilder.BuildText(
                 (float)Evaluate(c.Args[1]),
-                (float)Evaluate(c.Args[2])));
+                (float)Evaluate(c.Args[2]),
+                multiByteValue: CurrentMv));
         }
 
         foreach (var ch in str.Value)
@@ -973,12 +986,53 @@ public sealed class Compiler
         }
 
         var bareCmd = new NaplpsCommand(null, opcode, operands);
-        _format.Commands.Add(new NaplpsSequence(new NaplpsState(), bareCmd));
+        _format.Commands.Add(new NaplpsSequence(_format.State.Clone(), bareCmd));
 
         // Pen tracking: when raw bytes encode a position-changing PDI command, mirror its
         // pen-end side effect onto the turtle so that subsequent high-level commands
         // (polygon, arc) compute relative deltas from the right anchor.
         UpdateTurtleFromRaw(opcode, operands);
+
+        // State mutation from raw bytes: Domain changes sv/mv/dim, which every subsequent
+        // geometric command reads via CurrentMv. Without this, raw-emitted Domain leaves
+        // the compiler's state stuck at defaults (mv=3) even though downstream commands
+        // were authored against the raw-set mv. Mirror the real command's fixed-byte decode.
+        ApplyStateMutationFromRaw(opcode, operands);
+    }
+
+    /// <summary>
+    /// Apply the state-mutating side effect of a raw-emitted command to <c>_format.State</c>.
+    /// Currently handles Domain (sv/mv/dim from the first fixed byte). The compiler's
+    /// <see cref="CurrentMv"/> read-through ensures any subsequent geometric emit uses
+    /// the updated mv — matching how the real stream parser propagates Domain downstream.
+    /// </summary>
+    private void ApplyStateMutationFromRaw(byte opcode, NaplpsOperands operands)
+    {
+        // C0 shift codes determine which G-set is invoked into GL, and therefore whether
+        // a subsequent 0x20-0x7F byte dispatches to the PDI set (Domain, PointSetAbsolute,
+        // ...) or the primary character set (ASCII). Without mirroring these shifts onto
+        // the compiler's state, AddCommand(0x21, ...) would look up InUseTable[0x21] and
+        // find '!' instead of Domain — so the Domain constructor never runs, and
+        // MultiByteValue never updates. This cascades: every subsequent geometric command
+        // re-encodes at the builder's default mv=3 instead of the file's actual mv.
+        switch (opcode)
+        {
+            case 0x0E: _format.State.DoShiftOut(); return;
+            case 0x0F: _format.State.DoShiftIn(); return;
+            case 0x19: _format.State.DoSingleShiftTwo(); return;
+            case 0x1D: _format.State.DoSingleShiftThree(); return;
+            case 0x1B: _format.State.DoEscape(operands); return;
+        }
+
+        byte normalized = (byte)(opcode & 0x7F);
+
+        if (normalized == (NaplpsCommandBuilder.OpDomain & 0x7F) && operands.Count >= 1)
+        {
+            var (sv, mv, dim) = DomainCommand.ProcessFixedByte(operands);
+            _format.State.SingleByteValue = sv;
+            _format.State.MultiByteValue = mv;
+            _format.State.Dimensionality = dim;
+        }
     }
 
     /// <summary>

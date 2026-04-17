@@ -72,6 +72,7 @@ public static class Decompiler
             }
 
             EmitCommand(sb, cmd, seq.State);
+            _lastDecompileState = seq.State;
         }
 
         // Flush final text run.
@@ -110,11 +111,14 @@ public static class Decompiler
     [System.ThreadStatic]
     private static int _lastEmittedBitMode;
 
+    [System.ThreadStatic]
+    private static NaplpsState? _lastDecompileState;
+
     private static void EmitCommand(StringBuilder sb, NaplpsCommand cmd, NaplpsState stateBefore)
     {
         foreach (var candidate in HighLevelCandidates(cmd, stateBefore))
         {
-            if (RoundTripsExactly(candidate, cmd, stateBefore.Pen))
+            if (RoundTripsExactly(candidate, cmd, stateBefore))
             {
                 // Original opcode bit 7 tells us which transmission base this command used.
                 // If it differs from the prior emitted high-level form, emit a `#bits N` so
@@ -340,7 +344,7 @@ public static class Decompiler
     /// when their data nibbles match. The raw-byte file-level round-trip test still proves
     /// EXACT byte preservation; this verifier guarantees SEMANTIC equivalence per command.
     /// </summary>
-    private static bool RoundTripsExactly(string candidateLine, NaplpsCommand original, Vector3 initialPen)
+    private static bool RoundTripsExactly(string candidateLine, NaplpsCommand original, NaplpsState stateBefore)
     {
         try
         {
@@ -365,7 +369,15 @@ public static class Decompiler
             Compiler compiler;
             try
             {
-                compiler = new Compiler(ast) { BareFormat = true, InitialPenPosition = initialPen };
+                // Seed the compiler with the full pre-state so CurrentMv / sv / dim match
+                // what the original command saw. Otherwise any file with `domain mv=2 ...`
+                // re-encodes at the builder's default mv=3 → wrong byte count → raw fallback.
+                compiler = new Compiler(ast)
+                {
+                    BareFormat = true,
+                    InitialPenPosition = stateBefore.Pen,
+                    InitialState = stateBefore,
+                };
                 format = compiler.Compile();
             }
             finally
