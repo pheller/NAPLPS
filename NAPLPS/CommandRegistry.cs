@@ -45,6 +45,31 @@ public static class CommandRegistry
         return _instance.Value.ByKeyword.TryGetValue(keyword, out var descriptor) ? descriptor : null;
     }
 
+    /// <summary>
+    /// Look up the highest-priority opcode for a kebab-cased command name (e.g.
+    /// `polygon-set-filled`). The decompiler emits this form for raw fallbacks; the
+    /// compiler reads it back here. Returns 0 (Null opcode) when the name doesn't match
+    /// any known command — caller should treat that as a parse error or pass-through.
+    /// </summary>
+    public static byte GetOpcodeByKebabName(string kebabName)
+    {
+        // Match against the descriptor's display name lowercased+kebab'd, OR the DslKeyword.
+        // Only return a result when the name UNIQUELY identifies one opcode — multi-opcode
+        // classes like ControlCommand/NumericalDataCommand/AsciiCharCommand share a name
+        // across many opcodes so the kebab name isn't authoritative. For those, the caller
+        // should use the explicit opcode-byte form instead.
+        foreach (var d in _instance.Value.ByType.Values)
+        {
+            var nameKebab = d.Name.ToLowerInvariant().Replace(' ', '-');
+            if (nameKebab == kebabName || d.DslKeyword == kebabName)
+            {
+                if (d.DefaultOpcodes.Count != 1) { return 0; }
+                return d.DefaultOpcodes[0];
+            }
+        }
+        return 0;
+    }
+
     public static IEnumerable<CommandDescriptor> All => _instance.Value.ByType.Values;
 
     public static IEnumerable<CommandDescriptor> ByCategory(CommandCategory category)

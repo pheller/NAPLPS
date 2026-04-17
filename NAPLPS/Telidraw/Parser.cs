@@ -249,21 +249,17 @@ public sealed class Parser
     private RawStatementNode ParseRawStatement()
     {
         var tok = Expect(TokenKind.Raw);
-        var args = new List<ExpressionNode>();
+        var bytes = new List<byte>();
 
+        // Form: `raw <opcode> <bytes...>` — first byte IS the opcode (legacy stable form).
         while (IsExpressionStart())
         {
-            args.Add(ParseExpression());
+            var arg = ParseExpression();
+            if (arg is NumberLiteralNode n) { bytes.Add((byte)((int)n.Value & 0xFF)); }
+            else { bytes.Add(0); }
         }
 
-        // The compiler resolves expressions at compile time; here we just store
-        // the expressions. The compiler's CompileRaw evaluates and packs.
-        return new RawStatementNode(args.Select(a =>
-        {
-            if (a is NumberLiteralNode n) return (byte)((int)n.Value & 0xFF);
-            // For non-literal expressions, evaluate later; store 0 as placeholder.
-            return (byte)0;
-        }).ToList(), tok.Line, tok.Column);
+        return new RawStatementNode(bytes, tok.Line, tok.Column);
     }
 
     private CommandCallNode ParseCommandCall()

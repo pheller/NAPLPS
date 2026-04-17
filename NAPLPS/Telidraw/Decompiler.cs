@@ -408,6 +408,16 @@ public static class Decompiler
     /// </summary>
     private static void EmitRaw(StringBuilder sb, NaplpsCommand cmd)
     {
+        // Try to use the command's kebab-case keyword as the raw-form name. Compiler
+        // looks it up to find the opcode, so we don't need to emit the opcode byte.
+        // Result: `raw polygon-set-filled 64 75 76` instead of `raw 55 64 75 76 // Polygon Set Filled`.
+        // Falls back to numeric opcode form when the command type isn't in the registry
+        // (e.g. orphan-byte placeholders, unknown opcodes preserved by the parser).
+        // Format: `raw <opcode> <operand bytes...>  // Name`. The opcode + bytes are
+        // the bit-perfect source. The trailing `// Name` is human documentation only.
+        // Earlier attempt at putting the kebab-name as a parser token before the bytes
+        // proved too fragile — too many commands share names (ControlCommand spans 30+
+        // opcodes) and naming them as keywords kept ambiguating with the next statement.
         sb.Append("raw ").Append(cmd.OpCode);
 
         foreach (var b in cmd.Operands)
@@ -415,10 +425,18 @@ public static class Decompiler
             sb.Append(' ').Append(b);
         }
 
-        // Annotate with the command class name for human readability.
-        var name = CommandRegistry.GetByType(cmd.GetType())?.Name ?? cmd.GetType().Name.Replace("Command", "");
-        sb.Append("  // ").AppendLine(name);
+        var descriptor = CommandRegistry.GetByType(cmd.GetType());
+        if (descriptor != null)
+        {
+            sb.Append("  // ").Append(descriptor.Name);
+        }
+
+        sb.AppendLine();
     }
+
+    /// <summary>Convert a registry display name like "Polygon Set Filled" to "polygon-set-filled".</summary>
+    private static string KebabCase(string name) =>
+        name.ToLowerInvariant().Replace(' ', '-');
 
     // ---- Formatting helpers -------------------------------------------
 
