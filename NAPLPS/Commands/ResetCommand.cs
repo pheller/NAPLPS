@@ -45,59 +45,32 @@ public class ResetCommand : NaplpsCommand
 		/*	with bits b6 to b1 set equal to 0. If more than two data bytes are received,
 		/*	the additional byte(s) are reserved for future standardization and shall be
 		/*	ignored. */
+        // Do NOT mutate Operands: keep it as what was actually read so ToBytes round-trips.
+        // Bit decoding below uses safe fallbacks (bit = false) when an operand byte is absent.
+
         if (operands.Count == 0)
         {
-            State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Reset command received with no operands, padding with defaults", opcode);
-            Operands.AddRange([0, 0]);
+            State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Reset command received with no operands, treating all bits as 0", opcode);
         }
         else if (operands.Count == 1)
         {
-            State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Reset command received with only 1 operand, padding with default", opcode);
-            Operands.Add(0);
+            State.RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.InvalidCommand, "Reset command received with only 1 operand, treating byte 2 as 0", opcode);
         }
 
-        // If bit bl of byte 1 equals 1, the
-        // DOMAIN parameters are reset to their default values. If b1 is 0, the DOMAIN
-        // parameters are not changed.
-        IsDomainReset = Operands[0, 1];
+        // Local bit-extraction helper: operands[i,b] throws when i is out of range; we
+        // default to false (bit 0) for missing operand bytes, matching the spec's "as if
+        // b6-b1 equal 0" rule without writing phantom bytes into Operands.
+        bool Bit(int byteIdx, int bitPos) => operands.Count > byteIdx && operands[byteIdx, bitPos];
 
-        // Bits b3 and b2 of byte 1 modify the color mode and/or current drawing color
-        ColorMode = (ColorModeReset)ConvertBitsToByte([Operands[0, 2], Operands[0, 3]]);
-
-        // Bits b6, b5, and b4 of byte 1 clear the display area and/or border area to the colors
-        ColorScreenBorder = (ScreenBorderReset)ConvertBitsToByte([Operands[0, 4], Operands[0, 5], Operands[0, 6]]);
-
-        // If bit b1 of byte 2 equals 1, the cursor is sent to its home position
-        // (top left character position in the display area) and all text parameters
-        // (from the TEXT opcode, from the C1 set and the active field) are reset
-        // to their default values. If b1 is 0, the text parameters and the
-        // cursor position are not changed.
-        IsTextReset = Operands[1, 1];
-
-        // If bit b2 of byte 2 equals 1, all blink processes are terminated. If b2 is 0, then
-        // blink processes are not changed.
-        IsBlinkReset = Operands[1, 2];
-
-        // If bit b3 of byte 2 equals 1, all unprotected fields are changed to protected
-        // status but the displayed contents are unaffected. However, the field
-        // definitions (except that of the active field) are lost, as well as any data
-        // structures maintained for user editing and transmission. If b3 is 0, unprotected
-        // fields are not changed.
-        IsProtectedFields = Operands[1, 3];
-
-        // If bit b4 of byte 2 equals 1, all texture attributes are set to their default
-        // values. The four programmable texture masks are not cleared. If b4 is 0,
-        // current texture attributes are not changed.
-        IsTextureAttributesReset = Operands[1, 4];
-
-        // If bit b5 of byte 2 equals 1, all macros are cleared. This includes transmit macros.
-        // If b5 is 0, macros are not changed.
-        IsMacrosReset = Operands[1, 5];
-
-        // If bit b6 of byte 2 equals 1, all ORCS characters are cleared, that is, all
-        // character positions are set to the space character. If b6 is 0, the ORCS
-        // characters are not changed.
-        IsDRCSCharsReset = Operands[1, 6];
+        IsDomainReset = Bit(0, 1);
+        ColorMode = (ColorModeReset)ConvertBitsToByte([Bit(0, 2), Bit(0, 3)]);
+        ColorScreenBorder = (ScreenBorderReset)ConvertBitsToByte([Bit(0, 4), Bit(0, 5), Bit(0, 6)]);
+        IsTextReset = Bit(1, 1);
+        IsBlinkReset = Bit(1, 2);
+        IsProtectedFields = Bit(1, 3);
+        IsTextureAttributesReset = Bit(1, 4);
+        IsMacrosReset = Bit(1, 5);
+        IsDRCSCharsReset = Bit(1, 6);
     }
 
     public enum ColorModeReset : byte
