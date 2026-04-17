@@ -53,22 +53,42 @@ public static class CommandRegistry
     /// </summary>
     public static byte GetOpcodeByKebabName(string kebabName)
     {
-        // Match against the descriptor's display name lowercased+kebab'd, OR the DslKeyword.
-        // Only return a result when the name UNIQUELY identifies one opcode — multi-opcode
-        // classes like ControlCommand/NumericalDataCommand/AsciiCharCommand share a name
-        // across many opcodes so the kebab name isn't authoritative. For those, the caller
-        // should use the explicit opcode-byte form instead.
         foreach (var d in _instance.Value.ByType.Values)
         {
             var nameKebab = d.Name.ToLowerInvariant().Replace(' ', '-');
             if (nameKebab == kebabName || d.DslKeyword == kebabName)
             {
-                if (d.DefaultOpcodes.Count != 1) { return 0; }
-                return d.DefaultOpcodes[0];
+                // Prefer the 8-bit opcode (>= 0xA0) when both 7-bit and 8-bit variants exist.
+                foreach (var op in d.DefaultOpcodes) { if (op >= 0xA0) { return op; } }
+                if (d.DefaultOpcodes.Count > 0) { return d.DefaultOpcodes[0]; }
             }
         }
         return 0;
     }
+
+    /// <summary>
+    /// ANSI X3.110 per-opcode mnemonic names (NUL, SOH, ..., CAN, ESC, APS, NSR).
+    /// These ARE the Telidraw keywords for raw-byte commands: a line like `NSR 127 79`
+    /// emits opcode 0x1F + operands [127, 79]. Uppercase matches the spec + SequenceWindow.
+    /// </summary>
+    public static readonly Dictionary<byte, string> OpcodeMnemonics = new()
+    {
+        [0x00] = "NUL", [0x01] = "SOH", [0x02] = "STX", [0x03] = "ETX",
+        [0x04] = "EOT", [0x05] = "ENQ", [0x06] = "ACK", [0x07] = "BEL",
+        [0x08] = "APB", [0x09] = "APF", [0x0A] = "APD", [0x0B] = "APU",
+        [0x0C] = "CS",  [0x0D] = "APR", [0x0E] = "SO",  [0x0F] = "SI",
+        [0x10] = "DLE", [0x11] = "DC1", [0x12] = "DC2", [0x13] = "DC3",
+        [0x14] = "DC4", [0x15] = "NAK", [0x16] = "SYN", [0x17] = "ETB",
+        [0x18] = "CAN", [0x19] = "SS2", [0x1A] = "SDC", [0x1B] = "ESC",
+        [0x1C] = "APS", [0x1D] = "SS3", [0x1E] = "APH", [0x1F] = "NSR",
+    };
+
+    private static readonly Dictionary<string, byte> _mnemonicLookup =
+        OpcodeMnemonics.ToDictionary(kv => kv.Value, kv => kv.Key, StringComparer.Ordinal);
+
+    /// <summary>Resolve a case-sensitive ANSI mnemonic (NSR/CAN/...) to its opcode.</summary>
+    public static bool TryResolveMnemonic(string mnemonic, out byte opcode) =>
+        _mnemonicLookup.TryGetValue(mnemonic, out opcode);
 
     public static IEnumerable<CommandDescriptor> All => _instance.Value.ByType.Values;
 

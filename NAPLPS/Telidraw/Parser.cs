@@ -109,6 +109,11 @@ public sealed class Parser
             TokenKind.Directive => ParseDirective(),
             TokenKind.Raw => ParseRawStatement(),
             _ when CommandVerbs.Contains(tok.Kind) => ParseCommandCall(),
+            // Mnemonic-as-statement: `NSR 127 79`, `CAN`, `SO`, `polygon-set-filled 64 75`.
+            // The mnemonic IS the opcode. Resolved against ANSI mnemonic table (uppercase
+            // CAN/ESC/NSR/...) or registry kebab-name map (multi-word names with dashes).
+            // Plain lowercase identifiers without dashes fall through to ProcCall.
+            TokenKind.Identifier when ResolveMnemonicOpcode(tok.Lexeme) != null => ParseMnemonicStatement(),
             TokenKind.Identifier => ParseProcCall(),
             _ => throw Error(tok, $"Expected a statement, got '{tok}'"),
         };
@@ -232,8 +237,11 @@ public sealed class Parser
         var tok = Expect(TokenKind.Directive);
         var args = new List<ExpressionNode>();
 
-        // Directives accept any whitespace-separated expressions up to the next statement-ish boundary.
-        while (IsExpressionStart() && Peek().Kind != TokenKind.Directive)
+        // Directive args live on the same line as the directive — once a token appears on
+        // a later line, it's the next statement (e.g. `#bits 7\nCAN` — `CAN` is a mnemonic
+        // statement, not an arg to `#bits`). Newlines aren't emitted as tokens, so we use
+        // the token's Line property to stop at end-of-line.
+        while (IsExpressionStart() && Peek().Kind != TokenKind.Directive && Peek().Line == tok.Line)
         {
             args.Add(ParseExpression());
         }
@@ -246,17 +254,68 @@ public sealed class Parser
     /// non-expression token, packs them as bytes into a <see cref="RawStatementNode"/>.
     /// First byte is the opcode; rest are operand bytes.
     /// </summary>
+    /// <summary>
+    /// Resolve an identifier to its NAPLPS opcode. Tries uppercase ANSI mnemonics first
+    /// (NSR/CAN/ESC/NUL/...), then kebab-cased multi-word registry names. Returns null
+    /// when the lexeme isn't a known opcode keyword (NULLABLE so opcode 0x00 NUL is not
+    /// confused with the no-match sentinel).
+    /// </summary>
+    private static byte? ResolveMnemonicOpcode(string lexeme)
+    {
+        if (NAPLPS.CommandRegistry.TryResolveMnemonic(lexeme, out var op)) { return op; }
+        if (lexeme.Contains('-'))
+        {
+            byte k = NAPLPS.CommandRegistry.GetOpcodeByKebabName(lexeme);
+            return k == 0 ? null : k;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Parse a `MNEMONIC [byte byte byte...]` statement. Mnemonic resolves to an opcode;
+    /// subsequent NUMERIC LITERALS (only) become operand bytes. Stops at any non-numeric
+    /// token — that's the start of the next statement.
+    /// </summary>
+    private RawStatementNode ParseMnemonicStatement()
+    {
+        var tok = Advance();
+        byte opcode = ResolveMnemonicOpcode(tok.Lexeme) ?? 0;
+        var bytes = new List<byte> { opcode };
+
+        while (IsNumericLiteralStart(Peek().Kind))
+        {
+            var arg = ParseExpression();
+            if (arg is NumberLiteralNode n) { bytes.Add((byte)((int)n.Value & 0xFF)); }
+        }
+
+        return new RawStatementNode(bytes, tok.Line, tok.Column);
+    }
+
+    /// <summary>True for tokens that can start a numeric literal expression. Used by raw-byte
+    /// loops to stop reading at the first non-numeric token (which is the next statement).</summary>
+    private static bool IsNumericLiteralStart(TokenKind k) =>
+        k == TokenKind.IntLiteral || k == TokenKind.FloatLiteral
+        || k == TokenKind.FractionLiteral || k == TokenKind.Minus || k == TokenKind.Plus;
+
+    /// <summary>
+    /// True if this token is an Identifier whose lexeme resolves to a known mnemonic
+    /// (NSR/CAN/ESC/... or kebab name like polygon-set-filled). Such tokens start the
+    /// NEXT raw statement and must NOT be consumed by the current command-call's arg loop.
+    /// </summary>
+    private static bool IsMnemonicStart(Token tok) =>
+        tok.Kind == TokenKind.Identifier && ResolveMnemonicOpcode(tok.Lexeme) != null;
+
     private RawStatementNode ParseRawStatement()
     {
         var tok = Expect(TokenKind.Raw);
         var bytes = new List<byte>();
 
-        // Form: `raw <opcode> <bytes...>` — first byte IS the opcode (legacy stable form).
-        while (IsExpressionStart())
+        // Form: `raw <opcode> <bytes...>` — legacy form, first byte IS the opcode.
+        // Only consume numeric literals; identifiers belong to the next statement.
+        while (IsNumericLiteralStart(Peek().Kind))
         {
             var arg = ParseExpression();
             if (arg is NumberLiteralNode n) { bytes.Add((byte)((int)n.Value & 0xFF)); }
-            else { bytes.Add(0); }
         }
 
         return new RawStatementNode(bytes, tok.Line, tok.Column);
@@ -267,7 +326,10 @@ public sealed class Parser
         var tok = Advance();
         var args = new List<ExpressionNode>();
 
-        while (IsExpressionStart())
+        // Stop at identifiers that resolve to command mnemonics — those start the next
+        // statement, not args to this one. Plain identifier args (variable references like
+        // `x` in `move x y`) are still accepted because they don't resolve to opcodes.
+        while (IsExpressionStart() && !IsMnemonicStart(Peek()))
         {
             args.Add(ParseExpression());
         }
