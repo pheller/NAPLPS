@@ -98,12 +98,15 @@ public class SetColorCommand : NaplpsCommand
     {
         int green = 0, red = 0, blue = 0;
 
-        while (operands.Count < 3)
+        // Do NOT mutate `operands` (shared with the command's Operands collection so the
+        // serializer round-trips exact bytes). Use a local padded view only for bit extraction.
+        var padded = new List<byte>(operands);
+        while (padded.Count < 3)
         {
-            operands.Add(operands[^1]); // Adds the last element in the list
+            padded.Add(padded.Count > 0 ? padded[^1] : (byte)0);
         }
 
-        foreach (var b in operands)
+        foreach (var b in padded)
         {
             // Extract bits for each color component from the first triplet
             green = green << 1 | (b >> 5 & 0x1);
@@ -118,8 +121,8 @@ public class SetColorCommand : NaplpsCommand
 
         // ANSI X3.110 §5.3.2.5.2: "the maximum color fraction attainable,
         // given the number of bits specified, shall be interpreted as full intensity."
-        // Scale from N-bit range to 8-bit (0-255).
-        int bitsPerComponent = operands.Count * 2;
+        // Scale from N-bit range to 8-bit (0-255). Use padded.Count since bits extracted above.
+        int bitsPerComponent = padded.Count * 2;
         int maxVal = (1 << bitsPerComponent) - 1;
 
         if (maxVal > 0 && maxVal < 255)

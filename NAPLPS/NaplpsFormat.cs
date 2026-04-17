@@ -544,11 +544,16 @@ public partial class NaplpsFormat
                 {
                     var c1Command = (NaplpsControlCommands)c1Ref.Parameters[0];
 
-                    // Skip buffer-mode commands that would be destructive via ESC
+                    // Skip buffer-mode commands that would be destructive via ESC.
+                    // Pass the OUTER additionalParameters into the recursive call so that
+                    // operand-consuming C1 commands (e.g. Repeat reads a count byte) append
+                    // their bytes to the outer ESC command's operands, preserving byte
+                    // fidelity through ToBytes. Historically these bytes were lost into a
+                    // throwaway NaplpsOperands() instance.
                     if (c1Command != DefMacro && c1Command != DefPMacro && c1Command != DefTMacro &&
                         c1Command != DefDRCS && c1Command != DefTexture && c1Command != End)
                     {
-                        HandleControlCommand(c1Command, reader, new NaplpsOperands(), commands);
+                        HandleControlCommand(c1Command, reader, additionalParameters, commands);
                     }
                 }
             }
