@@ -48,7 +48,7 @@ public class FileLoadingTests
         Assert.IsTrue(file.Is7Bit);
         Assert.AreEqual(NaplpsSystemType.NAPLPS, file.SystemType);
 
-        Assert.AreEqual(1661, file.Commands.Count);
+        Assert.AreEqual(1662, file.Commands.Count);
     }
 
     [TestMethod]
@@ -83,7 +83,7 @@ public class FileLoadingTests
         Assert.IsTrue(file.Is7Bit);
         Assert.AreEqual(NaplpsSystemType.NAPLPS, file.SystemType);
 
-        Assert.AreEqual(1473, file.Commands.Count);
+        Assert.AreEqual(1475, file.Commands.Count);
     }
 
     [TestMethod]

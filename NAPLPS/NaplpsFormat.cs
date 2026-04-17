@@ -345,6 +345,9 @@ public partial class NaplpsFormat
                 if (commandReference == null)
                 {
                     RecordError(NaplpsErrorSeverity.Error, NaplpsErrorType.UnknownOpcode, "Unknown opcode in InUseTable", opcode, reader.BaseStream.Position - 1);
+                    // Preserve the unknown byte so ToBytes round-trips. The renderer won't
+                    // draw it (not IDrawable), but the byte survives serialization.
+                    commands.Add(new NaplpsSequence(State.Clone(), new NaplpsCommand(State, opcode, [])));
                     continue;
                 }
 
@@ -355,6 +358,10 @@ public partial class NaplpsFormat
                 if (commandReference.CommandType == typeof(NumericalDataCommand))
                 {
                     RecordError(NaplpsErrorSeverity.Warning, NaplpsErrorType.UnknownOpcode, "NumericalDataCommand reached unexpectedly", opcode, reader.BaseStream.Position);
+                    // Preserve the orphan byte as a bare NaplpsCommand so it round-trips
+                    // through ToBytes() — historically these bytes (e.g. 0x41 in card1.nap
+                    // after ESC D) were silently dropped, breaking byte-level round-trip.
+                    commands.Add(new NaplpsSequence(State.Clone(), new NaplpsCommand(State, opcode, [])));
                     continue;
                 }
 
@@ -550,7 +557,7 @@ public partial class NaplpsFormat
         }
         else if (controlCommand == NonSelectiveReset)
         {
-            ControlCommandNonSelectiveReset(reader);
+            ControlCommandNonSelectiveReset(reader, additionalParameters);
         }
         else if (controlCommand == ShiftIn)
         {
@@ -894,7 +901,7 @@ public partial class NaplpsFormat
         }
     }
 
-    private void ControlCommandNonSelectiveReset(BinaryReader reader)
+    private void ControlCommandNonSelectiveReset(BinaryReader reader, NaplpsOperands additionalParameters)
     {
         // ANSI X3.110 NSR: Reset G0-G3, C0, C1 to defaults; reset GL/GR
         State.Reset();
@@ -935,8 +942,9 @@ public partial class NaplpsFormat
         // Reset drawing position
         State.Pen = new Vector3(0f, 0f, 0f);
 
-        // NSR cursor positioning: if two bytes 0x40-0x7F follow, decode row/column
-        // Origin is UPPER LEFT (row 0, col 0 = top-left) - different from 0x1C which uses bottom-left
+        // NSR cursor positioning: if two bytes 0x40-0x7F follow, decode row/column.
+        // Origin is UPPER LEFT (row 0, col 0 = top-left) - different from 0x1C which uses bottom-left.
+        // Capture both bytes into additionalParameters so the serializer re-emits them on ToBytes().
         if (reader.BaseStream.Position + 2 <= reader.BaseStream.Length)
         {
             var peek1 = reader.PeekChar();
@@ -944,11 +952,13 @@ public partial class NaplpsFormat
             if (peek1 >= 0x40 && peek1 <= 0x7F)
             {
                 byte rowByte = reader.ReadByte();
+                additionalParameters.Add(rowByte);
                 int peek2 = reader.PeekChar();
 
                 if (peek2 >= 0x40 && peek2 <= 0x7F)
                 {
                     byte colByte = reader.ReadByte();
+                    additionalParameters.Add(colByte);
 
                     // Extract row/column from bits 6-1 (6 data bits each)
                     int row = (rowByte & 0x3F);
