@@ -102,7 +102,7 @@ public static class Decompiler
     {
         foreach (var candidate in HighLevelCandidates(cmd, stateBefore))
         {
-            if (RoundTripsExactly(candidate, cmd))
+            if (RoundTripsExactly(candidate, cmd, stateBefore.Pen))
             {
                 sb.AppendLine(candidate);
                 return;
@@ -190,6 +190,70 @@ public static class Decompiler
                 break;
             }
 
+            // RECTANGLE SET — (x, y) absolute + (w, h) absolute. Two independent vertex2D
+            // encodings, no chain, so byte-exact round-trip without an exact form needed.
+            case RectangleSetFilledCommand when TryReconstructRectSet(cmd, stateBefore, out var r):
+            {
+                yield return $"rect-set {Fmt(r.x)} {Fmt(r.y)} {Fmt(r.w)} {Fmt(r.h)}";
+                break;
+            }
+
+            case RectangleSetOutlinedCommand when TryReconstructRectSet(cmd, stateBefore, out var r):
+            {
+                yield return $"rect-set-outline {Fmt(r.x)} {Fmt(r.y)} {Fmt(r.w)} {Fmt(r.h)}";
+                break;
+            }
+
+            // ARC SET — start absolute + relative mid + relative end. Try the all-absolute
+            // form first (readable); fall back to the abs-marker form (decoded relatives).
+            case ArcSetFilledCommand when TryReconstructArcSet(cmd, stateBefore, out var asf):
+            {
+                yield return $"arc-set {Fmt(asf.sx)} {Fmt(asf.sy)} {Fmt(asf.mx)} {Fmt(asf.my)} {Fmt(asf.ex)} {Fmt(asf.ey)}";
+                yield return $"arc-set abs {Fmt(asf.sx)} {Fmt(asf.sy)} {Fmt(asf.dmx)} {Fmt(asf.dmy)} {Fmt(asf.dex)} {Fmt(asf.dey)}";
+                break;
+            }
+
+            case ArcSetOutlinedCommand when TryReconstructArcSet(cmd, stateBefore, out var asf):
+            {
+                yield return $"arc-set-outline {Fmt(asf.sx)} {Fmt(asf.sy)} {Fmt(asf.mx)} {Fmt(asf.my)} {Fmt(asf.ex)} {Fmt(asf.ey)}";
+                yield return $"arc-set-outline abs {Fmt(asf.sx)} {Fmt(asf.sy)} {Fmt(asf.dmx)} {Fmt(asf.dmy)} {Fmt(asf.dex)} {Fmt(asf.dey)}";
+                break;
+            }
+
+            // LINE SET ABSOLUTE — N independent absolute vertices. No chain.
+            case LineSetAbsoluteCommand when TryReconstructLineSet(cmd, stateBefore, out var pts):
+            {
+                yield return "line-set " + FormatPolygonArgs(pts);
+                break;
+            }
+
+            // LINE SET RELATIVE — emit the decoded deltas as a `line-set-rel` directly.
+            // Bytes are the deltas; the compiler re-encodes them as deltas. Round-trip exact.
+            case LineSetRelativeCommand when TryReconstructLineSet(cmd, stateBefore, out var deltas):
+            {
+                yield return "line-set-rel " + FormatPolygonArgs(deltas);
+                break;
+            }
+
+            // POLYGON SET — first mv bytes = absolute start, remaining = N relative deltas.
+            // We emit the FULLY-ABSOLUTE form first (most readable: every vertex is a real
+            // point on screen). If float-rounding in the decode→add→subtract→encode chain
+            // breaks byte equality, fall through to the relative form which decodes the
+            // exact bytes back into pen-relative deltas — guaranteed to round-trip.
+            case PolygonSetFilledCommand when TryReconstructPolygonSet(cmd, stateBefore, out var verts, out var startAbs, out var rels):
+            {
+                yield return "polygon-set " + FormatPolygonArgs(verts);
+                yield return $"polygon-set abs {Fmt(startAbs.x)} {Fmt(startAbs.y)} " + FormatRelArgs(rels);
+                break;
+            }
+
+            case PolygonSetOutlinedCommand when TryReconstructPolygonSet(cmd, stateBefore, out var verts, out var startAbs, out var rels):
+            {
+                yield return "polygon-set-outline " + FormatPolygonArgs(verts);
+                yield return $"polygon-set-outline abs {Fmt(startAbs.x)} {Fmt(startAbs.y)} " + FormatRelArgs(rels);
+                break;
+            }
+
             case WaitCommand wc when wc.IsValid:
             {
                 yield return $"wait {wc.WaitTime}";
@@ -245,7 +309,7 @@ public static class Decompiler
     /// when their data nibbles match. The raw-byte file-level round-trip test still proves
     /// EXACT byte preservation; this verifier guarantees SEMANTIC equivalence per command.
     /// </summary>
-    private static bool RoundTripsExactly(string candidateLine, NaplpsCommand original)
+    private static bool RoundTripsExactly(string candidateLine, NaplpsCommand original, Vector3 initialPen)
     {
         try
         {
@@ -258,7 +322,7 @@ public static class Decompiler
                 return false;
             }
 
-            var compiler = new Compiler(ast) { BareFormat = true };
+            var compiler = new Compiler(ast) { BareFormat = true, InitialPenPosition = initialPen };
             var format = compiler.Compile();
 
             if (compiler.Diagnostics.Count > 0 || format.Commands.Count != 1)
@@ -314,6 +378,192 @@ public static class Decompiler
     /// Format a float for Telidraw source. Uses invariant culture, strips trailing zeros,
     /// and snaps to common NAPLPS fractions (1/40, 5/128, etc.) when exact.
     /// </summary>
+    /// <summary>
+    /// Decode an arc command's relative mid+end operands into absolute world coordinates,
+    /// using the pen position from <paramref name="stateBefore"/> as the anchor. Returns
+    /// false if the operand byte count doesn't match the expected mv*2 (split layout).
+    /// </summary>
+    private static bool TryReconstructArc(NaplpsCommand cmd, NaplpsState stateBefore, out (float mx, float my, float ex, float ey) abs)
+    {
+        abs = default;
+        int mv = Math.Max(1, (int)stateBefore.MultiByteValue);
+
+        if (cmd.Operands.Count < mv * 2)
+        {
+            return false;
+        }
+
+        var midOps = new NaplpsOperands(cmd.Operands[0..mv]);
+        var endOps = new NaplpsOperands(cmd.Operands[mv..(mv * 2)]);
+        var (midDx, midDy) = NaplpsEncoder.DecodeVertex2D(midOps);
+        var (endDx, endDy) = NaplpsEncoder.DecodeVertex2D(endOps);
+
+        float mx = stateBefore.Pen.X + midDx;
+        float my = stateBefore.Pen.Y + midDy;
+        float ex = mx + endDx;
+        float ey = my + endDy;
+
+        abs = (mx, my, ex, ey);
+        return true;
+    }
+
+    /// <summary>
+    /// Decode a polygon command's N relative vertex operands into absolute coordinates by
+    /// accumulating from the pen. Each vertex consumes mv bytes. Returns the absolute
+    /// vertices in draw order; false if operand count isn't a multiple of mv.
+    /// </summary>
+    private static bool TryReconstructRectSet(NaplpsCommand cmd, NaplpsState stateBefore, out (float x, float y, float w, float h) r)
+    {
+        r = default;
+        int mv = Math.Max(1, (int)stateBefore.MultiByteValue);
+
+        if (cmd.Operands.Count < mv * 2)
+        {
+            return false;
+        }
+
+        var posSlice = new NaplpsOperands(cmd.Operands[0..mv]);
+        var sizeSlice = new NaplpsOperands(cmd.Operands[mv..(mv * 2)]);
+        var (x, y) = NaplpsEncoder.DecodeVertex2D(posSlice);
+        var (w, h) = NaplpsEncoder.DecodeVertex2D(sizeSlice);
+        r = (x, y, w, h);
+        return true;
+    }
+
+    private static bool TryReconstructArcSet(NaplpsCommand cmd, NaplpsState stateBefore, out (float sx, float sy, float mx, float my, float ex, float ey, float dmx, float dmy, float dex, float dey) a)
+    {
+        a = default;
+        int mv = Math.Max(1, (int)stateBefore.MultiByteValue);
+
+        if (cmd.Operands.Count < mv * 3)
+        {
+            return false;
+        }
+
+        var (sx, sy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(cmd.Operands[0..mv]));
+        var (dmx, dmy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(cmd.Operands[mv..(mv * 2)]));
+        var (dex, dey) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(cmd.Operands[(mv * 2)..(mv * 3)]));
+
+        float mx = sx + dmx;
+        float my = sy + dmy;
+        float ex = mx + dex;
+        float ey = my + dey;
+
+        a = (sx, sy, mx, my, ex, ey, dmx, dmy, dex, dey);
+        return true;
+    }
+
+    private static bool TryReconstructLineSet(NaplpsCommand cmd, NaplpsState stateBefore, out List<(float x, float y)> verts)
+    {
+        verts = new List<(float, float)>();
+        int mv = Math.Max(1, (int)stateBefore.MultiByteValue);
+
+        if (cmd.Operands.Count < mv || cmd.Operands.Count % mv != 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < cmd.Operands.Count; i += mv)
+        {
+            var slice = new NaplpsOperands(cmd.Operands[i..(i + mv)]);
+            var (x, y) = NaplpsEncoder.DecodeVertex2D(slice);
+            verts.Add((x, y));
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Decode a PolygonSet*'s operands. Returns three views of the same data:
+    /// <paramref name="absVerts"/> — absolute coords for start + every vertex (readable form);
+    /// <paramref name="startAbs"/> — just the absolute start vertex;
+    /// <paramref name="relTail"/> — the relative deltas after the start (byte-exact form).
+    /// The dual view lets the verifier try the readable form first and fall back to the
+    /// exact form when float math breaks round-trip.
+    /// </summary>
+    private static bool TryReconstructPolygonSet(NaplpsCommand cmd, NaplpsState stateBefore, out List<(float x, float y)> absVerts, out (float x, float y) startAbs, out List<(float dx, float dy)> relTail)
+    {
+        absVerts = new List<(float, float)>();
+        relTail = new List<(float, float)>();
+        startAbs = (0f, 0f);
+        int mv = Math.Max(1, (int)stateBefore.MultiByteValue);
+
+        if (cmd.Operands.Count < mv * 2 || cmd.Operands.Count % mv != 0)
+        {
+            return false;
+        }
+
+        var startSlice = new NaplpsOperands(cmd.Operands[0..mv]);
+        var (sx, sy) = NaplpsEncoder.DecodeVertex2D(startSlice);
+        startAbs = (sx, sy);
+        absVerts.Add((sx, sy));
+
+        float px = sx, py = sy;
+
+        for (int i = mv; i < cmd.Operands.Count; i += mv)
+        {
+            var slice = new NaplpsOperands(cmd.Operands[i..(i + mv)]);
+            var (dx, dy) = NaplpsEncoder.DecodeVertex2D(slice);
+            relTail.Add((dx, dy));
+            px += dx;
+            py += dy;
+            absVerts.Add((px, py));
+        }
+
+        return true;
+    }
+
+    private static bool TryReconstructPolygon(NaplpsCommand cmd, NaplpsState stateBefore, out List<(float x, float y)> verts)
+    {
+        verts = new List<(float, float)>();
+        int mv = Math.Max(1, (int)stateBefore.MultiByteValue);
+
+        if (cmd.Operands.Count < mv || cmd.Operands.Count % mv != 0)
+        {
+            return false;
+        }
+
+        float px = stateBefore.Pen.X;
+        float py = stateBefore.Pen.Y;
+
+        for (int i = 0; i < cmd.Operands.Count; i += mv)
+        {
+            var slice = new NaplpsOperands(cmd.Operands[i..(i + mv)]);
+            var (dx, dy) = NaplpsEncoder.DecodeVertex2D(slice);
+            px += dx;
+            py += dy;
+            verts.Add((px, py));
+        }
+
+        return true;
+    }
+
+    private static string FormatPolygonArgs(List<(float x, float y)> verts)
+    {
+        var parts = new List<string>(verts.Count * 2);
+
+        foreach (var (x, y) in verts)
+        {
+            parts.Add(Fmt(x));
+            parts.Add(Fmt(y));
+        }
+
+        return string.Join(' ', parts);
+    }
+
+    private static string FormatRelArgs(List<(float dx, float dy)> rels)
+    {
+        var parts = new List<string>(rels.Count * 2);
+
+        foreach (var (dx, dy) in rels)
+        {
+            parts.Add(Fmt(dx));
+            parts.Add(Fmt(dy));
+        }
+
+        return string.Join(' ', parts);
+    }
+
     private static string Fmt(float value)
     {
         // Common NAPLPS fractions and their decimal equivalents (within 9-bit precision).

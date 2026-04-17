@@ -45,6 +45,13 @@ public sealed class Compiler
 
     private TurtleState _turtle = new(Vector3.Zero, 0f);
 
+    /// <summary>
+    /// Initial pen position for the turtle. Set by callers (e.g. the decompiler verifier)
+    /// when compiling a single command in isolation, so relative-to-pen conversions match
+    /// the position the original command was emitted from. Default (0,0) for full programs.
+    /// </summary>
+    public Vector3 InitialPenPosition { get; set; } = Vector3.Zero;
+
     // Currently-active foreground color index (0-15). Tracked so `with color X { }` can
     // emit a restore SelectColor on block exit even if the body changed colors.
     private byte _currentColor = 7; // nominal white
@@ -98,6 +105,10 @@ public sealed class Compiler
         {
             _format = NaplpsFormat.New(_systemType);
         }
+
+        // Apply caller-supplied initial pen so the compiler's relative-vertex math (used by
+        // EmitPolygon*, EmitArc*) matches the position the original command was emitted from.
+        _turtle.Position = InitialPenPosition;
 
         foreach (var d in _program.Directives)
         {
@@ -330,6 +341,90 @@ public sealed class Compiler
                 EmitPolygonOutlined(c);
                 break;
 
+            case TokenKind.LineSet:
+            case TokenKind.LineSetRel:
+            {
+                bool relative = c.Command == TokenKind.LineSetRel;
+                string verb = relative ? "line-set-rel" : "line-set";
+
+                if (c.Args.Count < 2 || c.Args.Count % 2 != 0)
+                {
+                    Diag(DiagnosticSeverity.Error, c.Line, c.Column, $"{verb} needs pairs of coords (got {c.Args.Count})");
+                    break;
+                }
+                EmitLineSet(c, relative);
+                break;
+            }
+
+            case TokenKind.RectSet:
+            case TokenKind.RectSetOutline:
+            {
+                bool filled = c.Command == TokenKind.RectSet;
+                string verb = filled ? "rect-set" : "rect-set-outline";
+
+                ExpectArgs(c, 4);
+                float x = (float)NormX(Evaluate(c.Args[0]));
+                float y = (float)NormY(Evaluate(c.Args[1]));
+                float w = (float)NormW(Evaluate(c.Args[2]));
+                float h = (float)NormH(Evaluate(c.Args[3]));
+
+                EmitCommand(filled
+                    ? NaplpsCommandBuilder.BuildRectangleSetFilled(x, y, w, h)
+                    : NaplpsCommandBuilder.BuildRectangleSetOutlined(x, y, w, h));
+                break;
+            }
+
+            case TokenKind.ArcSet:
+            case TokenKind.ArcSetOutline:
+            {
+                bool filled = c.Command == TokenKind.ArcSet;
+                string verb = filled ? "arc-set" : "arc-set-outline";
+
+                // Two forms: `arc-set sx sy mx my ex ey` (all absolute, readable) or
+                // `arc-set abs sx sy dmx dmy dex dey` (start absolute + relative deltas, exact).
+                if (c.Args.Count >= 1 && c.Args[0] is IdentifierNode { Name: "abs" })
+                {
+                    ExpectArgs(c, 7);
+                    EmitArcSetExact(c, filled);
+                }
+                else
+                {
+                    ExpectArgs(c, 6);
+                    EmitArcSet(c, filled);
+                }
+                break;
+            }
+
+            case TokenKind.PolySet:
+            case TokenKind.PolySetOutline:
+            {
+                bool filled = c.Command == TokenKind.PolySet;
+                string verb = filled ? "polygon-set" : "polygon-set-outline";
+
+                // Two forms: `polygon-set abs sx sy dx1 dy1 ...` (decompiler's exact form,
+                // start absolute + relative tail) or `polygon-set sx sy v1x v1y ...` (all
+                // absolute, more readable). The `abs` keyword is a literal IdentifierNode.
+                if (c.Args.Count >= 1 && c.Args[0] is IdentifierNode { Name: "abs" })
+                {
+                    if (c.Args.Count < 5 || c.Args.Count % 2 != 1)
+                    {
+                        Diag(DiagnosticSeverity.Error, c.Line, c.Column, $"{verb} abs needs (sx sy dx1 dy1 ...), got {c.Args.Count - 1}");
+                        break;
+                    }
+                    EmitPolygonSetExact(c, filled);
+                }
+                else
+                {
+                    if (c.Args.Count < 4 || c.Args.Count % 2 != 0)
+                    {
+                        Diag(DiagnosticSeverity.Error, c.Line, c.Column, $"{verb} needs at least 4 coords (start_x start_y v1x v1y ...), got {c.Args.Count}");
+                        break;
+                    }
+                    EmitPolygonSet(c, filled);
+                }
+                break;
+            }
+
             case TokenKind.SetColor:
                 // set-color g r b — defines RGB at the currently-pointed palette entry.
                 ExpectArgs(c, 3);
@@ -498,6 +593,129 @@ public sealed class Compiler
         }
 
         EmitCommand(NaplpsCommandBuilder.BuildPolygonOutlined(relVerts));
+        _turtle.Position = verts[^1];
+    }
+
+    private void EmitLineSet(CommandCallNode c, bool relative)
+    {
+        var pts = new Vector3[c.Args.Count / 2];
+
+        for (int i = 0; i < pts.Length; i++)
+        {
+            pts[i] = new Vector3(
+                (float)NormX(Evaluate(c.Args[2 * i])),
+                (float)NormY(Evaluate(c.Args[2 * i + 1])),
+                0);
+        }
+
+        if (relative)
+        {
+            // line-set-rel emits the bytes verbatim — the args are already deltas.
+            EmitCommand(NaplpsCommandBuilder.BuildLineSetRelative(pts));
+        }
+        else
+        {
+            // Each absolute vertex is independently encoded; no chain, no precision drift.
+            EmitCommand(NaplpsCommandBuilder.BuildLineSetAbsolute(pts));
+            _turtle.Position = pts[^1];
+        }
+    }
+
+    private void EmitArcSet(CommandCallNode c, bool filled)
+    {
+        // All-absolute readable form. Convert to (start, midRel, endRel).
+        float sx = (float)NormX(Evaluate(c.Args[0]));
+        float sy = (float)NormY(Evaluate(c.Args[1]));
+        float mx = (float)NormX(Evaluate(c.Args[2]));
+        float my = (float)NormY(Evaluate(c.Args[3]));
+        float ex = (float)NormX(Evaluate(c.Args[4]));
+        float ey = (float)NormY(Evaluate(c.Args[5]));
+
+        EmitCommand(filled
+            ? NaplpsCommandBuilder.BuildArcSetFilled(sx, sy, mx - sx, my - sy, ex - mx, ey - my)
+            : NaplpsCommandBuilder.BuildArcSetOutlined(sx, sy, mx - sx, my - sy, ex - mx, ey - my));
+
+        _turtle.Position = new Vector3(ex, ey, 0);
+    }
+
+    private void EmitArcSetExact(CommandCallNode c, bool filled)
+    {
+        // Args[0] is the `abs` marker. Args[1..2] = start abs; [3..4] = mid rel; [5..6] = end rel.
+        float sx = (float)NormX(Evaluate(c.Args[1]));
+        float sy = (float)NormY(Evaluate(c.Args[2]));
+        float dmx = (float)NormW(Evaluate(c.Args[3]));
+        float dmy = (float)NormH(Evaluate(c.Args[4]));
+        float dex = (float)NormW(Evaluate(c.Args[5]));
+        float dey = (float)NormH(Evaluate(c.Args[6]));
+
+        EmitCommand(filled
+            ? NaplpsCommandBuilder.BuildArcSetFilled(sx, sy, dmx, dmy, dex, dey)
+            : NaplpsCommandBuilder.BuildArcSetOutlined(sx, sy, dmx, dmy, dex, dey));
+
+        _turtle.Position = new Vector3(sx + dmx + dex, sy + dmy + dey, 0);
+    }
+
+    /// <summary>
+    /// Exact form: `polygon-set abs sx sy dx1 dy1 dx2 dy2 ...`. Args[0] is the literal
+    /// `abs` marker; args[1..2] are the absolute start; remaining pairs are pre-computed
+    /// relative deltas. The decompiler emits this when the absolute form would lose bytes
+    /// to float-rounding in the decode→add→subtract→encode chain.
+    /// </summary>
+    private void EmitPolygonSetExact(CommandCallNode c, bool filled)
+    {
+        float sx = (float)NormX(Evaluate(c.Args[1]));
+        float sy = (float)NormY(Evaluate(c.Args[2]));
+        int relCount = (c.Args.Count - 3) / 2;
+        var rels = new Vector3[relCount];
+
+        for (int i = 0; i < relCount; i++)
+        {
+            rels[i] = new Vector3(
+                (float)NormW(Evaluate(c.Args[3 + 2 * i])),
+                (float)NormH(Evaluate(c.Args[3 + 2 * i + 1])),
+                0);
+        }
+
+        EmitCommand(filled
+            ? NaplpsCommandBuilder.BuildPolygonSetFilled(new Vector3(sx, sy, 0), rels)
+            : NaplpsCommandBuilder.BuildPolygonSetOutlined(new Vector3(sx, sy, 0), rels));
+
+        var pen = new Vector3(sx, sy, 0);
+        foreach (var r in rels) { pen += r; }
+        _turtle.Position = pen;
+    }
+
+    /// <summary>
+    /// Readable form: `polygon-set sx sy v1x v1y v2x v2y ...` — all absolute. The first
+    /// pair is the absolute start vertex; subsequent pairs are absolute too. The builder
+    /// expects start absolute + relative tail, so we subtract here. Susceptible to
+    /// float-rounding for some byte patterns; fall back to EmitPolygonSetExact if needed.
+    /// </summary>
+    private void EmitPolygonSet(CommandCallNode c, bool filled)
+    {
+        int vertCount = c.Args.Count / 2;
+        var verts = new Vector3[vertCount];
+
+        for (int i = 0; i < vertCount; i++)
+        {
+            verts[i] = new Vector3(
+                (float)NormX(Evaluate(c.Args[2 * i])),
+                (float)NormY(Evaluate(c.Args[2 * i + 1])),
+                0);
+        }
+
+        var start = verts[0];
+        var relTail = new Vector3[vertCount - 1];
+
+        for (int i = 1; i < vertCount; i++)
+        {
+            relTail[i - 1] = verts[i] - verts[i - 1];
+        }
+
+        EmitCommand(filled
+            ? NaplpsCommandBuilder.BuildPolygonSetFilled(start, relTail)
+            : NaplpsCommandBuilder.BuildPolygonSetOutlined(start, relTail));
+
         _turtle.Position = verts[^1];
     }
 
@@ -756,6 +974,144 @@ public sealed class Compiler
 
         var bareCmd = new NaplpsCommand(null, opcode, operands);
         _format.Commands.Add(new NaplpsSequence(new NaplpsState(), bareCmd));
+
+        // Pen tracking: when raw bytes encode a position-changing PDI command, mirror its
+        // pen-end side effect onto the turtle so that subsequent high-level commands
+        // (polygon, arc) compute relative deltas from the right anchor.
+        UpdateTurtleFromRaw(opcode, operands);
+    }
+
+    /// <summary>
+    /// Mirror the pen-end side effect of a raw-emitted PDI command. The compiler doesn't
+    /// instantiate raw commands through their real classes, so the turtle would otherwise
+    /// drift away from the actual pen position the renderer ends up at. Only handle the
+    /// opcodes whose normal constructor moves the pen — others (Reset, Color, Texture, etc.)
+    /// are no-ops here.
+    /// </summary>
+    private void UpdateTurtleFromRaw(byte opcode, NaplpsOperands operands)
+    {
+        // Strip bit 7 to normalize 7-bit (0x20-0x7F) and 8-bit (0xA0-0xFF) presentations.
+        byte normalized = (byte)(opcode & 0x7F);
+        int mv = 3;
+
+        switch (normalized)
+        {
+            // Absolute pen sets — pen lands exactly at the decoded vertex.
+            case NaplpsCommandBuilder.OpPointSetAbsolute & 0x7F:
+            case NaplpsCommandBuilder.OpPointAbsolute & 0x7F:
+            case NaplpsCommandBuilder.OpLineAbsolute & 0x7F:
+            {
+                if (operands.Count >= mv)
+                {
+                    var (x, y) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
+                    _turtle.Position = new Vector3(x, y, 0);
+                }
+                break;
+            }
+
+            // Relative pen offsets — pen advances by the decoded delta.
+            case NaplpsCommandBuilder.OpPointSetRelative & 0x7F:
+            case NaplpsCommandBuilder.OpPointRelative & 0x7F:
+            case NaplpsCommandBuilder.OpLineRelative & 0x7F:
+            {
+                if (operands.Count >= mv)
+                {
+                    var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
+                    _turtle.Position += new Vector3(dx, dy, 0);
+                }
+                break;
+            }
+
+            // Polygon — pen ends at the LAST vertex (cumulative relative).
+            case NaplpsCommandBuilder.OpPolygonFilled & 0x7F:
+            case NaplpsCommandBuilder.OpPolygonOutlined & 0x7F:
+            {
+                if (operands.Count >= mv && operands.Count % mv == 0)
+                {
+                    var pen = _turtle.Position;
+                    for (int i = 0; i < operands.Count; i += mv)
+                    {
+                        var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[i..(i + mv)]));
+                        pen += new Vector3(dx, dy, 0);
+                    }
+                    _turtle.Position = pen;
+                }
+                break;
+            }
+
+            // LineSetAbsolute — pen ends at the last absolute vertex.
+            case NaplpsCommandBuilder.OpLineSetAbsolute & 0x7F:
+            {
+                if (operands.Count >= mv && operands.Count % mv == 0)
+                {
+                    int lastStart = operands.Count - mv;
+                    var (x, y) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[lastStart..(lastStart + mv)]));
+                    _turtle.Position = new Vector3(x, y, 0);
+                }
+                break;
+            }
+
+            // LineSetRelative — pen advances cumulatively.
+            case NaplpsCommandBuilder.OpLineSetRelative & 0x7F:
+            {
+                if (operands.Count >= mv && operands.Count % mv == 0)
+                {
+                    var pen = _turtle.Position;
+                    for (int i = 0; i < operands.Count; i += mv)
+                    {
+                        var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[i..(i + mv)]));
+                        pen += new Vector3(dx, dy, 0);
+                    }
+                    _turtle.Position = pen;
+                }
+                break;
+            }
+
+            // ArcSet — pen ends at end vertex (start + dmid + dend).
+            case NaplpsCommandBuilder.OpArcSetFilled & 0x7F:
+            case NaplpsCommandBuilder.OpArcSetOutlined & 0x7F:
+            {
+                if (operands.Count >= mv * 3)
+                {
+                    var (sx, sy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
+                    var (dmx, dmy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[mv..(mv * 2)]));
+                    var (dex, dey) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[(mv * 2)..(mv * 3)]));
+                    _turtle.Position = new Vector3(sx + dmx + dex, sy + dmy + dey, 0);
+                }
+                break;
+            }
+
+            // PolygonSet — first mv bytes are absolute start; remaining are relative-from-prev.
+            case NaplpsCommandBuilder.OpPolygonSetFilled & 0x7F:
+            case NaplpsCommandBuilder.OpPolygonSetOutlined & 0x7F:
+            {
+                if (operands.Count >= mv * 2 && operands.Count % mv == 0)
+                {
+                    var (sx, sy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
+                    var pen = new Vector3(sx, sy, 0);
+                    for (int i = mv; i < operands.Count; i += mv)
+                    {
+                        var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[i..(i + mv)]));
+                        pen += new Vector3(dx, dy, 0);
+                    }
+                    _turtle.Position = pen;
+                }
+                break;
+            }
+
+            // Arc — pen ends at end-vertex (mid then end, both relative).
+            case NaplpsCommandBuilder.OpArcFilled & 0x7F:
+            case NaplpsCommandBuilder.OpArcOutlined & 0x7F:
+            {
+                if (operands.Count >= mv * 2)
+                {
+                    var (mdx, mdy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
+                    var (edx, edy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[mv..(mv * 2)]));
+                    _turtle.Position += new Vector3(mdx + edx, mdy + edy, 0);
+                }
+                break;
+            }
+        }
     }
 
     // ---- Coord-mode projection ----------------------------------------

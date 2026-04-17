@@ -14,10 +14,14 @@ public sealed class Parser
     private static readonly HashSet<TokenKind> CommandVerbs =
     [
         TokenKind.Forward, TokenKind.Back, TokenKind.Turn,
-        TokenKind.Move, TokenKind.Goto,
-        TokenKind.Line, TokenKind.Rect, TokenKind.Arc, TokenKind.Polygon, TokenKind.Point,
-        TokenKind.Text, TokenKind.Color, TokenKind.Texture, TokenKind.Domain,
-        TokenKind.Blink, TokenKind.Wait, TokenKind.Reset,
+        TokenKind.Move, TokenKind.MoveRel, TokenKind.Goto,
+        TokenKind.Line, TokenKind.LineRel, TokenKind.LineSet, TokenKind.LineSetRel,
+        TokenKind.Rect, TokenKind.RectOutline, TokenKind.RectSet, TokenKind.RectSetOutline,
+        TokenKind.Arc, TokenKind.ArcOutline, TokenKind.ArcSet, TokenKind.ArcSetOutline,
+        TokenKind.Polygon, TokenKind.PolyOutline, TokenKind.PolySet, TokenKind.PolySetOutline,
+        TokenKind.Point, TokenKind.PointRel,
+        TokenKind.Text, TokenKind.Color, TokenKind.SetColor, TokenKind.Texture, TokenKind.Domain,
+        TokenKind.Blink, TokenKind.Wait, TokenKind.Reset, TokenKind.Nsr,
         TokenKind.Drcs, TokenKind.Field, TokenKind.Scribble, TokenKind.Bitmap,
         TokenKind.Close, TokenKind.Raw,
     ];

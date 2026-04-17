@@ -36,12 +36,20 @@ public enum TokenKind
     Goto,              // alias for move
     Line,              // absolute line
     LineRel,           // relative line
+    LineSet,           // LineSetAbsolute — start absolute + N absolute points (one statement)
+    LineSetRel,        // LineSetRelative — start absolute + N relative deltas
     Rect,              // filled rectangle
     RectOutline,       // outlined rectangle
+    RectSet,           // RectangleSetFilled — absolute (x,y,w,h) in one statement
+    RectSetOutline,    // RectangleSetOutlined
     Arc,               // filled arc (default)
     ArcOutline,        // outlined arc
+    ArcSet,            // ArcSetFilled — absolute start + relative mid + relative end
+    ArcSetOutline,     // ArcSetOutlined
     Polygon,           // filled polygon (default)
     PolyOutline,       // outlined polygon
+    PolySet,           // PolygonSetFilled — absolute start + relative tail (single statement)
+    PolySetOutline,    // PolygonSetOutlined
     Point,             // absolute point (no pen move)
     PointRel,          // relative point (no pen move)
     Text,
