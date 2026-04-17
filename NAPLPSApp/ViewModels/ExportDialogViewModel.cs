@@ -6,6 +6,7 @@ public enum ExportFormat
     Jpeg,
     Bmp,
     Gif,
+    Apng,
 }
 
 /// <summary>
@@ -16,14 +17,16 @@ public enum ExportFormat
 public partial class ExportDialogViewModel : ObservableObject
 {
     /// <summary>Format list shown in the dropdown. Order matches <see cref="ExportFormat"/> enum.</summary>
-    public string[] FormatOptions { get; } = ["PNG", "JPEG", "BMP", "GIF"];
+    public string[] FormatOptions { get; } = ["PNG", "JPEG", "BMP", "GIF", "APNG (animated)"];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSetJpegQuality))]
     [NotifyPropertyChangedFor(nameof(CanSetTransparentBackground))]
+    [NotifyPropertyChangedFor(nameof(IsApng))]
     private int formatIndex;
 
     public ExportFormat Format => (ExportFormat)FormatIndex;
+    public bool IsApng => Format == ExportFormat.Apng;
 
     /// <summary>Multiplier applied to the source canvas dimensions. 1x = native draw-context size.</summary>
     [ObservableProperty]
@@ -56,6 +59,29 @@ public partial class ExportDialogViewModel : ObservableObject
     private int jpegQuality = 90;
 
     public bool CanSetJpegQuality => Format == ExportFormat.Jpeg;
+
+    /// <summary>APNG: base frame delay in milliseconds (DrawContext.RenderToApng takes hundredths of a second).</summary>
+    [ObservableProperty]
+    private int apngFrameDelayMs = 50;
+
+    /// <summary>APNG: loop forever vs. play once.</summary>
+    [ObservableProperty]
+    private bool apngLoop = true;
+
+    /// <summary>APNG: number of additional blink-animation cycles to append after the static draw frames.</summary>
+    [ObservableProperty]
+    private int apngBlinkCycles;
+
+    /// <summary>APNG: total frames produced by the most recent render preview (informational, set by caller).</summary>
+    [ObservableProperty]
+    private int apngEstimatedFrames;
+
+    /// <summary>APNG: clip output to frames [start..end] of the produced sequence (1-based, inclusive). 0 = no clip.</summary>
+    [ObservableProperty]
+    private int apngStartFrame;
+
+    [ObservableProperty]
+    private int apngEndFrame;
 
     /// <summary>Whether the dialog was accepted (OK pressed) vs cancelled.</summary>
     public bool IsCommitted { get; private set; }

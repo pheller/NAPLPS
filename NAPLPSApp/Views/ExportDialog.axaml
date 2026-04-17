@@ -3,8 +3,8 @@
 		xmlns:vm="using:NAPLPSApp.ViewModels"
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-		mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="340"
-		Width="440" Height="340"
+		mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="500"
+		Width="440" Height="500"
 		x:Class="NAPLPSApp.Views.ExportDialog"
 		x:DataType="vm:ExportDialogViewModel"
 		Icon="/Assets/naplps.ico"
@@ -56,6 +56,33 @@
 					<TextBlock Text="{Binding JpegQuality}" VerticalAlignment="Center" Width="30"/>
 				</StackPanel>
 			</Grid>
+
+			<!-- APNG-only controls. The frame range lets the user clip the output to a
+			     contiguous slice of the rendered animation. Estimated frames is filled in
+			     by MainWindow before showing the dialog (it does a dry-run render). -->
+			<Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" BorderThickness="0,1,0,0" Margin="0,4" IsVisible="{Binding IsApng}"/>
+			<StackPanel Spacing="6" IsVisible="{Binding IsApng}">
+				<TextBlock Text="APNG Options" FontWeight="Bold"/>
+				<Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+					<TextBlock Grid.Row="0" Grid.Column="0" Text="Frame delay (ms):" VerticalAlignment="Center"/>
+					<NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding ApngFrameDelayMs}" Minimum="10" Maximum="5000" Increment="10" FormatString="0"/>
+
+					<TextBlock Grid.Row="1" Grid.Column="0" Text="Blink cycles:" VerticalAlignment="Center" ToolTip.Tip="Number of additional blink-animation cycles to append after the draw sequence (0 = none)"/>
+					<NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ApngBlinkCycles}" Minimum="0" Maximum="100" Increment="1" FormatString="0"/>
+
+					<TextBlock Grid.Row="2" Grid.Column="0" Text="Loop:" VerticalAlignment="Center"/>
+					<CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding ApngLoop}" Content="Loop indefinitely"/>
+				</Grid>
+				<TextBlock Text="Frame range (1-based, 0=all):" FontSize="11" Opacity="0.8" Margin="0,4,0,0"/>
+				<Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6">
+					<TextBlock Grid.Column="0" Text="Start:" VerticalAlignment="Center"/>
+					<NumericUpDown Grid.Column="1" Value="{Binding ApngStartFrame}" Minimum="0" Maximum="100000" Increment="1" FormatString="0"/>
+					<TextBlock Grid.Column="2" Text="End:" VerticalAlignment="Center"/>
+					<NumericUpDown Grid.Column="3" Value="{Binding ApngEndFrame}" Minimum="0" Maximum="100000" Increment="1" FormatString="0"/>
+				</Grid>
+				<TextBlock FontSize="10" Opacity="0.7"
+						   Text="{Binding ApngEstimatedFrames, StringFormat='Estimated total frames: {0}'}"/>
+			</StackPanel>
 
 		</StackPanel>
 

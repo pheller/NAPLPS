@@ -43,7 +43,7 @@
 				<MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-floppy-disk" InputGesture="Ctrl+Shift+S"/>
 				<MenuItem Header="_Close" Command="{Binding CloseCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-xmark"/>
 				<Separator/>
-				<MenuItem Header="_Export PNG" Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
+				<MenuItem Header="_Export..." Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
 				<Separator/>
 				<MenuItem Header="_Quit" Command="{Binding QuitCommand}" i:MenuItem.Icon="fa-solid fa-door-open"/>
 			</MenuItem>
