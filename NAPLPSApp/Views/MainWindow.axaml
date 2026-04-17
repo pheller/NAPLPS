@@ -60,6 +60,12 @@
 				<MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-floppy-disk" InputGesture="Ctrl+Shift+S"/>
 				<MenuItem Header="_Close" Command="{Binding CloseCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-xmark"/>
 				<Separator/>
+				<MenuItem Header="_Import" i:MenuItem.Icon="fa-solid fa-file-import">
+					<MenuItem Header="_SVG..." Command="{Binding ImportSvgCommand}" i:MenuItem.Icon="fa-solid fa-bezier-curve"
+							  ToolTip.Tip="Convert an SVG file's paths to Telidraw line commands"/>
+					<MenuItem Header="_Bitmap..." Command="{Binding ImportBitmapCommand}" i:MenuItem.Icon="fa-solid fa-image"
+							  ToolTip.Tip="Quantize a raster image to the 16-color palette and emit as filled cells"/>
+				</MenuItem>
 				<MenuItem Header="_Export..." Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
 				<Separator/>
 				<MenuItem Header="_Quit" Command="{Binding QuitCommand}" i:MenuItem.Icon="fa-solid fa-door-open"/>

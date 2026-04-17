@@ -434,6 +434,80 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         FileClose();
     }
 
+    /// <summary>
+    /// Import an SVG file as Telidraw source. Parses the SVG path commands into a `.td`
+    /// string, then compiles that into a new NaplpsFormat so the canvas renders it.
+    /// Subset support (M/L/H/V/Z) — beziers approximate as line-to-endpoint.
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportSvg()
+    {
+        if (App.MainWindow == null) { return; }
+
+        var picker = await App.MainWindow.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Import SVG",
+            AllowMultiple = false,
+            FileTypeFilter = [new Avalonia.Platform.Storage.FilePickerFileType("SVG") { Patterns = ["*.svg"] }]
+        });
+        if (picker.Count == 0) { return; }
+
+        var svgXml = await System.IO.File.ReadAllTextAsync(picker[0].Path.LocalPath);
+        var td = NAPLPS.Import.SvgImporter.ToTelidraw(svgXml);
+
+        await LoadTelidrawSource(td);
+    }
+
+    /// <summary>
+    /// Import a bitmap (PNG/JPG/BMP/GIF) as a quantized 40x30 cell-grid Telidraw scene.
+    /// Resizes and nearest-color-matches against the current palette defaults.
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportBitmap()
+    {
+        if (App.MainWindow == null) { return; }
+
+        var picker = await App.MainWindow.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Import Bitmap",
+            AllowMultiple = false,
+            FileTypeFilter = [new Avalonia.Platform.Storage.FilePickerFileType("Images") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif"] }]
+        });
+        if (picker.Count == 0) { return; }
+
+        var td = NAPLPS.Import.BitmapImporter.ToTelidraw(picker[0].Path.LocalPath);
+        await LoadTelidrawSource(td);
+    }
+
+    /// <summary>
+    /// Shared helper: compile the given Telidraw source and install it as the loaded
+    /// document, entering editor mode so the user can refine the imported scene.
+    /// </summary>
+    private async Task LoadTelidrawSource(string td)
+    {
+        try
+        {
+            var tokens = new NAPLPS.Telidraw.Lexer(td).Tokenize();
+            var ast = new NAPLPS.Telidraw.Parser(tokens).Parse();
+            var compiler = new NAPLPS.Telidraw.Compiler(ast);
+            loadedFile = compiler.Compile();
+
+            _suppressTelidrawRecompile = true;
+            try { TelidrawSource = td; } finally { _suppressTelidrawRecompile = false; }
+
+            IsFileLoaded = true;
+            IsEditorMode = true;
+            IsFileDirty = true;
+
+            BuildDrawContext();
+            await UpdateCanvas();
+        }
+        catch (System.Exception ex)
+        {
+            NetworkStatus = $"Import failed: {ex.Message}";
+        }
+    }
+
     [RelayCommand]
     private async Task Export()
     {

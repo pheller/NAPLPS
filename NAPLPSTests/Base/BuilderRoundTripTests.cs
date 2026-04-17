@@ -284,11 +284,22 @@ public class BuilderRoundTripTests
     }
 
     [TestMethod]
-    public void IncrementalBuilders_ThrowUntilPhase4()
+    public void IncrementalBuilders_EmitValidOpcodes()
     {
-        Assert.ThrowsExactly<NotImplementedException>(() => NaplpsCommandBuilder.BuildIncrementalPoint(4, []));
-        Assert.ThrowsExactly<NotImplementedException>(() => NaplpsCommandBuilder.BuildIncrementalLine(0.01f, 0.01f, []));
-        Assert.ThrowsExactly<NotImplementedException>(() => NaplpsCommandBuilder.BuildIncrementalPolygonFilled(0.01f, 0.01f, []));
+        // Bucket D implementation: the Phase-4 incremental builders are wired up. Verify
+        // each emits the expected opcode and produces operand bytes in the numerical-data
+        // range (0xC0-0xFF in 8-bit mode).
+        var point = NaplpsCommandBuilder.BuildIncrementalPoint(1, [0, 1, 0, 1]);
+        Assert.AreEqual(NaplpsCommandBuilder.OpIncrementalPoint, point.opcode);
+        Assert.IsTrue(point.operands.Count > 0);
+
+        var line = NaplpsCommandBuilder.BuildIncrementalLine(0.01f, 0.01f, [0x01, 0x01, 0x01]);
+        Assert.AreEqual(NaplpsCommandBuilder.OpIncrementalLine, line.opcode);
+        Assert.IsTrue(line.operands.Count > 0);
+
+        var poly = NaplpsCommandBuilder.BuildIncrementalPolygonFilled(0.01f, 0.01f, [0x01, 0x01, 0x01]);
+        Assert.AreEqual(NaplpsCommandBuilder.OpIncrementalPolygonFilled, poly.opcode);
+        Assert.IsTrue(poly.operands.Count > 0);
     }
 
     [TestMethod]
