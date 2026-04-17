@@ -720,6 +720,131 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         UpdateColorBrushes();
     }
 
+    /// <summary>
+    /// Set the current drawing background color by palette index. Mirrors the
+    /// foreground-selection flow; used by the BG swatch flyout and shift-click on
+    /// the palette grid.
+    /// </summary>
+    [RelayCommand]
+    private void SelectBackgroundPaletteColor(byte index)
+    {
+        EditorBackgroundIndex = index;
+        UpdateColorBrushes();
+    }
+
+    /// <summary>
+    /// Replace the current palette with Prodigy's canonical CLUT. Emits SELECT COLOR +
+    /// SET COLOR pairs for each palette slot so the load goes through UndoManager and
+    /// becomes part of the drawing's own command history (undoable, visible in .nap).
+    /// </summary>
+    [RelayCommand]
+    private void LoadProdigyPalette()
+    {
+        ApplyPalettePreset(NaplpsState.ColorMapProdigyDefaults);
+    }
+
+    /// <summary>
+    /// Replace the current palette with NAPLPS spec defaults (3-bit GRB ramp).
+    /// </summary>
+    [RelayCommand]
+    private void LoadDefaultPalette()
+    {
+        ApplyPalettePreset(NaplpsState.ColorMapDefaults);
+    }
+
+    /// <summary>
+    /// Activate the Rectangle tool and set its fill variant. Called from the rectangle
+    /// tool's chevron flyout. Also flips the global IsFilledMode so other shape tools
+    /// stay consistent with the user's most-recent intent.
+    /// </summary>
+    [RelayCommand]
+    private void SetRectangleVariant(string variant)
+    {
+        IsFilledMode = variant == "Filled";
+        SetActiveTool("Rectangle");
+    }
+
+    [RelayCommand]
+    private void SetPolygonVariant(string variant)
+    {
+        IsFilledMode = variant == "Filled";
+        SetActiveTool("Polygon");
+    }
+
+    [RelayCommand]
+    private void SetArcVariant(string variant)
+    {
+        IsFilledMode = variant == "Filled";
+        SetActiveTool("Arc");
+    }
+
+    /// <summary>
+    /// Emit a TEXTURE command for the currently-selected fill pattern + pel size.
+    /// Per ANSI X3.110 §5.3.2.7, TEXTURE has operands (linePattern, highlight, fillPattern, maskSize).
+    /// We map the 4 UI choices to fillPattern bytes 0..3 (solid / vertical / horizontal / mesh).
+    /// </summary>
+    [RelayCommand]
+    private void ApplyFillPattern()
+    {
+        if (loadedFile == null)
+        {
+            return;
+        }
+
+        byte fillPattern = (byte)Math.Clamp(FillPatternIndex, 0, 3);
+        var maskSize = new Vector3((float)FillPelWidth / 40.0f, (float)FillPelHeight / 40.0f, 0);
+        var tx = NaplpsCommandBuilder.BuildTexture(
+            linePattern: 0,
+            highlight: false,
+            fillPattern: fillPattern,
+            maskSize: maskSize);
+
+        undoManager.Execute(new AddCommandsAction([tx]), loadedFile);
+        IsFileDirty = true;
+        BuildDrawContext();
+    }
+
+    /// <summary>Current fill pattern index (0=Solid, 1=Vertical, 2=Horizontal, 3=Mesh).</summary>
+    [ObservableProperty]
+    private int fillPatternIndex = 0;
+
+    /// <summary>Pel-width for custom texture masks (in 1/40ths of screen width).</summary>
+    [ObservableProperty]
+    private double fillPelWidth = 1;
+
+    /// <summary>Pel-height for custom texture masks (in 1/40ths of screen height).</summary>
+    [ObservableProperty]
+    private double fillPelHeight = 1;
+
+    /// <summary>
+    /// Apply a palette preset by updating every PaletteColor's R/G/B. The RgbChanged
+    /// event fires per entry, which emits SELECT COLOR + SET COLOR + SELECT COLOR
+    /// triples through UndoManager — baking the palette change into the .nap so it
+    /// survives save/reload.
+    /// </summary>
+    private void ApplyPalettePreset(Dictionary<byte, NaplpsColor> preset)
+    {
+        if (loadedFile == null || PaletteColors == null)
+        {
+            return;
+        }
+
+        foreach (var entry in PaletteColors)
+        {
+            if (preset.TryGetValue(entry.Index, out var color))
+            {
+                // Assigning triggers RgbChanged → OnPaletteEntryEdited which emits the
+                // SELECT+SET+SELECT command triple for this slot. Do NOT use LoadFromNaplpsColor
+                // here (that path bypasses the event, which is only right for initial load).
+                entry.Red = color.Red;
+                entry.Green = color.Green;
+                entry.Blue = color.Blue;
+            }
+        }
+
+        UpdateColorBrushes();
+    }
+
     [RelayCommand]
     private void ToggleGrid()
     {

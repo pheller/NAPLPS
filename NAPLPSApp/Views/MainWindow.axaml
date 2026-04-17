@@ -61,6 +61,18 @@
 				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
 			</MenuItem>
 			<MenuItem Header="_Assets">
+				<MenuItem Header="_Palette">
+					<MenuItem Header="Load _NAPLPS Default Palette"
+							  Command="{Binding LoadDefaultPaletteCommand}"
+							  IsEnabled="{Binding IsFileLoaded}"
+							  i:MenuItem.Icon="fa-solid fa-palette"
+							  ToolTip.Tip="Replace palette with NAPLPS spec 3-bit GRB ramp (emits SET COLOR commands, undoable)"/>
+					<MenuItem Header="Load _Prodigy Palette"
+							  Command="{Binding LoadProdigyPaletteCommand}"
+							  IsEnabled="{Binding IsFileLoaded}"
+							  i:MenuItem.Icon="fa-solid fa-swatchbook"
+							  ToolTip.Tip="Replace palette with Prodigy's canonical CLUT (black, red, grey, blue, light grey, brown, green, white + highs)"/>
+				</MenuItem>
 				<MenuItem Header="_DRCS Character..."
 						  Command="{Binding OpenDrcsDesignerCommand}"
 						  CommandParameter="{Binding $parent[Window]}"
@@ -221,42 +233,113 @@
 		<!-- Editor Toolbar (left dock) -->
 		<Border DockPanel.Dock="Left" Background="{DynamicResource SystemControlBackgroundBase}" Padding="2" IsVisible="{Binding IsEditorMode}">
 			<StackPanel Orientation="Vertical" Spacing="2">
-				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsSelectToolActive}" ToolTip.Tip="Select"
-							 Command="{Binding SetActiveToolCommand}" CommandParameter="Select">
+				<ToggleButton IsChecked="{Binding IsSelectToolActive}" ToolTip.Tip="Select"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="Select" Padding="6">
 					<i:Icon Value="fa-solid fa-arrow-pointer" FontSize="16"/>
-				</RadioButton>
-				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsMovePenToolActive}" ToolTip.Tip="Move Pen"
-							 Command="{Binding SetActiveToolCommand}" CommandParameter="MovePen">
+				</ToggleButton>
+				<ToggleButton IsChecked="{Binding IsMovePenToolActive}" ToolTip.Tip="Move Pen"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="MovePen" Padding="6">
 					<i:Icon Value="fa-solid fa-crosshairs" FontSize="16"/>
-				</RadioButton>
-				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsLineToolActive}" ToolTip.Tip="Line"
-							 Command="{Binding SetActiveToolCommand}" CommandParameter="Line">
+				</ToggleButton>
+				<ToggleButton IsChecked="{Binding IsLineToolActive}" ToolTip.Tip="Line"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="Line" Padding="6">
 					<i:Icon Value="fa-solid fa-minus" FontSize="16"/>
-				</RadioButton>
-				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsRectangleToolActive}" ToolTip.Tip="Rectangle"
-							 Command="{Binding SetActiveToolCommand}" CommandParameter="Rectangle">
-					<i:Icon Value="fa-solid fa-square" FontSize="16"/>
-				</RadioButton>
-				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsPolygonToolActive}" ToolTip.Tip="Polygon"
-							 Command="{Binding SetActiveToolCommand}" CommandParameter="Polygon">
-					<i:Icon Value="fa-solid fa-draw-polygon" FontSize="16"/>
-				</RadioButton>
-				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsArcToolActive}" ToolTip.Tip="Arc"
-							 Command="{Binding SetActiveToolCommand}" CommandParameter="Arc">
-					<i:Icon Value="fa-solid fa-circle-notch" FontSize="16"/>
-				</RadioButton>
-				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsTextToolActive}" ToolTip.Tip="Text"
-							 Command="{Binding SetActiveToolCommand}" CommandParameter="Text">
+				</ToggleButton>
+
+				<!-- Rectangle: main button activates tool; chevron flyout picks Filled/Outlined variant. -->
+				<Grid ColumnDefinitions="*,Auto">
+					<ToggleButton Grid.Column="0" IsChecked="{Binding IsRectangleToolActive}" ToolTip.Tip="Rectangle (click \u2159 for variant)"
+								  Command="{Binding SetActiveToolCommand}" CommandParameter="Rectangle" Padding="6">
+						<i:Icon Value="fa-solid fa-square" FontSize="16"/>
+					</ToggleButton>
+					<Button Grid.Column="1" Padding="2" ToolTip.Tip="Rectangle variant">
+						<TextBlock Text="\u25B8" FontSize="8"/>
+						<Button.Flyout>
+							<MenuFlyout Placement="Right">
+								<MenuItem Header="Filled" Command="{Binding SetRectangleVariantCommand}" CommandParameter="Filled"><MenuItem.Icon><i:Icon Value="fa-solid fa-square"/></MenuItem.Icon></MenuItem>
+								<MenuItem Header="Outlined" Command="{Binding SetRectangleVariantCommand}" CommandParameter="Outlined"><MenuItem.Icon><i:Icon Value="fa-regular fa-square"/></MenuItem.Icon></MenuItem>
+							</MenuFlyout>
+						</Button.Flyout>
+					</Button>
+				</Grid>
+
+				<Grid ColumnDefinitions="*,Auto">
+					<ToggleButton Grid.Column="0" IsChecked="{Binding IsPolygonToolActive}" ToolTip.Tip="Polygon (click \u2159 for variant)"
+								  Command="{Binding SetActiveToolCommand}" CommandParameter="Polygon" Padding="6">
+						<i:Icon Value="fa-solid fa-draw-polygon" FontSize="16"/>
+					</ToggleButton>
+					<Button Grid.Column="1" Padding="2" ToolTip.Tip="Polygon variant">
+						<TextBlock Text="\u25B8" FontSize="8"/>
+						<Button.Flyout>
+							<MenuFlyout Placement="Right">
+								<MenuItem Header="Filled" Command="{Binding SetPolygonVariantCommand}" CommandParameter="Filled"/>
+								<MenuItem Header="Outlined" Command="{Binding SetPolygonVariantCommand}" CommandParameter="Outlined"/>
+							</MenuFlyout>
+						</Button.Flyout>
+					</Button>
+				</Grid>
+
+				<Grid ColumnDefinitions="*,Auto">
+					<ToggleButton Grid.Column="0" IsChecked="{Binding IsArcToolActive}" ToolTip.Tip="Arc (click \u2159 for variant)"
+								  Command="{Binding SetActiveToolCommand}" CommandParameter="Arc" Padding="6">
+						<i:Icon Value="fa-solid fa-circle-notch" FontSize="16"/>
+					</ToggleButton>
+					<Button Grid.Column="1" Padding="2" ToolTip.Tip="Arc variant">
+						<TextBlock Text="\u25B8" FontSize="8"/>
+						<Button.Flyout>
+							<MenuFlyout Placement="Right">
+								<MenuItem Header="Filled" Command="{Binding SetArcVariantCommand}" CommandParameter="Filled"/>
+								<MenuItem Header="Outlined" Command="{Binding SetArcVariantCommand}" CommandParameter="Outlined"/>
+							</MenuFlyout>
+						</Button.Flyout>
+					</Button>
+				</Grid>
+
+				<ToggleButton IsChecked="{Binding IsTextToolActive}" ToolTip.Tip="Text"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="Text" Padding="6">
 					<i:Icon Value="fa-solid fa-font" FontSize="16"/>
-				</RadioButton>
-				<RadioButton GroupName="EditorTools" IsChecked="{Binding IsFillToolActive}" ToolTip.Tip="Fill (click an outlined shape to duplicate it as filled)"
-							 Command="{Binding SetActiveToolCommand}" CommandParameter="Fill">
+				</ToggleButton>
+				<ToggleButton IsChecked="{Binding IsFillToolActive}" ToolTip.Tip="Fill (click an outlined shape to duplicate it as filled)"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="Fill" Padding="6">
 					<i:Icon Value="fa-solid fa-fill-drip" FontSize="16"/>
-				</RadioButton>
+				</ToggleButton>
 				<Separator Margin="0,4"/>
-				<CheckBox IsChecked="{Binding IsFilledMode}" ToolTip.Tip="Filled">
-					<i:Icon Value="fa-solid fa-fill" FontSize="16"/>
-				</CheckBox>
+
+				<!-- Fill mode: independent toggle (depressed = filled). Chevron flyout picks
+				     texture pattern (solid / vertical / horizontal / mesh + size). -->
+				<Grid ColumnDefinitions="*,Auto">
+					<ToggleButton Grid.Column="0" IsChecked="{Binding IsFilledMode}" ToolTip.Tip="Filled mode — shapes drawn with fill" Padding="6">
+						<i:Icon Value="fa-solid fa-fill" FontSize="16"/>
+					</ToggleButton>
+					<Button Grid.Column="1" Padding="2" ToolTip.Tip="Fill pattern">
+						<TextBlock Text="\u25B8" FontSize="8"/>
+						<Button.Flyout>
+							<Flyout Placement="Right">
+								<StackPanel Spacing="6" Width="200">
+									<TextBlock Text="Fill Pattern" FontWeight="Bold"/>
+									<ComboBox SelectedIndex="{Binding FillPatternIndex}" HorizontalAlignment="Stretch">
+										<ComboBoxItem>Solid</ComboBoxItem>
+										<ComboBoxItem>Vertical lines</ComboBoxItem>
+										<ComboBoxItem>Horizontal lines</ComboBoxItem>
+										<ComboBoxItem>Mesh (cross-hatch)</ComboBoxItem>
+									</ComboBox>
+									<TextBlock Text="Pel size" FontSize="10" Opacity="0.8"/>
+									<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4">
+										<TextBlock Grid.Column="0" Text="H" VerticalAlignment="Center"/>
+										<Slider Grid.Column="1" Minimum="1" Maximum="16" Value="{Binding FillPelWidth}"/>
+										<TextBlock Grid.Column="2" Text="{Binding FillPelWidth, StringFormat='{}{0:0}'}" VerticalAlignment="Center" Width="20"/>
+									</Grid>
+									<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4">
+										<TextBlock Grid.Column="0" Text="V" VerticalAlignment="Center"/>
+										<Slider Grid.Column="1" Minimum="1" Maximum="16" Value="{Binding FillPelHeight}"/>
+										<TextBlock Grid.Column="2" Text="{Binding FillPelHeight, StringFormat='{}{0:0}'}" VerticalAlignment="Center" Width="20"/>
+									</Grid>
+									<Button Command="{Binding ApplyFillPatternCommand}" HorizontalAlignment="Stretch" Content="Emit TEXTURE command"/>
+								</StackPanel>
+							</Flyout>
+						</Button.Flyout>
+					</Button>
+				</Grid>
 				<Separator Margin="0,4"/>
 				<CheckBox IsChecked="{Binding GridSettings.IsVisible}" ToolTip.Tip="Grid" Command="{Binding ToggleGridCommand}">
 					<i:Icon Value="fa-solid fa-border-all" FontSize="16"/>
@@ -271,11 +354,49 @@
 		<Border DockPanel.Dock="Left" Background="{DynamicResource SystemControlBackgroundBase}" Padding="4" IsVisible="{Binding IsEditorMode}" Width="44">
 			<StackPanel Orientation="Vertical" Spacing="2">
 				<TextBlock Text="FG" FontSize="10" HorizontalAlignment="Center"/>
-				<Border Width="28" Height="28" BorderBrush="White" BorderThickness="2" CornerRadius="2" HorizontalAlignment="Center"
-						Background="{Binding ForegroundColorBrush}"/>
+				<Button Width="28" Height="28" Padding="0" BorderBrush="White" BorderThickness="2" CornerRadius="2" HorizontalAlignment="Center"
+						Background="{Binding ForegroundColorBrush}"
+						ToolTip.Tip="Click to pick foreground color from palette">
+					<Button.Flyout>
+						<Flyout Placement="Right">
+							<ItemsControl ItemsSource="{Binding PaletteColors}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate><WrapPanel ItemWidth="24" ItemHeight="24"/></ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate>
+										<Button Width="22" Height="22" Padding="0" Margin="1" Background="{Binding Brush}"
+												Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectPaletteColorCommand}"
+												CommandParameter="{Binding Index}"
+												ToolTip.Tip="{Binding Index, StringFormat='Palette {0} \u2192 Foreground'}"/>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</Flyout>
+					</Button.Flyout>
+				</Button>
 				<TextBlock Text="BG" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-				<Border Width="28" Height="28" BorderBrush="Gray" BorderThickness="2" CornerRadius="2" HorizontalAlignment="Center"
-						Background="{Binding BackgroundColorBrush}"/>
+				<Button Width="28" Height="28" Padding="0" BorderBrush="Gray" BorderThickness="2" CornerRadius="2" HorizontalAlignment="Center"
+						Background="{Binding BackgroundColorBrush}"
+						ToolTip.Tip="Click to pick background color from palette">
+					<Button.Flyout>
+						<Flyout Placement="Right">
+							<ItemsControl ItemsSource="{Binding PaletteColors}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate><WrapPanel ItemWidth="24" ItemHeight="24"/></ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate>
+										<Button Width="22" Height="22" Padding="0" Margin="1" Background="{Binding Brush}"
+												Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectBackgroundPaletteColorCommand}"
+												CommandParameter="{Binding Index}"
+												ToolTip.Tip="{Binding Index, StringFormat='Palette {0} \u2192 Background'}"/>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</Flyout>
+					</Button.Flyout>
+				</Button>
 				<Separator Margin="0,4"/>
 				<ItemsControl ItemsSource="{Binding PaletteColors}">
 					<ItemsControl.ItemsPanel>

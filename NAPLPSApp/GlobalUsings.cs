@@ -2,6 +2,7 @@
 
 // .NET
 global using System.Collections.ObjectModel;
+global using System.Numerics;
 global using IOPath = System.IO.Path;
 
 // App
