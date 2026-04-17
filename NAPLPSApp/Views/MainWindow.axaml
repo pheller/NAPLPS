@@ -23,6 +23,22 @@
 		<KeyBinding Command="{Binding SaveCommand}" Gesture="Ctrl+S"/>
 		<KeyBinding Command="{Binding SaveAsCommand}" Gesture="Ctrl+Shift+S"/>
 		<KeyBinding Command="{Binding DeleteSelectedCommand}" Gesture="Delete"/>
+
+		<!-- Tool selection hotkeys (ignored when typing in text controls). -->
+		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Select"    Gesture="V"/>
+		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="MovePen"   Gesture="M"/>
+		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Line"      Gesture="L"/>
+		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Rectangle" Gesture="R"/>
+		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Polygon"   Gesture="P"/>
+		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Arc"       Gesture="A"/>
+		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Text"      Gesture="T"/>
+		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Fill"      Gesture="F"/>
+
+		<!-- Esc cancels the in-progress draw (e.g. multi-click polygon). -->
+		<KeyBinding Command="{Binding CancelDrawCommand}" Gesture="Escape"/>
+
+		<!-- F5 forces a Telidraw recompile (useful when the auto-recompile is racing). -->
+		<KeyBinding Command="{Binding RecompileTelidrawCommand}" Gesture="F5"/>
 	</Window.KeyBindings>
 
 	<Window.Resources>

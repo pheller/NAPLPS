@@ -26,6 +26,16 @@ public abstract class EditorToolBase
     /// <summary>Returns a preview shape for rubber-band display, or null if nothing to preview.</summary>
     public virtual ToolPreview? GetPreview() => null;
 
+    /// <summary>
+    /// Cancel any in-progress operation (e.g. mid-polygon click sequence) and reset state.
+    /// Default implementation just clears the drag flag; tools with per-stroke buffers
+    /// (PolygonTool, IncrementalLineTool) should override to drop accumulated points.
+    /// </summary>
+    public virtual void Reset()
+    {
+        IsDragging = false;
+    }
+
     /// <summary>Whether the tool is currently in a drag operation.</summary>
     public bool IsDragging { get; protected set; }
 

@@ -839,6 +839,35 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// tool's chevron flyout. Also flips the global IsFilledMode so other shape tools
     /// stay consistent with the user's most-recent intent.
     /// </summary>
+    /// <summary>
+    /// Cancel the in-progress editor draw (e.g. mid-polygon click sequence). Hooked to Esc.
+    /// Resets the active tool's accumulated state and clears the preview overlay.
+    /// </summary>
+    [RelayCommand]
+    private void CancelDraw()
+    {
+        if (ActiveTool != null)
+        {
+            ActiveTool.Reset();
+        }
+        EditorPreview = null;
+    }
+
+    /// <summary>
+    /// Force a re-decompile of the current loadedFile into the Telidraw text pane.
+    /// Hooked to F5. Useful when the user wants to discard local edits and reset to source.
+    /// </summary>
+    [RelayCommand]
+    private void RecompileTelidraw()
+    {
+        if (loadedFile == null)
+        {
+            return;
+        }
+
+        SyncTelidrawFromFormat();
+    }
+
     [RelayCommand]
     private void SetRectangleVariant(string variant)
     {

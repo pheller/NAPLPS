@@ -48,6 +48,13 @@ public class PolygonTool : EditorToolBase
         CurrentY = normY;
     }
 
+    public override void Reset()
+    {
+        _vertices.Clear();
+        ClickCount = 1;
+        base.Reset();
+    }
+
     public override List<(byte opcode, NaplpsOperands operands)> OnPointerReleased(float normX, float normY)
     {
         if (ClickCount < 2 || _vertices.Count < 3)
