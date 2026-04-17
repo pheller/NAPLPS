@@ -2,15 +2,82 @@
 
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using AvaloniaEdit;
+using AvaloniaEdit.Highlighting;
+using AvaloniaEdit.Highlighting.Xshd;
 using NAPLPSApp.Editor;
 
 namespace NAPLPSApp.Views;
 
 public partial class MainWindow : Window
 {
+    private TextEditor? _telidrawEditor;
+    private bool _suppressEditorTextSync;
+
     public MainWindow()
     {
         InitializeComponent();
+        InitializeTelidrawEditor();
+    }
+
+    /// <summary>
+    /// Wire up AvaloniaEdit for the Telidraw text pane: load the syntax-highlighting
+    /// definition from embedded XSHD, hook two-way text binding to ViewModel.TelidrawSource
+    /// (with reentrancy guard), and register an F5 recompile keybind.
+    /// </summary>
+    private void InitializeTelidrawEditor()
+    {
+        _telidrawEditor = this.FindControl<TextEditor>("TelidrawEditor");
+        if (_telidrawEditor == null) { return; }
+
+        // Load Telidraw syntax highlighting from the embedded XSHD resource.
+        var asm = typeof(MainWindow).Assembly;
+        using (var stream = asm.GetManifestResourceStream("NAPLPSApp.Assets.TelidrawHighlighting.xshd"))
+        {
+            if (stream != null)
+            {
+                using var reader = new System.Xml.XmlTextReader(stream);
+                _telidrawEditor.SyntaxHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
+            }
+        }
+
+        // Two-way bridge between editor.Text and VM.TelidrawSource. AvaloniaEdit's
+        // TextEditor.Text isn't a normal AvaloniaProperty, so we wire it manually.
+        _telidrawEditor.TextChanged += (_, _) =>
+        {
+            if (_suppressEditorTextSync) { return; }
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.TelidrawSource = _telidrawEditor.Text;
+            }
+        };
+
+        DataContextChanged += (_, _) => HookViewModelForEditor();
+        HookViewModelForEditor();
+    }
+
+    private void HookViewModelForEditor()
+    {
+        if (DataContext is not MainWindowViewModel vm || _telidrawEditor == null) { return; }
+
+        // Seed editor with current source.
+        _suppressEditorTextSync = true;
+        _telidrawEditor.Text = vm.TelidrawSource ?? string.Empty;
+        _suppressEditorTextSync = false;
+
+        // Push VM-side changes (e.g. file load → decompile) back into the editor.
+        vm.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainWindowViewModel.TelidrawSource) && _telidrawEditor != null)
+            {
+                if (_telidrawEditor.Text != vm.TelidrawSource)
+                {
+                    _suppressEditorTextSync = true;
+                    _telidrawEditor.Text = vm.TelidrawSource ?? string.Empty;
+                    _suppressEditorTextSync = false;
+                }
+            }
+        };
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)

@@ -11,6 +11,9 @@
 
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
+		<!-- AvaloniaEdit needs the XSHD via Assembly.GetManifestResourceStream, so it must
+		     also be an EmbeddedResource (Avalonia assets can't be reached that way). -->
+		<EmbeddedResource Include="Assets\TelidrawHighlighting.xshd"/>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -22,6 +25,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="11.3.10" />
+		<PackageReference Include="Avalonia.AvaloniaEdit" Version="11.3.0" />
+		<PackageReference Include="AvaloniaEdit.TextMate" Version="11.3.0" />
 		<PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.10" />

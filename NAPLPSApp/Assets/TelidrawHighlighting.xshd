@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<!-- Telidraw syntax-highlighting definition for AvaloniaEdit.
+     Keywords match NAPLPS/Telidraw/Lexer.cs Keywords table. Colours tuned for the dark
+     editor background (#1e1e1e) used in MainWindow.axaml. -->
+<SyntaxDefinition name="Telidraw" extensions=".td"
+                  xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+
+  <Color name="Comment"     foreground="#6A9955"/>
+  <Color name="String"      foreground="#CE9178"/>
+  <Color name="Number"      foreground="#B5CEA8"/>
+  <Color name="Directive"   foreground="#C586C0"/>
+  <Color name="Keyword"     foreground="#569CD6" fontWeight="bold"/>
+  <Color name="Verb"        foreground="#4EC9B0"/>
+  <Color name="Variant"     foreground="#4FC1FF"/>
+  <Color name="Raw"         foreground="#D7BA7D"/>
+  <Color name="Operator"    foreground="#D4D4D4"/>
+
+  <RuleSet ignoreCase="false">
+    <!-- // and /** comments -->
+    <Span color="Comment" begin="//"/>
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/"/>
+
+    <!-- "..." strings with backslash escapes -->
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Span begin="\\" end="."/>
+      </RuleSet>
+    </Span>
+
+    <!-- #directive at start of line (or anywhere) -->
+    <Rule color="Directive">\#[a-zA-Z][a-zA-Z0-9-]*</Rule>
+
+    <!-- Block-structure / control keywords -->
+    <Keywords color="Keyword">
+      <Word>proc</Word>
+      <Word>with</Word>
+      <Word>repeat</Word>
+      <Word>for</Word>
+      <Word>in</Word>
+      <Word>if</Word>
+      <Word>else</Word>
+      <Word>let</Word>
+      <Word>palette</Word>
+    </Keywords>
+
+    <!-- Drawing verbs -->
+    <Keywords color="Verb">
+      <Word>forward</Word>
+      <Word>fd</Word>
+      <Word>back</Word>
+      <Word>bk</Word>
+      <Word>turn</Word>
+      <Word>move</Word>
+      <Word>goto</Word>
+      <Word>line</Word>
+      <Word>rect</Word>
+      <Word>arc</Word>
+      <Word>polygon</Word>
+      <Word>poly</Word>
+      <Word>point</Word>
+      <Word>text</Word>
+      <Word>color</Word>
+      <Word>set-color</Word>
+      <Word>texture</Word>
+      <Word>domain</Word>
+      <Word>blink</Word>
+      <Word>wait</Word>
+      <Word>reset</Word>
+      <Word>nsr</Word>
+      <Word>drcs</Word>
+      <Word>field</Word>
+      <Word>scribble</Word>
+      <Word>bitmap</Word>
+      <Word>close</Word>
+    </Keywords>
+
+    <!-- Variant verbs (set/rel/outline forms) -->
+    <Keywords color="Variant">
+      <Word>move-rel</Word>
+      <Word>line-rel</Word>
+      <Word>line-set</Word>
+      <Word>line-set-rel</Word>
+      <Word>rect-outline</Word>
+      <Word>rect-set</Word>
+      <Word>rect-set-outline</Word>
+      <Word>arc-outline</Word>
+      <Word>arc-set</Word>
+      <Word>arc-set-outline</Word>
+      <Word>polygon-outline</Word>
+      <Word>polygon-set</Word>
+      <Word>polygon-set-outline</Word>
+      <Word>poly-outline</Word>
+      <Word>poly-set</Word>
+      <Word>poly-set-outline</Word>
+      <Word>point-rel</Word>
+      <Word>abs</Word>
+    </Keywords>
+
+    <!-- raw passthrough — flag distinctly so unhandled bytes are visible -->
+    <Keywords color="Raw">
+      <Word>raw</Word>
+    </Keywords>
+
+    <!-- Numbers (int, float, fraction like 1/40) -->
+    <Rule color="Number">\b\d+(\.\d+)?(/\d+)?\b</Rule>
+
+    <!-- Operators -->
+    <Rule color="Operator">[+\-*/=&lt;&gt;,;:]</Rule>
+  </RuleSet>
+</SyntaxDefinition>
