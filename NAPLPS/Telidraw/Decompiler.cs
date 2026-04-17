@@ -136,10 +136,31 @@ public static class Decompiler
                 break;
             }
 
+            case PointSetRelativeCommand:
+            {
+                var (dx, dy) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
+                yield return $"move-rel {Fmt(dx)} {Fmt(dy)}";
+                break;
+            }
+
+            case PointRelativeCommand:
+            {
+                var (dx, dy) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
+                yield return $"point-rel {Fmt(dx)} {Fmt(dy)}";
+                break;
+            }
+
             case LineAbsoluteCommand:
             {
                 var (x, y) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
                 yield return $"line {Fmt(x)} {Fmt(y)}";
+                break;
+            }
+
+            case LineRelativeCommand:
+            {
+                var (dx, dy) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
+                yield return $"line-rel {Fmt(dx)} {Fmt(dy)}";
                 break;
             }
 
@@ -150,9 +171,22 @@ public static class Decompiler
                 break;
             }
 
+            case RectangleOutlinedCommand:
+            {
+                var (w, h) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
+                yield return $"rect-outline {Fmt(w)} {Fmt(h)}";
+                break;
+            }
+
             case ResetCommand:
             {
                 yield return "reset";
+                break;
+            }
+
+            case NonSelectiveResetCommand:
+            {
+                yield return "nsr";
                 break;
             }
 

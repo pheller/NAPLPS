@@ -74,6 +74,22 @@ public sealed class Compiler
 
     public NaplpsFormat Compile()
     {
+        // Snapshot encoder bit mode so a #bits directive doesn't bleed into other code.
+        // Restored in the finally block at the end of the method body.
+        var priorBitMode = NaplpsEncoder.Use7BitMode;
+
+        try
+        {
+            return CompileInner();
+        }
+        finally
+        {
+            NaplpsEncoder.Use7BitMode = priorBitMode;
+        }
+    }
+
+    private NaplpsFormat CompileInner()
+    {
         if (BareFormat)
         {
             _format = new NaplpsFormat(new NaplpsState());
@@ -270,6 +286,59 @@ public sealed class Compiler
                 EmitCommand(NaplpsCommandBuilder.BuildReset());
                 break;
 
+            case TokenKind.Nsr:
+                EmitCommand(NaplpsCommandBuilder.BuildNonSelectiveReset());
+                break;
+
+            case TokenKind.MoveRel:
+                ExpectArgs(c, 2);
+                EmitCommand(NaplpsCommandBuilder.BuildPointSetRelative(
+                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1]))));
+                break;
+
+            case TokenKind.PointRel:
+                ExpectArgs(c, 2);
+                EmitCommand(NaplpsCommandBuilder.BuildPointRelative(
+                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1]))));
+                break;
+
+            case TokenKind.LineRel:
+                ExpectArgs(c, 2);
+                EmitCommand(NaplpsCommandBuilder.BuildLineRelative(
+                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1]))));
+                break;
+
+            case TokenKind.RectOutline:
+                ExpectArgs(c, 2);
+                EmitCommand(NaplpsCommandBuilder.BuildRectangleOutlined(
+                    (float)NormW(Evaluate(c.Args[0])), (float)NormH(Evaluate(c.Args[1]))));
+                break;
+
+            case TokenKind.ArcOutline:
+                ExpectArgs(c, 4);
+                EmitArcOutlined(
+                    (float)NormX(Evaluate(c.Args[0])), (float)NormY(Evaluate(c.Args[1])),
+                    (float)NormX(Evaluate(c.Args[2])), (float)NormY(Evaluate(c.Args[3])));
+                break;
+
+            case TokenKind.PolyOutline:
+                if (c.Args.Count < 2 || c.Args.Count % 2 != 0)
+                {
+                    Diag(DiagnosticSeverity.Error, c.Line, c.Column, $"polygon-outline needs pairs of x,y coords (got {c.Args.Count})");
+                    break;
+                }
+                EmitPolygonOutlined(c);
+                break;
+
+            case TokenKind.SetColor:
+                // set-color g r b — defines RGB at the currently-pointed palette entry.
+                ExpectArgs(c, 3);
+                EmitCommand(NaplpsCommandBuilder.BuildSetColorRgb(
+                    (byte)Evaluate(c.Args[0]),
+                    (byte)Evaluate(c.Args[1]),
+                    (byte)Evaluate(c.Args[2])));
+                break;
+
             case TokenKind.Blink:
                 // blink blinkToIndex onInterval offInterval [startDelay]
                 if (c.Args.Count < 3)
@@ -372,6 +441,14 @@ public sealed class Compiler
         _turtle.Position = new Vector3(endX, endY, 0);
     }
 
+    private void EmitArcOutlined(float midX, float midY, float endX, float endY)
+    {
+        float penX = _turtle.Position.X;
+        float penY = _turtle.Position.Y;
+        EmitCommand(NaplpsCommandBuilder.BuildArcOutlined(midX - penX, midY - penY, endX - midX, endY - midY));
+        _turtle.Position = new Vector3(endX, endY, 0);
+    }
+
     private void EmitPolygonFilled(CommandCallNode c)
     {
         var verts = new Vector3[c.Args.Count / 2];
@@ -396,6 +473,31 @@ public sealed class Compiler
         }
 
         EmitCommand(NaplpsCommandBuilder.BuildPolygonFilled(relVerts));
+        _turtle.Position = verts[^1];
+    }
+
+    private void EmitPolygonOutlined(CommandCallNode c)
+    {
+        var verts = new Vector3[c.Args.Count / 2];
+
+        for (int i = 0; i < verts.Length; i++)
+        {
+            verts[i] = new Vector3(
+                (float)NormX(Evaluate(c.Args[2 * i])),
+                (float)NormY(Evaluate(c.Args[2 * i + 1])),
+                0);
+        }
+
+        var relVerts = new Vector3[verts.Length];
+        var pen = _turtle.Position;
+
+        for (int i = 0; i < verts.Length; i++)
+        {
+            relVerts[i] = verts[i] - pen;
+            pen = verts[i];
+        }
+
+        EmitCommand(NaplpsCommandBuilder.BuildPolygonOutlined(relVerts));
         _turtle.Position = verts[^1];
     }
 

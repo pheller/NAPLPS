@@ -31,15 +31,23 @@ public enum TokenKind
     Forward,
     Back,
     Turn,
-    Move,              // absolute position set
+    Move,              // absolute position set (PointSetAbsolute)
+    MoveRel,           // relative position set (PointSetRelative)
     Goto,              // alias for move
     Line,              // absolute line
-    Rect,
-    Arc,
-    Polygon,
-    Point,
+    LineRel,           // relative line
+    Rect,              // filled rectangle
+    RectOutline,       // outlined rectangle
+    Arc,               // filled arc (default)
+    ArcOutline,        // outlined arc
+    Polygon,           // filled polygon (default)
+    PolyOutline,       // outlined polygon
+    Point,             // absolute point (no pen move)
+    PointRel,          // relative point (no pen move)
     Text,
-    Color,
+    Color,             // SelectColor (pick from palette)
+    SetColor,          // SetColor (define palette entry RGB)
+    Nsr,               // Non-Selective Reset (clear screen + reset most state)
     Texture,
     Domain,
     Blink,

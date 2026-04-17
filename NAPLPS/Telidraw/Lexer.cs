@@ -30,20 +30,29 @@ public sealed class Lexer
         ["bk"] = TokenKind.Back,
         ["turn"] = TokenKind.Turn,
         ["move"] = TokenKind.Move,
+        ["move-rel"] = TokenKind.MoveRel,
         ["goto"] = TokenKind.Goto,
         ["line"] = TokenKind.Line,
+        ["line-rel"] = TokenKind.LineRel,
         ["rect"] = TokenKind.Rect,
+        ["rect-outline"] = TokenKind.RectOutline,
         ["arc"] = TokenKind.Arc,
+        ["arc-outline"] = TokenKind.ArcOutline,
         ["polygon"] = TokenKind.Polygon,
+        ["polygon-outline"] = TokenKind.PolyOutline,
         ["poly"] = TokenKind.Polygon,
+        ["poly-outline"] = TokenKind.PolyOutline,
         ["point"] = TokenKind.Point,
+        ["point-rel"] = TokenKind.PointRel,
         ["text"] = TokenKind.Text,
         ["color"] = TokenKind.Color,
+        ["set-color"] = TokenKind.SetColor,
         ["texture"] = TokenKind.Texture,
         ["domain"] = TokenKind.Domain,
         ["blink"] = TokenKind.Blink,
         ["wait"] = TokenKind.Wait,
         ["reset"] = TokenKind.Reset,
+        ["nsr"] = TokenKind.Nsr,
         ["drcs"] = TokenKind.Drcs,
         ["field"] = TokenKind.Field,
         ["scribble"] = TokenKind.Scribble,
@@ -319,9 +328,26 @@ public sealed class Lexer
         var sb = new System.Text.StringBuilder();
         sb.Append(first);
 
-        while (!IsAtEnd() && IsIdentPart(Peek()))
+        while (!IsAtEnd())
         {
-            sb.Append(Advance());
+            char p = Peek();
+
+            if (IsIdentPart(p))
+            {
+                sb.Append(Advance());
+                continue;
+            }
+
+            // Smart hyphen: '-' is part of an identifier only when sandwiched between letters
+            // (e.g. 'point-rel', 'rect-set-fill'). Subtraction still works because operands
+            // ending in digits, or any whitespace around '-', falls through to the Minus token.
+            if (p == '-' && char.IsLetter(sb[sb.Length - 1]) && char.IsLetter(Peek(1)))
+            {
+                sb.Append(Advance());
+                continue;
+            }
+
+            break;
         }
 
         var text = sb.ToString();
