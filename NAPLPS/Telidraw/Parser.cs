@@ -255,20 +255,17 @@ public sealed class Parser
     /// First byte is the opcode; rest are operand bytes.
     /// </summary>
     /// <summary>
-    /// Resolve an identifier to its NAPLPS opcode. Tries uppercase ANSI mnemonics first
-    /// (NSR/CAN/ESC/NUL/...), then kebab-cased multi-word registry names. Returns null
-    /// when the lexeme isn't a known opcode keyword (NULLABLE so opcode 0x00 NUL is not
-    /// confused with the no-match sentinel).
+    /// Resolve an identifier to its NAPLPS opcode. Tries ANSI mnemonics (NSR/CAN/NUL/...)
+    /// then registry kebab names (POLYGON-SET-FILLED, DOMAIN, TEXT, ...). Case-insensitive.
+    /// Returns null for non-mnemonic identifiers (user-defined procs, variables).
+    /// The canonical form is UPPERCASE so lowercase keywords (`domain`, `text`, ...) stay
+    /// reserved for high-level decoded-args forms via the lexer's keyword table.
     /// </summary>
     private static byte? ResolveMnemonicOpcode(string lexeme)
     {
         if (NAPLPS.CommandRegistry.TryResolveMnemonic(lexeme, out var op)) { return op; }
-        if (lexeme.Contains('-'))
-        {
-            byte k = NAPLPS.CommandRegistry.GetOpcodeByKebabName(lexeme);
-            return k == 0 ? null : k;
-        }
-        return null;
+        byte k = NAPLPS.CommandRegistry.GetOpcodeByKebabName(lexeme);
+        return k == 0 ? null : k;
     }
 
     /// <summary>

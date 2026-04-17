@@ -53,12 +53,16 @@ public static class CommandRegistry
     /// </summary>
     public static byte GetOpcodeByKebabName(string kebabName)
     {
+        // Case-insensitive comparison — Telidraw accepts both `DOMAIN 1 3 2` and
+        // `domain 1 3 2` as the same raw-byte form. The decompiler emits uppercase
+        // canonically to avoid collision with lowercase high-level keywords.
         foreach (var d in _instance.Value.ByType.Values)
         {
-            var nameKebab = d.Name.ToLowerInvariant().Replace(' ', '-');
-            if (nameKebab == kebabName || d.DslKeyword == kebabName)
+            var nameKebab = d.Name.Replace(' ', '-');
+            if (string.Equals(nameKebab, kebabName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(d.DslKeyword, kebabName, StringComparison.OrdinalIgnoreCase))
             {
-                // Prefer the 8-bit opcode (>= 0xA0) when both 7-bit and 8-bit variants exist.
+                // Prefer 8-bit opcode (>= 0xA0) when both 7-bit and 8-bit variants exist.
                 foreach (var op in d.DefaultOpcodes) { if (op >= 0xA0) { return op; } }
                 if (d.DefaultOpcodes.Count > 0) { return d.DefaultOpcodes[0]; }
             }
@@ -84,7 +88,7 @@ public static class CommandRegistry
     };
 
     private static readonly Dictionary<string, byte> _mnemonicLookup =
-        OpcodeMnemonics.ToDictionary(kv => kv.Value, kv => kv.Key, StringComparer.Ordinal);
+        OpcodeMnemonics.ToDictionary(kv => kv.Value, kv => kv.Key, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Resolve a case-sensitive ANSI mnemonic (NSR/CAN/...) to its opcode.</summary>
     public static bool TryResolveMnemonic(string mnemonic, out byte opcode) =>

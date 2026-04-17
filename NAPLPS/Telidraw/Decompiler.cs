@@ -408,12 +408,16 @@ public static class Decompiler
     /// </summary>
     private static void EmitRaw(StringBuilder sb, NaplpsCommand cmd)
     {
-        // Emit format priority:
-        //   1. `MNEMONIC bytes...`     — ANSI mnemonic (CAN, ESC, NSR, SO, SI, SDC, ...)
-        //   2. `kebab-name bytes...`   — multi-word registry name (polygon-set-filled, ...)
-        //                                ONLY when it round-trips to this exact opcode
-        //   3. `raw <opcode> bytes...` — last-resort fallback (single-word command names
-        //                                that conflict with statement keywords like `domain`)
+        // Canonical raw-byte form: `UPPERCASE-MNEMONIC bytes...`.
+        // Uppercase disambiguates from lowercase high-level keywords with the SAME name
+        // (e.g. lowercase `domain sv mv dim` = high-level decoded; uppercase `DOMAIN bytes`
+        // = raw byte pass-through). The parser is case-insensitive at lookup time but the
+        // lexer emits a KEYWORD token for lowercase matches, and an Identifier for others —
+        // which is how the parser routes high-level vs raw. Every command gets both forms.
+        //
+        // Priority: ANSI per-opcode mnemonic (NUL/CAN/ESC/NSR/...) beats kebab name because
+        // it's shorter and more idiomatic for the C0 range. For PDI commands we fall back
+        // to the registry name kebab-cased then uppercased.
         if (CommandRegistry.OpcodeMnemonics.TryGetValue(cmd.OpCode, out var mnemonic))
         {
             sb.Append(mnemonic);
@@ -425,16 +429,11 @@ public static class Decompiler
         var descriptor = CommandRegistry.GetByType(cmd.GetType());
         if (descriptor != null)
         {
-            var kebab = descriptor.Name.ToLowerInvariant().Replace(' ', '-');
-            // Skip kebab names that conflict with high-level Telidraw keywords (set-color,
-            // rect-set, arc-set, polygon-set, line-set, etc.). Those keywords have HIGH-LEVEL
-            // semantics (decoded G/R/B values, absolute coords, etc.) — using them as raw-byte
-            // labels would compile to different bytes than what's on the wire.
-            // Keyword names that DON'T conflict (polygon-set-filled, point-set-absolute, etc.)
-            // can safely double as raw-form labels.
-            if (kebab.Contains('-')
-                && !IsHighLevelKeyword(kebab)
-                && CommandRegistry.GetOpcodeByKebabName(kebab) == cmd.OpCode)
+            // Emit UPPERCASE kebab so the lexer produces an Identifier token (keywords
+            // are lowercase-only) and the parser's mnemonic-statement path takes over.
+            // Round-trips to the same opcode via case-insensitive registry lookup.
+            var kebab = descriptor.Name.ToUpperInvariant().Replace(' ', '-');
+            if (CommandRegistry.GetOpcodeByKebabName(kebab) == cmd.OpCode)
             {
                 sb.Append(kebab);
                 foreach (var b in cmd.Operands) { sb.Append(' ').Append(b); }
@@ -443,15 +442,7 @@ public static class Decompiler
             }
         }
 
-        // Fallback to legacy `raw <opcode> bytes... // CommandName` form.
-        FallbackRaw(sb, cmd, descriptor);
-    }
-
-    private static void FallbackRaw(StringBuilder sb, NaplpsCommand cmd, CommandDescriptor? descriptor)
-    {
-        // Last-resort: emit `raw <opcode> <bytes>  // Name`. Used for opcodes whose
-        // command name is a single-word lowercase token that would conflict with statement
-        // keywords (domain, text, etc.) — they can't be used as keyword-only mnemonics.
+        // Unknown-opcode last resort: bare `raw <opcode> <bytes>` with trailing comment.
         sb.Append("raw ").Append(cmd.OpCode);
         foreach (var b in cmd.Operands) { sb.Append(' ').Append(b); }
         if (descriptor != null) { sb.Append("  // ").Append(descriptor.Name); }
@@ -462,23 +453,6 @@ public static class Decompiler
     private static string KebabCase(string name) =>
         name.ToLowerInvariant().Replace(' ', '-');
 
-    /// <summary>
-    /// Multi-word kebab names that ARE existing Telidraw high-level keywords (set-color
-    /// takes 3 normalized G/R/B args, rect-set takes 4 absolute coords, etc.). Using these
-    /// as raw-byte labels in a decompile would lex back to the high-level keyword and
-    /// compile via the decoded-args path — producing different bytes than the wire format.
-    /// </summary>
-    private static readonly HashSet<string> _highLevelKeywords = new(StringComparer.Ordinal)
-    {
-        "move-rel", "line-rel", "line-set", "line-set-rel",
-        "rect-outline", "rect-set", "rect-set-outline",
-        "arc-outline", "arc-set", "arc-set-outline",
-        "polygon-outline", "polygon-set", "polygon-set-outline",
-        "poly-outline", "poly-set", "poly-set-outline",
-        "point-rel", "set-color",
-    };
-
-    private static bool IsHighLevelKeyword(string kebab) => _highLevelKeywords.Contains(kebab);
 
     // ---- Formatting helpers -------------------------------------------
 
