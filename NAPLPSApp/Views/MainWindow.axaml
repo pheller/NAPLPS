@@ -434,7 +434,7 @@
 
 		<Border DockPanel.Dock="Right"
 				Background="{DynamicResource SystemControlBackgroundBase}"
-				BorderBrush="{DynamicResource SystemControlForegroundBaseHighBrush}"
+				BorderBrush="#222"
 				BorderThickness="1,0,0,0"
 				Width="260"
 				Padding="6"
@@ -454,8 +454,6 @@
 							<Setter Property="HorizontalAlignment" Value="Stretch"/>
 						</Style>
 					</StackPanel.Styles>
-
-					<TextBlock Text="Attributes" FontSize="13" FontWeight="Bold" Margin="2,0,0,2"/>
 
 					<Expander Header="Color Mode" IsExpanded="True">
 						<StackPanel Orientation="Vertical" Spacing="2" Margin="4">

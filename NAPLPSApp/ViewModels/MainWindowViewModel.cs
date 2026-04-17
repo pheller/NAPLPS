@@ -251,6 +251,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         await FileNew();
 
+        // Auto-open the editor toolbox on a fresh document so the user lands directly in
+        // authoring mode without having to enable it from the View menu.
+        IsEditorMode = true;
+
         await UpdateCanvas();
     }
 
