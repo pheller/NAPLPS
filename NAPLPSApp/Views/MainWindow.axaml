@@ -441,10 +441,24 @@
 				IsVisible="{Binding IsEditorMode}">
 			<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
 				<StackPanel Orientation="Vertical" Spacing="4" HorizontalAlignment="Stretch">
+					<StackPanel.Styles>
+						<!-- Make every Expander in the Properties panel fill the panel width
+						     and stretch its content (StackPanel) edge-to-edge. The default
+						     Expander template centers its content otherwise. -->
+						<Style Selector="Expander">
+							<Setter Property="HorizontalAlignment" Value="Stretch"/>
+							<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+							<Setter Property="Padding" Value="0"/>
+						</Style>
+						<Style Selector="Expander StackPanel">
+							<Setter Property="HorizontalAlignment" Value="Stretch"/>
+						</Style>
+					</StackPanel.Styles>
+
 					<TextBlock Text="Attributes" FontSize="13" FontWeight="Bold" Margin="2,0,0,2"/>
 
-					<Expander Header="Color Mode" IsExpanded="True" Padding="2">
-						<StackPanel Orientation="Vertical" Spacing="2" Margin="0,2,0,0">
+					<Expander Header="Color Mode" IsExpanded="True">
+						<StackPanel Orientation="Vertical" Spacing="2" Margin="4">
 							<TextBlock Text="Foreground Index:" FontSize="11"/>
 							<NumericUpDown Value="{Binding EditorForegroundIndex}" Minimum="0" Maximum="15" FormatString="0" HorizontalAlignment="Stretch"/>
 							<TextBlock Text="Background Index:" FontSize="11" Margin="0,2,0,0"/>
@@ -454,14 +468,13 @@
 
 					<Expander Header="Text Attributes"
 							  IsExpanded="True"
-							  Padding="2"
 							  DataContext="{Binding TextToolInstance}">
-						<StackPanel Orientation="Vertical" Spacing="4" Margin="0,2,0,0">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
 							<TextBlock Text="Char Width (unit):" FontSize="11"/>
-							<NumericUpDown Value="{Binding CharWidth}" Minimum="0.005" Maximum="0.5" Increment="0.005" FormatString="0.0000"/>
+							<NumericUpDown Value="{Binding CharWidth}" Minimum="0.005" Maximum="0.5" Increment="0.005" FormatString="0.0000" HorizontalAlignment="Stretch"/>
 
 							<TextBlock Text="Char Height (unit):" FontSize="11"/>
-							<NumericUpDown Value="{Binding CharHeight}" Minimum="0.005" Maximum="0.5" Increment="0.005" FormatString="0.0000"/>
+							<NumericUpDown Value="{Binding CharHeight}" Minimum="0.005" Maximum="0.5" Increment="0.005" FormatString="0.0000" HorizontalAlignment="Stretch"/>
 
 							<TextBlock Text="Rotation:" FontSize="11"/>
 							<ComboBox SelectedIndex="{Binding Rotation}" HorizontalAlignment="Stretch">
@@ -497,8 +510,8 @@
 						</StackPanel>
 					</Expander>
 
-					<Expander Header="Macro Recorder" IsExpanded="False" Padding="2">
-						<StackPanel Orientation="Vertical" Spacing="4" Margin="0,2,0,0">
+					<Expander Header="Macro Recorder" IsExpanded="False">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
 							<StackPanel Orientation="Horizontal" Spacing="4">
 								<TextBlock Text="Slot:" VerticalAlignment="Center"/>
 								<TextBox Text="{Binding MacroRecordingSlot}" Width="40" MaxLength="1"/>
