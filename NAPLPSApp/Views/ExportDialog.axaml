@@ -3,8 +3,9 @@
 		xmlns:vm="using:NAPLPSApp.ViewModels"
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-		mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="500"
-		Width="440" Height="500"
+		mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="320"
+		Width="440"
+		SizeToContent="Height"
 		x:Class="NAPLPSApp.Views.ExportDialog"
 		x:DataType="vm:ExportDialogViewModel"
 		Icon="/Assets/naplps.ico"
@@ -46,10 +47,11 @@
 				</TextBlock>
 			</Grid>
 
-			<CheckBox Content="Transparent background" IsChecked="{Binding TransparentBackground}" IsEnabled="{Binding CanSetTransparentBackground}"
-					  ToolTip.Tip="PNG/GIF only. Leaves the canvas background fully transparent instead of filling with black."/>
+			<CheckBox Content="Transparent background" IsChecked="{Binding TransparentBackground}"
+					  IsVisible="{Binding CanSetTransparentBackground}"
+					  ToolTip.Tip="Leaves the canvas background fully transparent instead of filling with black."/>
 
-			<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsEnabled="{Binding CanSetJpegQuality}">
+			<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding CanSetJpegQuality}">
 				<TextBlock Grid.Column="0" Text="JPEG Quality:" VerticalAlignment="Center"/>
 				<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
 					<Slider Minimum="1" Maximum="100" Value="{Binding JpegQuality}" Width="200" VerticalAlignment="Center"/>
