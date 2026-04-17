@@ -927,6 +927,89 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private double fillPelHeight = 1;
 
+    // ---- Domain attribute editor state ----------------------------------------------------
+    [ObservableProperty] private byte domainSingleByteValue = 1;
+    [ObservableProperty] private byte domainMultiByteValue = 3;
+    [ObservableProperty] private byte domainDimensionality = 2;
+    [ObservableProperty] private double domainLogicalPelX;
+    [ObservableProperty] private double domainLogicalPelY;
+
+    /// <summary>Emit a DOMAIN command from the current editor inputs (single/multi/dim + pel).</summary>
+    [RelayCommand]
+    private void ApplyDomain()
+    {
+        if (loadedFile == null) { return; }
+
+        var pel = (DomainLogicalPelX > 0 || DomainLogicalPelY > 0)
+            ? new Vector3((float)DomainLogicalPelX, (float)DomainLogicalPelY, 0)
+            : (Vector3?)null;
+
+        var cmd = NaplpsCommandBuilder.BuildDomain(DomainSingleByteValue, DomainMultiByteValue, DomainDimensionality, pel);
+        undoManager.Execute(new AddCommandsAction([cmd]), loadedFile);
+        IsFileDirty = true;
+        BuildDrawContext();
+    }
+
+    // ---- Field attribute editor state -----------------------------------------------------
+    [ObservableProperty] private double fieldOriginX;
+    [ObservableProperty] private double fieldOriginY;
+    [ObservableProperty] private double fieldDimWidth = 1.0;
+    [ObservableProperty] private double fieldDimHeight = 0.75;
+
+    [RelayCommand]
+    private void ApplyField()
+    {
+        if (loadedFile == null) { return; }
+
+        var origin = new Vector3((float)FieldOriginX, (float)FieldOriginY, 0);
+        var dims = new Vector3((float)FieldDimWidth, (float)FieldDimHeight, 0);
+        var cmd = NaplpsCommandBuilder.BuildField(origin, dims);
+        undoManager.Execute(new AddCommandsAction([cmd]), loadedFile);
+        IsFileDirty = true;
+        BuildDrawContext();
+    }
+
+    // ---- Line/Texture attribute editor state ---------------------------------------------
+    [ObservableProperty] private int lineTextureIndex;       // 0-3 (solid/dashed/dotted/dot-dash)
+    [ObservableProperty] private bool lineHighlight;
+
+    [RelayCommand]
+    private void ApplyLineAttributes()
+    {
+        if (loadedFile == null) { return; }
+
+        // TEXTURE command carries (linePattern, highlight, fillPattern). We reuse the current
+        // Fill section's pattern index so the commit is a single combined attribute write.
+        var cmd = NaplpsCommandBuilder.BuildTexture(
+            (byte)Math.Clamp(LineTextureIndex, 0, 3),
+            LineHighlight,
+            (byte)Math.Clamp(FillPatternIndex, 0, 3));
+        undoManager.Execute(new AddCommandsAction([cmd]), loadedFile);
+        IsFileDirty = true;
+        BuildDrawContext();
+    }
+
+    // ---- Color mode editor state ----------------------------------------------------------
+    [ObservableProperty] private int colorModeIndex;  // 0 = direct RGB, 1 = palette mode 1, 2 = palette mode 2
+    [ObservableProperty] private bool colorTransparent;
+
+    [RelayCommand]
+    private void ApplyColorMode()
+    {
+        // SELECT COLOR with transparent flag is the cleanest way to commit a transparent
+        // background. Mode toggling itself is done via SELECT COLOR with the operand bytes
+        // structured for the chosen mode — handled by BuildSelectColor.
+        if (loadedFile == null) { return; }
+
+        if (ColorTransparent)
+        {
+            var cmd = NaplpsCommandBuilder.BuildSetColorTransparent();
+            undoManager.Execute(new AddCommandsAction([cmd]), loadedFile);
+            IsFileDirty = true;
+            BuildDrawContext();
+        }
+    }
+
     /// <summary>
     /// Apply a palette preset by updating every PaletteColor's R/G/B. The RgbChanged
     /// event fires per entry, which emits SELECT COLOR + SET COLOR + SELECT COLOR

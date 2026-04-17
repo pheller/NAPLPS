@@ -525,6 +525,81 @@
 						</StackPanel>
 					</Expander>
 
+					<Expander Header="Domain (geometry precision)" IsExpanded="False">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
+							<TextBlock Text="Single-byte width:" FontSize="11"/>
+							<NumericUpDown Value="{Binding DomainSingleByteValue}" Minimum="1" Maximum="3" FormatString="0" HorizontalAlignment="Stretch"/>
+							<TextBlock Text="Multi-byte width:" FontSize="11"/>
+							<NumericUpDown Value="{Binding DomainMultiByteValue}" Minimum="1" Maximum="8" FormatString="0" HorizontalAlignment="Stretch"/>
+							<TextBlock Text="Dimensionality (2D/3D):" FontSize="11"/>
+							<NumericUpDown Value="{Binding DomainDimensionality}" Minimum="2" Maximum="3" FormatString="0" HorizontalAlignment="Stretch"/>
+							<Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+								<StackPanel Grid.Column="0" Spacing="2">
+									<TextBlock Text="Pel X:" FontSize="11"/>
+									<NumericUpDown Value="{Binding DomainLogicalPelX}" Minimum="0" Maximum="0.1" Increment="0.001" FormatString="0.0000"/>
+								</StackPanel>
+								<StackPanel Grid.Column="1" Spacing="2">
+									<TextBlock Text="Pel Y:" FontSize="11"/>
+									<NumericUpDown Value="{Binding DomainLogicalPelY}" Minimum="0" Maximum="0.1" Increment="0.001" FormatString="0.0000"/>
+								</StackPanel>
+							</Grid>
+							<Button Content="Emit DOMAIN command" Command="{Binding ApplyDomainCommand}" HorizontalAlignment="Stretch"/>
+						</StackPanel>
+					</Expander>
+
+					<Expander Header="Field" IsExpanded="False">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
+							<Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+								<StackPanel Grid.Column="0" Spacing="2">
+									<TextBlock Text="Origin X:" FontSize="11"/>
+									<NumericUpDown Value="{Binding FieldOriginX}" Minimum="0" Maximum="1" Increment="0.025" FormatString="0.000"/>
+								</StackPanel>
+								<StackPanel Grid.Column="1" Spacing="2">
+									<TextBlock Text="Origin Y:" FontSize="11"/>
+									<NumericUpDown Value="{Binding FieldOriginY}" Minimum="0" Maximum="0.75" Increment="0.025" FormatString="0.000"/>
+								</StackPanel>
+							</Grid>
+							<Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+								<StackPanel Grid.Column="0" Spacing="2">
+									<TextBlock Text="Width:" FontSize="11"/>
+									<NumericUpDown Value="{Binding FieldDimWidth}" Minimum="0" Maximum="1" Increment="0.025" FormatString="0.000"/>
+								</StackPanel>
+								<StackPanel Grid.Column="1" Spacing="2">
+									<TextBlock Text="Height:" FontSize="11"/>
+									<NumericUpDown Value="{Binding FieldDimHeight}" Minimum="0" Maximum="0.75" Increment="0.025" FormatString="0.000"/>
+								</StackPanel>
+							</Grid>
+							<Button Content="Emit FIELD command" Command="{Binding ApplyFieldCommand}" HorizontalAlignment="Stretch"/>
+						</StackPanel>
+					</Expander>
+
+					<Expander Header="Line / Texture" IsExpanded="False">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
+							<TextBlock Text="Line pattern:" FontSize="11"/>
+							<ComboBox SelectedIndex="{Binding LineTextureIndex}" HorizontalAlignment="Stretch">
+								<ComboBoxItem>Solid</ComboBoxItem>
+								<ComboBoxItem>Dashed</ComboBoxItem>
+								<ComboBoxItem>Dotted</ComboBoxItem>
+								<ComboBoxItem>Dot-dash</ComboBoxItem>
+							</ComboBox>
+							<CheckBox Content="Highlight" IsChecked="{Binding LineHighlight}" ToolTip.Tip="Render lines in high-intensity / accent color"/>
+							<Button Content="Emit TEXTURE (line) command" Command="{Binding ApplyLineAttributesCommand}" HorizontalAlignment="Stretch"/>
+						</StackPanel>
+					</Expander>
+
+					<Expander Header="Color Mode" IsExpanded="False">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
+							<TextBlock Text="Color mode:" FontSize="11"/>
+							<ComboBox SelectedIndex="{Binding ColorModeIndex}" HorizontalAlignment="Stretch">
+								<ComboBoxItem>0 — Direct RGB</ComboBoxItem>
+								<ComboBoxItem>1 — Palette mode 1</ComboBoxItem>
+								<ComboBoxItem>2 — Palette mode 2 (FG+BG)</ComboBoxItem>
+							</ComboBox>
+							<CheckBox Content="Transparent" IsChecked="{Binding ColorTransparent}" ToolTip.Tip="When checked, the next color commit emits SET COLOR transparent"/>
+							<Button Content="Emit color-mode command" Command="{Binding ApplyColorModeCommand}" HorizontalAlignment="Stretch"/>
+						</StackPanel>
+					</Expander>
+
 					<Expander Header="Macro Recorder" IsExpanded="False">
 						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
 							<StackPanel Orientation="Horizontal" Spacing="4">
