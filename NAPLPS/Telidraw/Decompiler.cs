@@ -266,6 +266,14 @@ public static class Decompiler
                 break;
             }
 
+            // FIELD with origin+dimensions: 4 vertex2D-encoded values (mv*2 bytes total = 6 default).
+            // The compiler accepts `field originX originY dimX dimY` for this form.
+            case IncrementalFieldCommand ifc2 when TryReconstructField(ifc2, stateBefore, out var f):
+            {
+                yield return $"field {Fmt(f.ox)} {Fmt(f.oy)} {Fmt(f.dx)} {Fmt(f.dy)}";
+                break;
+            }
+
             // SELECT COLOR — palette index lives in bits 3-6 of the first operand byte.
             // For mode 2 (two operand groups, single-byte width = 1) propose `color fg bg` first;
             // mode 1 falls through to `color fg`. Verifier picks whichever round-trips.
@@ -450,6 +458,26 @@ public static class Decompiler
         float ey = my + dey;
 
         a = (sx, sy, mx, my, ex, ey, dmx, dmy, dex, dey);
+        return true;
+    }
+
+    /// <summary>
+    /// Decode an IncrementalField with bounds: origin (mv bytes) + dimensions (mv bytes).
+    /// Two independent vertex2D encodings, no chain — exact round-trip via `field x y w h`.
+    /// </summary>
+    private static bool TryReconstructField(NaplpsCommand cmd, NaplpsState stateBefore, out (float ox, float oy, float dx, float dy) f)
+    {
+        f = default;
+        int mv = Math.Max(1, (int)stateBefore.MultiByteValue);
+
+        if (cmd.Operands.Count < mv * 2)
+        {
+            return false;
+        }
+
+        var (ox, oy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(cmd.Operands[0..mv]));
+        var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(cmd.Operands[mv..(mv * 2)]));
+        f = (ox, oy, dx, dy);
         return true;
     }
 
