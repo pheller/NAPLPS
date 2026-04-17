@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NAPLPSApp.Networking;
+namespace NAPLPS.Networking;
 
 /// <summary>
 /// Lightweight TCP server + client for streaming NAPLPS bytes between this editor and a

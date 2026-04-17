@@ -994,7 +994,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool colorTransparent;
 
     // ---- Networking (TCP send/receive) ---------------------------------------------------
-    private readonly NAPLPSApp.Networking.NaplpsNetworkService _network = new();
+    private readonly NAPLPS.Networking.NaplpsNetworkService _network = new();
 
     [ObservableProperty] private bool isNetworkListening;
     [ObservableProperty] private int networkListenPort = 5510;
@@ -1036,7 +1036,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             NetworkStatus = $"Network: sending to {NetworkRemoteHost}:{NetworkRemotePort}...";
             var bytes = loadedFile.ToBytes();
-            await NAPLPSApp.Networking.NaplpsNetworkService.SendAsync(NetworkRemoteHost, NetworkRemotePort, bytes);
+            await NAPLPS.Networking.NaplpsNetworkService.SendAsync(NetworkRemoteHost, NetworkRemotePort, bytes);
             NetworkStatus = $"Network: sent {bytes.Length} bytes to {NetworkRemoteHost}:{NetworkRemotePort}";
         }
         catch (System.Exception ex)
