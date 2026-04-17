@@ -399,3 +399,6 @@ FodyWeavers.xsd
 
 # mac files
 .DS_Store
+
+# Auto-generated default content from New command
+Examples/\[Untitled\]*.nap
