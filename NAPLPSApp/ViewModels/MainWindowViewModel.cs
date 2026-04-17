@@ -174,6 +174,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// <summary>Set by the text-pane edit handler; cleared after recompile fires.</summary>
     private bool _telidrawSourceDirty;
 
+    /// <summary>
+    /// Set true while programmatically updating <see cref="TelidrawSource"/> (FileLoad,
+    /// SyncTelidrawFromFormat, decompile-after-tool). Prevents <see cref="OnTelidrawSourceChanged"/>
+    /// from interpreting our own write as a user keystroke and triggering a recompile/feedback loop.
+    /// </summary>
+    private bool _suppressTelidrawRecompile;
+
     /// <summary>Whether the Telidraw text pane is visible (toggle via View menu or button).</summary>
     [ObservableProperty]
     private bool isTelidrawPaneVisible;
@@ -1030,6 +1037,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     partial void OnTelidrawSourceChanged(string value)
     {
+        // Suppress recompile when WE wrote the source (FileLoad, SyncTelidrawFromFormat).
+        // Only user keystrokes in the text pane should trigger the lex/parse/compile cycle.
+        if (_suppressTelidrawRecompile)
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(value) || loadedFile == null)
         {
             return;
@@ -1083,11 +1097,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
+            _suppressTelidrawRecompile = true;
             TelidrawSource = NAPLPS.Telidraw.Decompiler.Decompile(loadedFile);
         }
         catch
         {
             // Decompile failure shouldn't crash the editor.
+        }
+        finally
+        {
+            _suppressTelidrawRecompile = false;
         }
     }
 
@@ -1395,21 +1414,31 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            if (filePath.EndsWith(".td", StringComparison.OrdinalIgnoreCase))
+            // Suppress recompile while we initialize TelidrawSource — these writes are NOT
+            // user keystrokes and must not trigger the recompile-and-replace-loadedFile path.
+            _suppressTelidrawRecompile = true;
+            try
             {
-                // Compile Telidraw source → NaplpsFormat
-                var source = await System.IO.File.ReadAllTextAsync(filePath);
-                var tokens = new NAPLPS.Telidraw.Lexer(source).Tokenize();
-                var parser = new NAPLPS.Telidraw.Parser(tokens);
-                var ast = parser.Parse();
-                var compiler = new NAPLPS.Telidraw.Compiler(ast);
-                loadedFile = compiler.Compile();
-                TelidrawSource = source;
+                if (filePath.EndsWith(".td", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Compile Telidraw source → NaplpsFormat
+                    var source = await System.IO.File.ReadAllTextAsync(filePath);
+                    var tokens = new NAPLPS.Telidraw.Lexer(source).Tokenize();
+                    var parser = new NAPLPS.Telidraw.Parser(tokens);
+                    var ast = parser.Parse();
+                    var compiler = new NAPLPS.Telidraw.Compiler(ast);
+                    loadedFile = compiler.Compile();
+                    TelidrawSource = source;
+                }
+                else
+                {
+                    loadedFile = NaplpsFormat.FromFile(filePath);
+                    TelidrawSource = NAPLPS.Telidraw.Decompiler.Decompile(loadedFile);
+                }
             }
-            else
+            finally
             {
-                loadedFile = NaplpsFormat.FromFile(filePath);
-                TelidrawSource = NAPLPS.Telidraw.Decompiler.Decompile(loadedFile);
+                _suppressTelidrawRecompile = false;
             }
 
             loadedFilePath = filePath;

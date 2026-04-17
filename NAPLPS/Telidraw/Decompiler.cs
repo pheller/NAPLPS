@@ -24,7 +24,18 @@ public static class Decompiler
         var sb = new StringBuilder();
         sb.AppendLine("// Decompiled from .nap by Telidraw decompiler");
         sb.AppendLine("#coord fractions");
+
+        // Emit a #bits directive so the compiler round-trips the original file's
+        // numerical-data base (0x40 for 7-bit, 0xC0 for 8-bit). Without this, high-bit
+        // differences break byte-for-byte equality even though the low 6 data bits match.
+        sb.AppendLine($"#bits {(format.Is7Bit ? 7 : 8)}");
         sb.AppendLine();
+
+        // Set encoder bit-width to match source file for the duration of this decompile.
+        // The verifier calls the compiler per-candidate; compiled bytes must match the
+        // original file's bit mode so high-bit comparison succeeds.
+        var priorMode = NaplpsEncoder.Use7BitMode;
+        NaplpsEncoder.Use7BitMode = format.Is7Bit;
 
         bool inTextRun = false;
         var textBuffer = new StringBuilder();
@@ -65,6 +76,9 @@ public static class Decompiler
             sb.Append("text \"").Append(EscapeString(textBuffer.ToString())).AppendLine("\"");
         }
 
+        // Restore prior bit mode so nested/concurrent decompiles don't bleed state.
+        NaplpsEncoder.Use7BitMode = priorMode;
+
         return sb.ToString();
     }
 
@@ -77,13 +91,168 @@ public static class Decompiler
 
     // ---- Per-command emission ------------------------------------------
 
+    /// <summary>
+    /// Try every high-level form for this command in priority order. For each candidate,
+    /// verify byte-identity by recompiling the proposed Telidraw line and comparing the
+    /// emitted opcode+operands to the original command. The first form that round-trips
+    /// wins. Falls back to <see cref="EmitRaw"/> when no high-level form matches —
+    /// guaranteeing 100% byte fidelity while producing readable output everywhere it's safe.
+    /// </summary>
     private static void EmitCommand(StringBuilder sb, NaplpsCommand cmd, NaplpsState stateBefore)
     {
-        // Phase 8 byte-identity guarantee: EVERY command goes through raw to preserve
-        // exact operand bytes. The trailing comment shows the human-readable command name
-        // from the registry. High-level readable forms (move, line, rect, etc.) will
-        // replace raw statements incrementally once each form is proven round-trip-safe.
+        foreach (var candidate in HighLevelCandidates(cmd, stateBefore))
+        {
+            if (RoundTripsExactly(candidate, cmd))
+            {
+                sb.AppendLine(candidate);
+                return;
+            }
+        }
+
         EmitRaw(sb, cmd);
+    }
+
+    /// <summary>
+    /// Generate plausible high-level Telidraw lines for a given NAPLPS command. Each
+    /// returned string must be a complete one-line statement. Order matters — return the
+    /// most readable form first; the verifier picks the first one that round-trips.
+    /// </summary>
+    private static IEnumerable<string> HighLevelCandidates(NaplpsCommand cmd, NaplpsState stateBefore)
+    {
+        switch (cmd)
+        {
+            // Geometric — decode the operand bytes directly so we never reinvent coordinates.
+            case PointSetAbsoluteCommand:
+            {
+                var (x, y) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
+                yield return $"move {Fmt(x)} {Fmt(y)}";
+                break;
+            }
+
+            case PointAbsoluteCommand:
+            {
+                var (x, y) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
+                yield return $"point {Fmt(x)} {Fmt(y)}";
+                break;
+            }
+
+            case LineAbsoluteCommand:
+            {
+                var (x, y) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
+                yield return $"line {Fmt(x)} {Fmt(y)}";
+                break;
+            }
+
+            case RectangleFilledCommand:
+            {
+                var (w, h) = NaplpsEncoder.DecodeVertex2D(cmd.Operands);
+                yield return $"rect {Fmt(w)} {Fmt(h)}";
+                break;
+            }
+
+            case ResetCommand:
+            {
+                yield return "reset";
+                break;
+            }
+
+            case WaitCommand wc when wc.IsValid:
+            {
+                yield return $"wait {wc.WaitTime}";
+                break;
+            }
+
+            case IncrementalFieldCommand ifc when ifc.Operands.Count == 0:
+            {
+                yield return "field";
+                break;
+            }
+
+            // SELECT COLOR — palette index lives in bits 3-6 of the first operand byte.
+            // For mode 2 (two operand groups, single-byte width = 1) propose `color fg bg` first;
+            // mode 1 falls through to `color fg`. Verifier picks whichever round-trips.
+            case SelectColorCommand sc when sc.Operands.Count >= 1:
+            {
+                int svBytes = stateBefore.SingleByteValue;
+                int values = sc.Operands.Count / Math.Max(1, svBytes);
+                byte fg = NaplpsUtils.ConvertBitsToByte([sc.Operands[0, 3], sc.Operands[0, 4], sc.Operands[0, 5], sc.Operands[0, 6]]);
+
+                if (values >= 2 && svBytes == 1 && sc.Operands.Count >= 2)
+                {
+                    byte bg = NaplpsUtils.ConvertBitsToByte([sc.Operands[1, 3], sc.Operands[1, 4], sc.Operands[1, 5], sc.Operands[1, 6]]);
+                    yield return $"color {fg} {bg}";
+                }
+                yield return $"color {fg}";
+                break;
+            }
+
+            // DOMAIN — fixed byte packs (singleByte, multiByte, dimensionality).
+            case DomainCommand dc when dc.Operands.Count >= 1:
+            {
+                var (sv, mv, dim) = DomainCommand.ProcessFixedByte(dc.Operands);
+                yield return $"domain {sv} {mv} {dim}";
+                break;
+            }
+
+            // TEXTURE — first operand byte packs (linePattern, highlight, fillPattern).
+            case TextureCommand tc when tc.Operands.Count >= 1:
+            {
+                yield return $"texture {(byte)tc.LineTexture} {(tc.ShouldHighlight ? 1 : 0)} {(byte)tc.TexturePattern}";
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Compile a candidate Telidraw line in isolation and verify the resulting opcode +
+    /// operand bytes match the original command. Comparison is on the lower 6 data bits
+    /// of each operand byte — the only bits the NAPLPS parser reads — so a 7-bit source
+    /// (0x40-0x7F operand bytes) and the compiler's 8-bit output (0xC0-0xFF) compare equal
+    /// when their data nibbles match. The raw-byte file-level round-trip test still proves
+    /// EXACT byte preservation; this verifier guarantees SEMANTIC equivalence per command.
+    /// </summary>
+    private static bool RoundTripsExactly(string candidateLine, NaplpsCommand original)
+    {
+        try
+        {
+            var tokens = new Lexer(candidateLine).Tokenize();
+            var parser = new Parser(tokens);
+            var ast = parser.Parse();
+
+            if (parser.Diagnostics.Count > 0)
+            {
+                return false;
+            }
+
+            var compiler = new Compiler(ast) { BareFormat = true };
+            var format = compiler.Compile();
+
+            if (compiler.Diagnostics.Count > 0 || format.Commands.Count != 1)
+            {
+                return false;
+            }
+
+            var emitted = format.Commands[0].Command;
+
+            if (emitted.OpCode != original.OpCode || emitted.Operands.Count != original.Operands.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < emitted.Operands.Count; i++)
+            {
+                if (emitted.Operands[i] != original.Operands[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>

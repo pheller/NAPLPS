@@ -131,6 +131,16 @@ public sealed class Compiler
                 }
                 break;
 
+            case "bits":
+                // #bits 7 selects the 0x40 numerical-data base (7-bit transmission mode);
+                // #bits 8 (default) uses 0x40. Drives NaplpsEncoder for byte-exact round-trip.
+                if (d.Args.Count >= 1)
+                {
+                    var bits = (int)Evaluate(d.Args[0]);
+                    NaplpsEncoder.Use7BitMode = bits == 7;
+                }
+                break;
+
             default:
                 Diag(DiagnosticSeverity.Warning, d.Line, d.Column, $"Unknown directive '#{d.Name}' (ignored)");
                 break;

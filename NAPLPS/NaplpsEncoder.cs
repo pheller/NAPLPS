@@ -8,10 +8,29 @@ namespace NAPLPS;
 /// </summary>
 public static class NaplpsEncoder
 {
-    // Operand bytes use 0xC0 base (bits 7+8 set) so they fall in the 8-bit numerical data range
-    // (0xC0-0xFF). This ensures they're recognized by IsValidNumericalDataNext during reparse.
-    // ProcessVertices only reads bits 1-6, so the high bits don't affect coordinate values.
-    private const byte NumericalDataBase = 0xC0;
+    // Operand bytes use 0xC0 base (bits 7+8 set) in 8-bit mode, or 0x40 base (bit 7 set only)
+    // in 7-bit mode. Both fall in the numerical-data range that IsValidNumericalDataNext
+    // recognizes. ProcessVertices only reads bits 1-6, so the high bits don't affect
+    // coordinate values — but we match the source file's bit width for exact round-trip.
+    private const byte NumericalDataBase8Bit = 0xC0;
+    private const byte NumericalDataBase7Bit = 0x40;
+
+    /// <summary>
+    /// When true, all encoders produce 7-bit operand bytes (0x40 base) instead of 8-bit
+    /// (0xC0 base). Set before compiling a file that was parsed as 7-bit so round-trip
+    /// through the Telidraw compiler yields byte-identical output. Thread-local to avoid
+    /// cross-compile contamination.
+    /// </summary>
+    [System.ThreadStatic]
+    private static bool _use7BitMode;
+
+    public static bool Use7BitMode
+    {
+        get => _use7BitMode;
+        set => _use7BitMode = value;
+    }
+
+    private static byte NumericalDataBase => _use7BitMode ? NumericalDataBase7Bit : NumericalDataBase8Bit;
 
     /// <summary>
     /// Encodes a 2D vertex (x, y) into NAPLPS operand bytes.
