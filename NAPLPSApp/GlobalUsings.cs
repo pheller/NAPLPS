@@ -36,3 +36,4 @@ global using ScottPlot.Avalonia;
 
 // SixLabors
 global using SixLabors.ImageSharp;
+global using SixLabors.ImageSharp.Processing;

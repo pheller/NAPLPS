@@ -342,12 +342,11 @@
 				<CheckBox IsChecked="{Binding GridSettings.IsSnapEnabled}" ToolTip.Tip="Snap to Grid" Command="{Binding ToggleSnapCommand}">
 					<i:Icon Value="fa-solid fa-magnet" FontSize="16"/>
 				</CheckBox>
-			</StackPanel>
-		</Border>
 
-		<!-- Color Picker Panel (left dock, below toolbar) -->
-		<Border DockPanel.Dock="Left" Background="{DynamicResource SystemControlBackgroundBase}" Padding="4" IsVisible="{Binding IsEditorMode}" Width="44">
-			<StackPanel Orientation="Vertical" Spacing="2">
+				<!-- Color picker block merged into the same toolbar column. FG/BG swatches open
+				     palette flyouts; the 4x4 mini-palette below is direct-pick (left=FG, right-click
+				     flyout with explicit FG/BG buttons + R/G/B edit). -->
+				<Separator Margin="0,4"/>
 				<TextBlock Text="FG" FontSize="10" HorizontalAlignment="Center"/>
 				<Button Width="28" Height="28" Padding="0" BorderBrush="White" BorderThickness="2" CornerRadius="2" HorizontalAlignment="Center"
 						Background="{Binding ForegroundColorBrush}"
@@ -370,7 +369,7 @@
 						</Flyout>
 					</Button.Flyout>
 				</Button>
-				<TextBlock Text="BG" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+				<TextBlock Text="BG" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
 				<Button Width="28" Height="28" Padding="0" BorderBrush="Gray" BorderThickness="2" CornerRadius="2" HorizontalAlignment="Center"
 						Background="{Binding BackgroundColorBrush}"
 						ToolTip.Tip="Click to pick background color from palette">
@@ -393,15 +392,15 @@
 					</Button.Flyout>
 				</Button>
 				<Separator Margin="0,4"/>
-				<ItemsControl ItemsSource="{Binding PaletteColors}">
+				<ItemsControl ItemsSource="{Binding PaletteColors}" HorizontalAlignment="Center">
 					<ItemsControl.ItemsPanel>
 						<ItemsPanelTemplate>
-							<WrapPanel ItemWidth="18" ItemHeight="18"/>
+							<WrapPanel Width="36" ItemWidth="16" ItemHeight="16"/>
 						</ItemsPanelTemplate>
 					</ItemsControl.ItemsPanel>
 					<ItemsControl.ItemTemplate>
 						<DataTemplate>
-							<Button Width="16" Height="16" Padding="0" Margin="1"
+							<Button Width="14" Height="14" Padding="0" Margin="1"
 									Background="{Binding Brush}"
 									ToolTip.Tip="Left-click selects as foreground &#8226; Right-click to edit R/G/B"
 									Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectPaletteColorCommand}"
@@ -437,11 +436,11 @@
 				Background="{DynamicResource SystemControlBackgroundBase}"
 				BorderBrush="{DynamicResource SystemControlForegroundBaseHighBrush}"
 				BorderThickness="1,0,0,0"
-				Width="220"
-				Padding="4"
+				Width="260"
+				Padding="6"
 				IsVisible="{Binding IsEditorMode}">
-			<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-				<StackPanel Orientation="Vertical" Spacing="4">
+			<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
+				<StackPanel Orientation="Vertical" Spacing="4" HorizontalAlignment="Stretch">
 					<TextBlock Text="Attributes" FontSize="13" FontWeight="Bold" Margin="2,0,0,2"/>
 
 					<Expander Header="Color Mode" IsExpanded="True" Padding="2">

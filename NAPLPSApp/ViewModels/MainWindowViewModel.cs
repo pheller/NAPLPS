@@ -429,24 +429,58 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var fileTypes = new FilePickerFileType[]
+        // Ask the user for format/scale/quality options BEFORE the file picker so the
+        // file-type filter can match the chosen format.
+        var vm = await ExportDialog.PromptAsync(App.MainWindow, drawContext.Image.Width, drawContext.Image.Height);
+        if (vm == null) { return; }
+
+        var (ext, patterns, label) = vm.Format switch
         {
-            new("PNG Image") { Patterns = ["*.png"] }
+            ExportFormat.Png  => ("png",  new[] { "*.png"  }, "PNG Image"),
+            ExportFormat.Jpeg => ("jpg",  new[] { "*.jpg", "*.jpeg" }, "JPEG Image"),
+            ExportFormat.Bmp  => ("bmp",  new[] { "*.bmp"  }, "Bitmap Image"),
+            ExportFormat.Gif  => ("gif",  new[] { "*.gif"  }, "GIF Image"),
+            _                 => ("png",  new[] { "*.png"  }, "PNG Image"),
         };
 
         var options = new FilePickerSaveOptions
         {
-            Title = "Export NAPLPS File to PNG",
-            DefaultExtension = "png",
-            FileTypeChoices = fileTypes,
+            Title = $"Export to {label}",
+            DefaultExtension = ext,
+            FileTypeChoices = new[] { new FilePickerFileType(label) { Patterns = patterns } },
             SuggestedFileName = IOPath.GetFileNameWithoutExtension(loadedFilePath)
         };
 
         var result = await App.MainWindow.StorageProvider.SaveFilePickerAsync(options);
+        if (result == null) { return; }
 
-        if (result != null)
+        // Clone the live canvas image so our transforms don't mutate what the editor renders.
+        // Resize when the user picked a non-1x scale; leave native size otherwise.
+        using var image = drawContext.Image.Clone(ctx =>
         {
-            drawContext.SaveAsPng(result.Path.LocalPath);
+            if (System.Math.Abs(vm.Scale - 1.0) > 0.001)
+            {
+                ctx.Resize(vm.OutputWidth, vm.OutputHeight);
+            }
+        });
+
+        var path = result.Path.LocalPath;
+
+        switch (vm.Format)
+        {
+            case ExportFormat.Png:
+                await image.SaveAsPngAsync(path);
+                break;
+            case ExportFormat.Jpeg:
+                var jpegEncoder = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder { Quality = vm.JpegQuality };
+                await image.SaveAsJpegAsync(path, jpegEncoder);
+                break;
+            case ExportFormat.Bmp:
+                await image.SaveAsBmpAsync(path);
+                break;
+            case ExportFormat.Gif:
+                await image.SaveAsGifAsync(path);
+                break;
         }
     }
 
