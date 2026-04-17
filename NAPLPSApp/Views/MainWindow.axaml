@@ -45,22 +45,16 @@
 				<Separator/>
 				<MenuItem Header="_Export PNG" Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
 				<Separator/>
-				<MenuItem Header="_Properties" Command="{Binding PropertiesCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-info"/>
-				<Separator/>
 				<MenuItem Header="_Quit" Command="{Binding QuitCommand}" i:MenuItem.Icon="fa-solid fa-door-open"/>
 			</MenuItem>
 			<MenuItem Header="_Edit">
 				<MenuItem Header="_Undo" Command="{Binding UndoCommand}" i:MenuItem.Icon="fa-solid fa-rotate-left" InputGesture="Ctrl+Z"/>
 				<MenuItem Header="_Redo" Command="{Binding RedoCommand}" i:MenuItem.Icon="fa-solid fa-rotate-right" InputGesture="Ctrl+Y"/>
 				<Separator/>
-				<MenuItem Header="_Toolbox" Command="{Binding ToggleToolboxCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-pen-ruler"></MenuItem>
-				<Separator/>
-				<MenuItem Header="_Group Layers" IsEnabled="false"></MenuItem>
-				<MenuItem Header="_Ungroup Layers" IsEnabled="false"></MenuItem>
-				<Separator/>
-				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
+				<MenuItem Header="_Group Layers" IsEnabled="false"/>
+				<MenuItem Header="_Ungroup Layers" IsEnabled="false"/>
 			</MenuItem>
-			<MenuItem Header="_Assets">
+			<MenuItem Header="_NAPLPS">
 				<MenuItem Header="_Palette">
 					<MenuItem Header="Load _NAPLPS Default Palette"
 							  Command="{Binding LoadDefaultPaletteCommand}"
@@ -100,15 +94,12 @@
 							  IsEnabled="{Binding IsMacroRecording}"
 							  i:MenuItem.Icon="fa-solid fa-ban"/>
 				</MenuItem>
-			</MenuItem>
-			<MenuItem Header="_Render">
-				<MenuItem Header="_Re-render" Command="{Binding RerenderCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-recycle"/>
 				<Separator/>
+				<MenuItem Header="_Re-render" Command="{Binding RerenderCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-recycle"/>
 				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding IsAnimated}" i:MenuItem.Icon="fa-solid fa-check"/>
 				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding !IsAnimated}"/>
 				<MenuItem Header="_Loop" Command="{Binding ToggleLoopCommand}" ToggleType="CheckBox" IsChecked="{Binding IsLooping}" i:MenuItem.Icon="fa-solid fa-repeat"/>
 				<MenuItem Header="_Palette Animation" Command="{Binding TogglePaletteAnimationCommand}" ToggleType="CheckBox" IsChecked="{Binding IsPaletteAnimationMode}" i:MenuItem.Icon="fa-solid fa-palette"/>
-				<Separator/>
 				<MenuItem Header="_Speed" i:MenuItem.Icon="fa-solid fa-gauge">
 					<MenuItem Header="Fastest" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="0" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=0}" />
 					<MenuItem Header="460Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="460800" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=460800}" />
@@ -128,8 +119,11 @@
 				</MenuItem>
 			</MenuItem>
 			<MenuItem Header="_View">
+				<MenuItem Header="_Toolbox" Command="{Binding ToggleToolboxCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-pen-ruler"/>
+				<MenuItem Header="_Properties" Command="{Binding PropertiesCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-info"/>
+				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
 				<MenuItem Header="_Sequence" Command="{Binding ToggleSequenceCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-shoe-prints"/>
-				<MenuItem Header="_Telidraw Source" Command="{Binding ToggleTelidrawPaneCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-code" ToggleType="CheckBox" IsChecked="{Binding IsTelidrawPaneVisible}"/>
+				<MenuItem Header="T_elidraw Source" Command="{Binding ToggleTelidrawPaneCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-code" ToggleType="CheckBox" IsChecked="{Binding IsTelidrawPaneVisible}"/>
 				<Separator/>
 				<MenuItem Header="_Canvas Size" i:MenuItem.Icon="fa-solid fa-display">
 					<MenuItem Header="160x120" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="160x120" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='160x120'}" />
@@ -154,9 +148,10 @@
 					<MenuItem Header="Uniform" Command="{Binding SetStretchModeCommand}" CommandParameter="Uniform" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.Uniform}}" />
 					<MenuItem Header="Uniform To Fill" Command="{Binding SetStretchModeCommand}" CommandParameter="UniformToFill" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.UniformToFill}}" />
 				</MenuItem>
-			</MenuItem>
-			<MenuItem Header="_Debug">
-				<MenuItem Header="_Text Debug" Command="{Binding ToggleDebugTextDrawingCommand}" IsEnabled="{Binding IsFileLoaded}" ToggleType="CheckBox" IsChecked="{Binding DebugTextDrawing}" i:MenuItem.Icon="fa-solid fa-font"/>
+				<Separator/>
+				<MenuItem Header="_Debug" i:MenuItem.Icon="fa-solid fa-bug">
+					<MenuItem Header="_Text Debug" Command="{Binding ToggleDebugTextDrawingCommand}" IsEnabled="{Binding IsFileLoaded}" ToggleType="CheckBox" IsChecked="{Binding DebugTextDrawing}" i:MenuItem.Icon="fa-solid fa-font"/>
+				</MenuItem>
 			</MenuItem>
 			<MenuItem Header="_Help">
 				<MenuItem Header="_Help (github.com)" Command="{Binding HelpCommand}" i:MenuItem.Icon="fa-solid fa-question"/>
@@ -248,12 +243,12 @@
 
 				<!-- Rectangle: main button activates tool; chevron flyout picks Filled/Outlined variant. -->
 				<Grid ColumnDefinitions="*,Auto">
-					<ToggleButton Grid.Column="0" IsChecked="{Binding IsRectangleToolActive}" ToolTip.Tip="Rectangle (click \u2159 for variant)"
+					<ToggleButton Grid.Column="0" IsChecked="{Binding IsRectangleToolActive}" ToolTip.Tip="Rectangle (click chevron for Filled/Outlined)"
 								  Command="{Binding SetActiveToolCommand}" CommandParameter="Rectangle" Padding="6">
 						<i:Icon Value="fa-solid fa-square" FontSize="16"/>
 					</ToggleButton>
 					<Button Grid.Column="1" Padding="2" ToolTip.Tip="Rectangle variant">
-						<TextBlock Text="\u25B8" FontSize="8"/>
+						<i:Icon Value="fa-solid fa-chevron-right" FontSize="8"/>
 						<Button.Flyout>
 							<MenuFlyout Placement="Right">
 								<MenuItem Header="Filled" Command="{Binding SetRectangleVariantCommand}" CommandParameter="Filled"><MenuItem.Icon><i:Icon Value="fa-solid fa-square"/></MenuItem.Icon></MenuItem>
@@ -264,12 +259,12 @@
 				</Grid>
 
 				<Grid ColumnDefinitions="*,Auto">
-					<ToggleButton Grid.Column="0" IsChecked="{Binding IsPolygonToolActive}" ToolTip.Tip="Polygon (click \u2159 for variant)"
+					<ToggleButton Grid.Column="0" IsChecked="{Binding IsPolygonToolActive}" ToolTip.Tip="Polygon (click chevron for Filled/Outlined)"
 								  Command="{Binding SetActiveToolCommand}" CommandParameter="Polygon" Padding="6">
 						<i:Icon Value="fa-solid fa-draw-polygon" FontSize="16"/>
 					</ToggleButton>
 					<Button Grid.Column="1" Padding="2" ToolTip.Tip="Polygon variant">
-						<TextBlock Text="\u25B8" FontSize="8"/>
+						<i:Icon Value="fa-solid fa-chevron-right" FontSize="8"/>
 						<Button.Flyout>
 							<MenuFlyout Placement="Right">
 								<MenuItem Header="Filled" Command="{Binding SetPolygonVariantCommand}" CommandParameter="Filled"/>
@@ -280,12 +275,12 @@
 				</Grid>
 
 				<Grid ColumnDefinitions="*,Auto">
-					<ToggleButton Grid.Column="0" IsChecked="{Binding IsArcToolActive}" ToolTip.Tip="Arc (click \u2159 for variant)"
+					<ToggleButton Grid.Column="0" IsChecked="{Binding IsArcToolActive}" ToolTip.Tip="Arc (click chevron for Filled/Outlined)"
 								  Command="{Binding SetActiveToolCommand}" CommandParameter="Arc" Padding="6">
 						<i:Icon Value="fa-solid fa-circle-notch" FontSize="16"/>
 					</ToggleButton>
 					<Button Grid.Column="1" Padding="2" ToolTip.Tip="Arc variant">
-						<TextBlock Text="\u25B8" FontSize="8"/>
+						<i:Icon Value="fa-solid fa-chevron-right" FontSize="8"/>
 						<Button.Flyout>
 							<MenuFlyout Placement="Right">
 								<MenuItem Header="Filled" Command="{Binding SetArcVariantCommand}" CommandParameter="Filled"/>
@@ -312,7 +307,7 @@
 						<i:Icon Value="fa-solid fa-fill" FontSize="16"/>
 					</ToggleButton>
 					<Button Grid.Column="1" Padding="2" ToolTip.Tip="Fill pattern">
-						<TextBlock Text="\u25B8" FontSize="8"/>
+						<i:Icon Value="fa-solid fa-chevron-right" FontSize="8"/>
 						<Button.Flyout>
 							<Flyout Placement="Right">
 								<StackPanel Spacing="6" Width="200">
@@ -368,7 +363,7 @@
 										<Button Width="22" Height="22" Padding="0" Margin="1" Background="{Binding Brush}"
 												Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectPaletteColorCommand}"
 												CommandParameter="{Binding Index}"
-												ToolTip.Tip="{Binding Index, StringFormat='Palette {0} \u2192 Foreground'}"/>
+												ToolTip.Tip="{Binding Index, StringFormat='Palette {0} - Foreground'}"/>
 									</DataTemplate>
 								</ItemsControl.ItemTemplate>
 							</ItemsControl>
@@ -390,7 +385,7 @@
 										<Button Width="22" Height="22" Padding="0" Margin="1" Background="{Binding Brush}"
 												Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectBackgroundPaletteColorCommand}"
 												CommandParameter="{Binding Index}"
-												ToolTip.Tip="{Binding Index, StringFormat='Palette {0} \u2192 Background'}"/>
+												ToolTip.Tip="{Binding Index, StringFormat='Palette {0} - Background'}"/>
 									</DataTemplate>
 								</ItemsControl.ItemTemplate>
 							</ItemsControl>
@@ -442,26 +437,27 @@
 				Background="{DynamicResource SystemControlBackgroundBase}"
 				BorderBrush="{DynamicResource SystemControlForegroundBaseHighBrush}"
 				BorderThickness="1,0,0,0"
-				Width="240"
-				Padding="8"
+				Width="220"
+				Padding="4"
 				IsVisible="{Binding IsEditorMode}">
-			<ScrollViewer VerticalScrollBarVisibility="Auto">
-				<StackPanel Orientation="Vertical" Spacing="10">
-					<TextBlock Text="Attributes" FontSize="14" FontWeight="Bold"/>
+			<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+				<StackPanel Orientation="Vertical" Spacing="4">
+					<TextBlock Text="Attributes" FontSize="13" FontWeight="Bold" Margin="2,0,0,2"/>
 
-					<Expander Header="Color Mode" IsExpanded="True">
-						<StackPanel Orientation="Vertical" Spacing="4" Margin="0,4,0,0">
+					<Expander Header="Color Mode" IsExpanded="True" Padding="2">
+						<StackPanel Orientation="Vertical" Spacing="2" Margin="0,2,0,0">
 							<TextBlock Text="Foreground Index:" FontSize="11"/>
-							<NumericUpDown Value="{Binding EditorForegroundIndex}" Minimum="0" Maximum="15" FormatString="0"/>
-							<TextBlock Text="Background Index:" FontSize="11" Margin="0,4,0,0"/>
-							<NumericUpDown Value="{Binding EditorBackgroundIndex}" Minimum="0" Maximum="15" FormatString="0"/>
+							<NumericUpDown Value="{Binding EditorForegroundIndex}" Minimum="0" Maximum="15" FormatString="0" HorizontalAlignment="Stretch"/>
+							<TextBlock Text="Background Index:" FontSize="11" Margin="0,2,0,0"/>
+							<NumericUpDown Value="{Binding EditorBackgroundIndex}" Minimum="0" Maximum="15" FormatString="0" HorizontalAlignment="Stretch"/>
 						</StackPanel>
 					</Expander>
 
 					<Expander Header="Text Attributes"
 							  IsExpanded="True"
+							  Padding="2"
 							  DataContext="{Binding TextToolInstance}">
-						<StackPanel Orientation="Vertical" Spacing="6" Margin="0,4,0,0">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="0,2,0,0">
 							<TextBlock Text="Char Width (unit):" FontSize="11"/>
 							<NumericUpDown Value="{Binding CharWidth}" Minimum="0.005" Maximum="0.5" Increment="0.005" FormatString="0.0000"/>
 
@@ -502,8 +498,8 @@
 						</StackPanel>
 					</Expander>
 
-					<Expander Header="Macro Recorder" IsExpanded="False">
-						<StackPanel Orientation="Vertical" Spacing="6" Margin="0,4,0,0">
+					<Expander Header="Macro Recorder" IsExpanded="False" Padding="2">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="0,2,0,0">
 							<StackPanel Orientation="Horizontal" Spacing="4">
 								<TextBlock Text="Slot:" VerticalAlignment="Center"/>
 								<TextBox Text="{Binding MacroRecordingSlot}" Width="40" MaxLength="1"/>
@@ -530,8 +526,8 @@
 		<Grid>
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="*"/>
-				<ColumnDefinition Width="Auto"/>
-				<ColumnDefinition Width="400" MinWidth="200" MaxWidth="800"/>
+				<ColumnDefinition Width="{Binding TelidrawSplitterWidth}"/>
+				<ColumnDefinition Width="{Binding TelidrawColumnWidth}" MinWidth="0" MaxWidth="800"/>
 			</Grid.ColumnDefinitions>
 
 			<!-- Canvas (left) -->

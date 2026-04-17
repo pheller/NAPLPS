@@ -183,7 +183,19 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     /// <summary>Whether the Telidraw text pane is visible (toggle via View menu or button).</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TelidrawColumnWidth))]
+    [NotifyPropertyChangedFor(nameof(TelidrawSplitterWidth))]
     private bool isTelidrawPaneVisible;
+
+    /// <summary>GridLength for the Telidraw column: 400px when visible, 0 when hidden.
+    /// Bound by the main layout so the column doesn't reserve space when the pane is off
+    /// (otherwise the canvas leaves blackspace between itself and the right edge).</summary>
+    public Avalonia.Controls.GridLength TelidrawColumnWidth =>
+        IsTelidrawPaneVisible ? new Avalonia.Controls.GridLength(400) : new Avalonia.Controls.GridLength(0);
+
+    /// <summary>GridLength for the splitter column: 4px when Telidraw pane visible, 0 otherwise.</summary>
+    public Avalonia.Controls.GridLength TelidrawSplitterWidth =>
+        IsTelidrawPaneVisible ? new Avalonia.Controls.GridLength(4) : new Avalonia.Controls.GridLength(0);
 
     [ObservableProperty]
     private IBrush foregroundColorBrush = new SolidColorBrush(Avalonia.Media.Colors.White);
