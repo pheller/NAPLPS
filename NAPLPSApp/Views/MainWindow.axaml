@@ -502,7 +502,27 @@
 						</Style>
 					</StackPanel.Styles>
 
-					<Expander Header="Color Mode" IsExpanded="True">
+					<!-- Context-sensitive command inspector. Visible only when the user has
+					     clicked a command in the canvas; shows the selected command's name,
+					     opcode, raw operand bytes, and a type-specific decoded summary. -->
+					<Expander Header="Selection" IsExpanded="True" IsVisible="{Binding IsCommandSelected}">
+						<StackPanel Orientation="Vertical" Spacing="2" Margin="4">
+							<TextBlock FontSize="11" Opacity="0.85">
+								<Run Text="Cmd #"/><Run Text="{Binding SelectedCommandIndex}"/>
+							</TextBlock>
+							<TextBlock Text="{Binding SelectedCommandName}" FontWeight="Bold"/>
+							<TextBlock FontSize="11">
+								<Run Text="opcode: "/><Run Text="{Binding SelectedCommandOpcodeHex}"/>
+							</TextBlock>
+							<TextBlock FontSize="11" TextWrapping="Wrap">
+								<Run Text="operands: "/><Run Text="{Binding SelectedCommandOperandsHex}"/>
+							</TextBlock>
+							<TextBlock Text="{Binding SelectedCommandSummary}" FontSize="11" FontStyle="Italic" Opacity="0.85" TextWrapping="Wrap"/>
+							<Button Content="Delete" Command="{Binding DeleteSelectedCommand}" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+						</StackPanel>
+					</Expander>
+
+					<Expander Header="Palette" IsExpanded="True">
 						<StackPanel Orientation="Vertical" Spacing="2" Margin="4">
 							<TextBlock Text="Foreground Index:" FontSize="11"/>
 							<NumericUpDown Value="{Binding EditorForegroundIndex}" Minimum="0" Maximum="15" FormatString="0" HorizontalAlignment="Stretch"/>

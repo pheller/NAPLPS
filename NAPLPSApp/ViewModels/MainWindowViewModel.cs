@@ -146,7 +146,89 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private GridSettings gridSettings = new();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCommandSelected))]
+    [NotifyPropertyChangedFor(nameof(SelectedCommandName))]
+    [NotifyPropertyChangedFor(nameof(SelectedCommandOpcodeHex))]
+    [NotifyPropertyChangedFor(nameof(SelectedCommandOperandsHex))]
+    [NotifyPropertyChangedFor(nameof(SelectedCommandSummary))]
     private int selectedCommandIndex = -1;
+
+    /// <summary>True when the user has clicked a command in the canvas/sequence pane and
+    /// the index points at a real command in the loaded file. Drives visibility of the
+    /// "Selection" inspector section in the Properties panel.</summary>
+    public bool IsCommandSelected => GetSelectedCommandSafe() != null;
+
+    public string SelectedCommandName
+    {
+        get
+        {
+            var cmd = GetSelectedCommandSafe();
+            if (cmd == null) { return "—"; }
+            var d = NAPLPS.CommandRegistry.GetByType(cmd.GetType());
+            return d?.Name ?? cmd.GetType().Name;
+        }
+    }
+
+    public string SelectedCommandOpcodeHex
+    {
+        get
+        {
+            var cmd = GetSelectedCommandSafe();
+            return cmd != null ? $"0x{cmd.OpCode:X2} ({cmd.OpCode})" : "—";
+        }
+    }
+
+    public string SelectedCommandOperandsHex
+    {
+        get
+        {
+            var cmd = GetSelectedCommandSafe();
+            if (cmd == null || cmd.Operands.Count == 0) { return "(none)"; }
+            return string.Join(' ', cmd.Operands.Select(b => b.ToString("X2")));
+        }
+    }
+
+    /// <summary>Type-specific decoded summary of the selected command — domain sv/mv/dim,
+    /// field origin/dims, color index, etc. Falls back to empty string for commands without
+    /// a useful inline summary (the operand-byte listing covers those).</summary>
+    public string SelectedCommandSummary => BuildSelectedCommandSummary();
+
+    private NAPLPS.Commands.NaplpsCommand? GetSelectedCommandSafe()
+    {
+        if (loadedFile == null || SelectedCommandIndex < 0 || SelectedCommandIndex >= loadedFile.Commands.Count)
+        {
+            return null;
+        }
+        return loadedFile.Commands[SelectedCommandIndex].Command;
+    }
+
+    private string BuildSelectedCommandSummary()
+    {
+        var cmd = GetSelectedCommandSafe();
+        if (cmd == null) { return string.Empty; }
+
+        switch (cmd)
+        {
+            case NAPLPS.Commands.AsciiCharCommand ac:
+                return $"char '{ac.AsciiCharacter}'" + (ac.IsNonSpacing ? " (non-spacing accent)" : "");
+            case NAPLPS.Commands.DomainCommand dc when dc.Operands.Count >= 1:
+            {
+                var (sv, mv, dim) = NAPLPS.Commands.DomainCommand.ProcessFixedByte(dc.Operands);
+                return $"sv={sv} mv={mv} dim={dim}";
+            }
+            case NAPLPS.Commands.SelectColorCommand sc when sc.Operands.Count >= 1:
+            {
+                byte fg = NAPLPS.NaplpsUtils.ConvertBitsToByte([sc.Operands[0, 3], sc.Operands[0, 4], sc.Operands[0, 5], sc.Operands[0, 6]]);
+                return $"fg={fg}" + (sc.Operands.Count >= 2 ? $" bg={NAPLPS.NaplpsUtils.ConvertBitsToByte([sc.Operands[1, 3], sc.Operands[1, 4], sc.Operands[1, 5], sc.Operands[1, 6]])}" : "");
+            }
+            case NAPLPS.Commands.WaitCommand wc when wc.IsValid:
+                return $"wait {wc.WaitTime}";
+            case NAPLPS.Commands.IncrementalFieldCommand fc when fc.Operands.Count == 0:
+                return "(reset to full screen)";
+            default:
+                return string.Empty;
+        }
+    }
 
     /// <summary>
     /// NAPLPS-normalized cursor coordinates updated on canvas pointer-move.
