@@ -7,15 +7,15 @@ This repo contains:
 - **`NAPLPS/`** — the spec-compliant parser, renderer, encoder, and command-builder library. Reads and writes `.nap` byte streams; renders to ImageSharp `Image<Rgba32>`.
 - **`NAPLPSApp/`** — an Avalonia desktop editor + viewer with drawing tools, attribute editors, palette/DRCS/texture designers, sequence inspector, and Telidraw text-source pane.
 - **`Telidraw`** — a Logo-style domain-specific language (`.td` files) that compiles to `.nap` and decompiles back, byte-identical. The canonical human-editable source format for NAPLPS scenes.
-- **`NAPLPSTests/`** — 767 unit tests, full visual-regression suite, and the headline byte-round-trip test across 375 historical example files.
+- **`NAPLPSTests/`** — 811 unit tests, full visual-regression suite, and the headline byte-round-trip test across 379 historical example files.
 
 ## Status
 
-- All 375 example files in `Examples/` round-trip **byte-identical** through the parser → serializer.
-- All 375 round-trip through the Telidraw decompile → recompile cycle.
-- ANSI X3.110 spec coverage spans Phase 1-9 of the original plan — G-set designation, locking shifts, single shifts, transparency, CAN, SDC, and the full PDI command family. Long-tail items (full-PDI DRCS rendering, dynamic 256-color palette, G2 supplementary set composition) tracked as remaining work.
+- All 379 example files in `Examples/` round-trip **byte-identical** through the parser → serializer.
+- All 379 round-trip through the Telidraw decompile → recompile cycle (only ~3.7% of commands fall back to the raw-byte form, mostly Mosaic Element and unhandled C1 control codes).
+- ANSI X3.110 spec coverage is comprehensive — G-set designation, locking shifts, single shifts, transparency, CAN, SDC, full PDI command family, DRCS PDI rendering, dynamic >16-color palette, Repeat-to-EOL, and G2 supplementary set with non-spacing accent state machinery (visual composition deferred to preserve PP3-matching baselines).
 
-Current version: **0.8.0**
+Current version: **0.10.0**
 
 ## Quick start
 
