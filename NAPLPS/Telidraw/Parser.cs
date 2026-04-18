@@ -285,7 +285,10 @@ public sealed class Parser
             if (arg is NumberLiteralNode n) { bytes.Add((byte)((int)n.Value & 0xFF)); }
         }
 
-        return new RawStatementNode(bytes, tok.Line, tok.Column);
+        // IsLogicalForm=true: opcode is the 8-bit base 0xA0+ regardless of the surrounding
+        // `#bits N` mode. The compiler's CompileRaw strips bit 7 when Use7BitMode is active
+        // so the same kebab text encodes correctly into either mode.
+        return new RawStatementNode(bytes, tok.Line, tok.Column, IsLogicalForm: true);
     }
 
     /// <summary>True for tokens that can start a numeric literal expression. Used by raw-byte

@@ -445,8 +445,28 @@ public static class Decompiler
             // are lowercase-only) and the parser's mnemonic-statement path takes over.
             // Round-trips to the same opcode via case-insensitive registry lookup.
             var kebab = descriptor.Name.ToUpperInvariant().Replace(' ', '-');
-            if (CommandRegistry.GetOpcodeByKebabName(kebab) == cmd.OpCode)
+            byte registryOp = CommandRegistry.GetOpcodeByKebabName(kebab);
+            // Match either the 8-bit (0xA0+) or the 7-bit (0x20-0x7F) presentation. The
+            // compiler's CompileRaw strips bit 7 when Use7BitMode is active, so the same
+            // kebab text encodes correctly into either mode based on the surrounding
+            // `#bits N` directive.
+            //
+            // registryOp == 0 means the kebab is ambiguous (e.g. ControlCommand has 64
+            // opcodes spanning C0 + C1, no single canonical byte) — fall through to the
+            // legacy `raw N // Comment` form so the literal opcode byte is preserved.
+            if (registryOp != 0 && (registryOp == cmd.OpCode || (registryOp & 0x7F) == (cmd.OpCode & 0x7F)))
             {
+                // Same mode-tracking as the high-level path: the kebab form parses to
+                // the 8-bit opcode 0xA0+ and only becomes 7-bit at compile time when
+                // Use7BitMode is active. So we MUST emit `#bits N` before crossing into
+                // a section whose bit mode differs from the previously-emitted line.
+                int thisMode = cmd.OpCode < 0x80 ? 7 : 8;
+                if (_lastEmittedBitMode != 0 && _lastEmittedBitMode != thisMode)
+                {
+                    sb.AppendLine($"#bits {thisMode}");
+                }
+                _lastEmittedBitMode = thisMode;
+
                 sb.Append(kebab);
                 foreach (var b in cmd.Operands) { sb.Append(' ').Append(b); }
                 sb.AppendLine();
@@ -694,8 +714,14 @@ public static class Decompiler
         if (TryFormatAsFraction(value, 128, out frac)) { return frac; }
         if (TryFormatAsFraction(value, 80, out frac)) { return frac; }
 
-        // Fall back to high-precision decimal (8 digits captures all single-precision floats).
-        return value.ToString("0.########", CultureInfo.InvariantCulture);
+        // "R" is .NET's round-trip format — guarantees Parse(ToString(x)) == x for floats.
+        // Earlier "0.########" was lossy at 8 digits (float32 needs 9 to round-trip), which
+        // broke the decompiler verifier on values that didn't align to one of the fraction
+        // denominators above. Concrete failure: 567/2048 = 0.27685546875 → "0.27685547" →
+        // parse → 0.27685547f (not the same float32) → re-encode → wrong byte. With "R" the
+        // text round-trips bit-exact, so the verifier accepts every high-level candidate that
+        // the decoder/encoder pair would normally produce identically.
+        return value.ToString("R", CultureInfo.InvariantCulture);
     }
 
     private static bool TryFormatAsFraction(float value, int denominator, out string result)

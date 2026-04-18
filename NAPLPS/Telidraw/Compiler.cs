@@ -977,7 +977,14 @@ public sealed class Compiler
         // InUseTable (which runs constructors that move the pen, change state, etc.).
         // Instead, create a bare NaplpsCommand and append it directly to the command list.
         // This preserves exact bytes without side effects.
-        byte opcode = raw.Bytes[0];
+        // ONLY the logical kebab form (POLYGON-SET-FILLED ...) gets bit-7 stripped under
+        // 7-bit mode. The literal `raw N N N` form must preserve the opcode byte verbatim,
+        // because that's what disk-honest round-trip relies on for unhandled opcodes —
+        // including ambiguous cases like SS3-prefixed Mosaic Element at 0xA1, where 0xA1
+        // means "Mosaic Element via G3" and stripping to 0x21 corrupts the stream.
+        byte opcode = (raw.IsLogicalForm && NaplpsEncoder.Use7BitMode && raw.Bytes[0] >= 0xA0)
+            ? (byte)(raw.Bytes[0] & 0x7F)
+            : raw.Bytes[0];
         var operands = new NaplpsOperands();
 
         for (int i = 1; i < raw.Bytes.Count; i++)

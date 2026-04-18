@@ -55,7 +55,7 @@ public sealed record LetNode(string Name, ExpressionNode Value, int Line, int Co
 /// Used by the decompiler for any command that doesn't have a higher-level DSL mapping,
 /// guaranteeing lossless round-trip for every NAPLPS byte stream.
 /// </summary>
-public sealed record RawStatementNode(IReadOnlyList<byte> Bytes, int Line, int Column) : StatementNode(Line, Column);
+public sealed record RawStatementNode(IReadOnlyList<byte> Bytes, int Line, int Column, bool IsLogicalForm = false) : StatementNode(Line, Column);
 
 // ---- Expressions --------------------------------------------------------
 
