@@ -153,6 +153,107 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(SelectedCommandSummary))]
     private int selectedCommandIndex = -1;
 
+    /// <summary>Count of parse errors in the currently-loaded file. Surfaced in the status
+    /// bar; when > 0 the user can click the indicator to jump to the first offending command.
+    /// Refreshes on file load via <see cref="NotifyFileDiagnostics"/>.</summary>
+    public int LoadedFileErrorCount => loadedFile?.Errors.Count(e => e.Severity == NAPLPS.NaplpsErrorSeverity.Error) ?? 0;
+
+    /// <summary>Tooltip-friendly multi-line summary of every parse error in the file.</summary>
+    public string LoadedFileErrorSummary
+    {
+        get
+        {
+            if (loadedFile == null || loadedFile.Errors.Count == 0) { return "No parse errors"; }
+            return string.Join("\n", loadedFile.Errors.Take(20).Select(e => $"[{e.Severity}] {e.Message}"))
+                + (loadedFile.Errors.Count > 20 ? $"\n... and {loadedFile.Errors.Count - 20} more" : "");
+        }
+    }
+
+    public bool HasFileErrors => LoadedFileErrorCount > 0;
+
+    /// <summary>Call after any reassignment of <see cref="loadedFile"/> so the status-bar
+    /// diagnostics indicator and any other file-derived bindings refresh.</summary>
+    private void NotifyFileDiagnostics()
+    {
+        OnPropertyChanged(nameof(LoadedFileErrorCount));
+        OnPropertyChanged(nameof(LoadedFileErrorSummary));
+        OnPropertyChanged(nameof(HasFileErrors));
+    }
+
+    /// <summary>
+    /// Nudge the selected geometric command's coordinates by one unit in the requested
+    /// direction. Param is "Left" / "Right" / "Up" / "Down". Decodes the operand bytes
+    /// per the command's per-axis mv encoding, applies a 1-pel delta (1/256 in unit-screen
+    /// coords, matching the encoder's smallest representable step at default mv=3), and
+    /// re-encodes. Replaces the command at the same stream index via <see cref="ReplaceCommandAction"/>
+    /// so undo/redo keeps byte-exact history. No-op for non-geometric commands or when no
+    /// command is selected.
+    /// </summary>
+    [RelayCommand]
+    private async Task NudgeSelected(string direction)
+    {
+        if (loadedFile == null || SelectedCommandIndex < 0 || SelectedCommandIndex >= loadedFile.Commands.Count) { return; }
+
+        var seq = loadedFile.Commands[SelectedCommandIndex];
+        var cmd = seq.Command;
+        int mv = Math.Max(1, (int)seq.State.MultiByteValue);
+        int bitsPerAxis = mv * 3;
+        // 1 pel = the smallest representable step at this mv. For mv=3 (9-bit axis) that's
+        // 1/256 = 0.00390625; mv=4 (12-bit) is 1/2048; mv=2 (6-bit) is 1/32.
+        float step = 1f / (1 << (bitsPerAxis - 1));
+
+        float dx = 0, dy = 0;
+        switch (direction)
+        {
+            case "Left":  dx = -step; break;
+            case "Right": dx = step;  break;
+            case "Up":    dy = step;  break;
+            case "Down":  dy = -step; break;
+            default: return;
+        }
+
+        // Only handle geometric commands whose first vertex is a single 2D coordinate.
+        // (Polygon-set/line-set/arc-set are multi-vertex; nudging only the start would
+        // shift just the first vertex and leave the rest, which is rarely what the user
+        // wants — defer those for a future "drag-handle" interaction.)
+        bool isAbsoluteSingleVertex = cmd is NAPLPS.Commands.PointSetAbsoluteCommand
+            or NAPLPS.Commands.PointAbsoluteCommand
+            or NAPLPS.Commands.LineAbsoluteCommand;
+
+        if (!isAbsoluteSingleVertex || cmd.Operands.Count < mv) { return; }
+
+        var (x, y) = NAPLPS.NaplpsEncoder.DecodeVertex2D(new NAPLPS.NaplpsOperands(cmd.Operands.GetRange(0, mv)), multiByteValue: mv);
+        var newOps = NAPLPS.NaplpsEncoder.EncodeVertex2D(x + dx, y + dy, mv);
+
+        var action = new Editor.ReplaceCommandAction(loadedFile, SelectedCommandIndex, cmd.OpCode, newOps);
+        undoManager.Execute(action, loadedFile);
+        IsFileDirty = true;
+        BuildDrawContext();
+        await UpdateCanvas();
+    }
+
+    [RelayCommand]
+    private void JumpToFirstError()
+    {
+        if (loadedFile == null || loadedFile.Errors.Count == 0) { return; }
+        var first = loadedFile.Errors[0];
+        if (first.StreamPosition.HasValue)
+        {
+            // Walk the command list until cumulative byte offset reaches the error position.
+            long pos = 0;
+            for (int i = 0; i < loadedFile.Commands.Count; i++)
+            {
+                long len = 1 + loadedFile.Commands[i].Command.Operands.Count;
+                if (pos + len > first.StreamPosition.Value)
+                {
+                    SelectedCommandIndex = i;
+                    return;
+                }
+                pos += len;
+            }
+        }
+    }
+
     /// <summary>True when the user has clicked a command in the canvas/sequence pane and
     /// the index points at a real command in the loaded file. Drives visibility of the
     /// "Selection" inspector section in the Properties panel.</summary>
@@ -1138,6 +1239,40 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         var origin = new Vector3((float)FieldOriginX, (float)FieldOriginY, 0);
         var dims = new Vector3((float)FieldDimWidth, (float)FieldDimHeight, 0);
         var cmd = NaplpsCommandBuilder.BuildField(origin, dims);
+        undoManager.Execute(new AddCommandsAction([cmd]), loadedFile);
+        IsFileDirty = true;
+        BuildDrawContext();
+    }
+
+    // ---- Blink attribute editor state ---------------------------------------------------
+    // BLINK swaps the foreground color to <BlinkToIndex> on the on-interval and back to the
+    // original on the off-interval, optionally delayed by start-delay 1/10 second units.
+    // Stop-blink emits BLINK with no operands which terminates all active blink processes.
+    [ObservableProperty] private int blinkToIndex = 8;
+    [ObservableProperty] private int blinkOnInterval = 5;
+    [ObservableProperty] private int blinkOffInterval = 5;
+    [ObservableProperty] private int blinkStartDelay;
+
+    [RelayCommand]
+    private void ApplyBlink()
+    {
+        if (loadedFile == null) { return; }
+
+        var cmd = NaplpsCommandBuilder.BuildBlink(
+            (byte)Math.Clamp(BlinkToIndex, 0, 15),
+            ((byte)Math.Clamp(BlinkOnInterval, 0, 63),
+             (byte)Math.Clamp(BlinkOffInterval, 0, 63),
+             (byte)Math.Clamp(BlinkStartDelay, 0, 63)));
+        undoManager.Execute(new AddCommandsAction([cmd]), loadedFile);
+        IsFileDirty = true;
+        BuildDrawContext();
+    }
+
+    [RelayCommand]
+    private void StopBlink()
+    {
+        if (loadedFile == null) { return; }
+        var cmd = NaplpsCommandBuilder.BuildBlinkStop();
         undoManager.Execute(new AddCommandsAction([cmd]), loadedFile);
         IsFileDirty = true;
         BuildDrawContext();
@@ -2140,6 +2275,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void BuildDrawContext()
     {
+        // Refresh status-bar diagnostics on every redraw — covers every loadedFile reassignment
+        // and every command edit, so the parse-error count stays current without threading
+        // notify calls through every assignment site.
+        NotifyFileDiagnostics();
+
         if (loadedFile == null)
         {
             return;

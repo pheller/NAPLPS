@@ -995,12 +995,25 @@ public partial class NaplpsFormat
     /// DRCS format: each character is an 8x10 bitmap (standard),
     /// encoded as 10 bytes (one byte per row, 8 bits per pixel).
     /// </summary>
+    private int _drcsRecursionDepth;
+    private const int MaxDrcsRecursionDepth = 4;
+
     private void ParseDrcsData(byte startCode, List<byte> data)
     {
         if (data.Count == 0)
         {
             // Empty definition = reset to space character
             State.DrcsCharacters.Remove(startCode);
+            return;
+        }
+
+        // Defensive guard against malformed files where a DRCS body contains a DEF DRCS
+        // command for another character — the inner ParseDrcsData would recurse via
+        // ReadStream and could stack-overflow on adversarial input. Spec is silent on the
+        // recursion limit, but no real-world file does this; cap it to a small constant
+        // and skip silently if exceeded (the partially-decoded bitmap survives).
+        if (_drcsRecursionDepth >= MaxDrcsRecursionDepth)
+        {
             return;
         }
 
@@ -1021,6 +1034,7 @@ public partial class NaplpsFormat
         // Try to parse as NAPLPS commands first
         bool parsedAsCommands = false;
 
+        _drcsRecursionDepth++;
         try
         {
             using var stream = new MemoryStream(data.ToArray());
@@ -1070,6 +1084,10 @@ public partial class NaplpsFormat
         catch
         {
             // If NAPLPS parsing fails, fall through to raw bitmap interpretation
+        }
+        finally
+        {
+            _drcsRecursionDepth--;
         }
 
         if (!parsedAsCommands)

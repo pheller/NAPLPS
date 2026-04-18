@@ -24,6 +24,13 @@
 		<KeyBinding Command="{Binding SaveAsCommand}" Gesture="Ctrl+Shift+S"/>
 		<KeyBinding Command="{Binding DeleteSelectedCommand}" Gesture="Delete"/>
 
+		<!-- Shift+Arrow nudges the selected geometric command's coordinates by 1 pel.
+		     Plain arrows stay bound to frame nav so animation playback isn't disrupted. -->
+		<KeyBinding Command="{Binding NudgeSelectedCommand}" CommandParameter="Left"  Gesture="Shift+Left"/>
+		<KeyBinding Command="{Binding NudgeSelectedCommand}" CommandParameter="Right" Gesture="Shift+Right"/>
+		<KeyBinding Command="{Binding NudgeSelectedCommand}" CommandParameter="Up"    Gesture="Shift+Up"/>
+		<KeyBinding Command="{Binding NudgeSelectedCommand}" CommandParameter="Down"  Gesture="Shift+Down"/>
+
 		<!-- Tool selection hotkeys (ignored when typing in text controls). -->
 		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Select"    Gesture="V"/>
 		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="MovePen"   Gesture="M"/>
@@ -257,6 +264,16 @@
 				<Border Width="12" Height="12" Background="{Binding BackgroundColorBrush}" BorderBrush="Gray" BorderThickness="1" VerticalAlignment="Center" IsVisible="{Binding IsEditorMode}"/>
 					<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" IsVisible="{Binding IsEditorMode}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 					<TextBlock Text="{Binding CoordReadout}" VerticalAlignment="Center" FontFamily="Consolas,monospace" FontSize="11" IsVisible="{Binding IsEditorMode}" ToolTip.Tip="Cursor position in NAPLPS-normalized coordinates (X 0..1, Y 0..0.75)"/>
+						<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}" IsVisible="{Binding HasFileErrors}"/>
+						<Button VerticalAlignment="Center" Padding="6,1" FontSize="11"
+								IsVisible="{Binding HasFileErrors}"
+								Background="#3d1417" Foreground="#f85149"
+								Command="{Binding JumpToFirstErrorCommand}"
+								ToolTip.Tip="{Binding LoadedFileErrorSummary}">
+							<TextBlock>
+								<Run Text="⚠ "/><Run Text="{Binding LoadedFileErrorCount}"/><Run Text=" parse error(s)"/>
+							</TextBlock>
+						</Button>
 			</StackPanel>
 		</Border>
 
@@ -620,6 +637,27 @@
 								</StackPanel>
 							</Grid>
 							<Button Content="Emit FIELD command" Command="{Binding ApplyFieldCommand}" HorizontalAlignment="Stretch"/>
+						</StackPanel>
+					</Expander>
+
+					<Expander Header="Blink" IsExpanded="False">
+						<StackPanel Orientation="Vertical" Spacing="4" Margin="4">
+							<TextBlock Text="Blink-to palette index (0-15):" FontSize="11"/>
+							<NumericUpDown Value="{Binding BlinkToIndex}" Minimum="0" Maximum="15" FormatString="0" HorizontalAlignment="Stretch"/>
+							<Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+								<StackPanel Grid.Column="0" Spacing="2">
+									<TextBlock Text="On (1/10s):" FontSize="11"/>
+									<NumericUpDown Value="{Binding BlinkOnInterval}" Minimum="0" Maximum="63" FormatString="0"/>
+								</StackPanel>
+								<StackPanel Grid.Column="1" Spacing="2">
+									<TextBlock Text="Off (1/10s):" FontSize="11"/>
+									<NumericUpDown Value="{Binding BlinkOffInterval}" Minimum="0" Maximum="63" FormatString="0"/>
+								</StackPanel>
+							</Grid>
+							<TextBlock Text="Start delay (1/10s):" FontSize="11"/>
+							<NumericUpDown Value="{Binding BlinkStartDelay}" Minimum="0" Maximum="63" FormatString="0" HorizontalAlignment="Stretch"/>
+							<Button Content="Emit BLINK command" Command="{Binding ApplyBlinkCommand}" HorizontalAlignment="Stretch"/>
+							<Button Content="Stop all blink processes" Command="{Binding StopBlinkCommand}" HorizontalAlignment="Stretch"/>
 						</StackPanel>
 					</Expander>
 
