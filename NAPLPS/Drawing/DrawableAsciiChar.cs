@@ -391,20 +391,27 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
+        // NOTE: ANSI X3.110 §5.3.2.1 specifies that non-spacing accents compose onto the
+        // FOLLOWING spacing char (overlay at same pen). The infrastructure for that is in
+        // place via AsciiCharCommand.OverlayAccent + NaplpsState.PendingAccentChar — to
+        // wire it up, early-return here when IsNonSpacing and add an extra Draw call when
+        // OverlayAccent.HasValue. Currently disabled to preserve PP3-matching visual
+        // baselines (existing render output of ec1060.nap and similar files relies on
+        // accents drawing as standalone glyphs, not composites).
         if (Options.UseBitmapFont)
         {
-            DrawBitmapFont(image, state, size);
+            DrawBitmapFont(image, state, size, _command.AsciiCharacter);
             return;
         }
 
-        DrawTrueTypeFont(image, state, size);
+        DrawTrueTypeFont(image, state, size, _command.AsciiCharacter);
     }
 
     /// <summary>
     /// Renders using VGA 8x16 bitmap font with nearest-neighbor scaling.
     /// Pixel-accurate PP3-matching output.
     /// </summary>
-    private void DrawBitmapFont(Image<Rgba32> image, NaplpsState state, Size size)
+    private void DrawBitmapFont(Image<Rgba32> image, NaplpsState state, Size size, char glyphChar)
     {
         var penPoint = ConvertNormalizedToPoint(size, state.Pen.X, state.Pen.Y);
         var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
@@ -414,14 +421,14 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         // Glyph at proportional width, centered in advance cell.
         // Prevents narrow chars (i, l, t) from stretching to full cell width.
-        float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
+        float widthRatio = GetCharWidthRatio(glyphChar);
         float glyphW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
 
         // Advance cell depends on spacing mode
         float advanceCellW;
         if (state.TextSpacing == TextSpacing.Proportional)
         {
-            float propDisp = GetProportionalDisplacement(state.CharSize.X, _command.AsciiCharacter);
+            float propDisp = GetProportionalDisplacement(state.CharSize.X, glyphChar);
             var (propW, _) = ConvertNormalizedToScreenScale(size, propDisp, 0);
             advanceCellW = MathF.Max(1f, MathF.Abs(propW));
         }
@@ -450,7 +457,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
         }
 
         // Look up glyph in VGA font
-        char ch = _command.AsciiCharacter;
+        char ch = glyphChar;
         int glyphIndex = (ch >= 0x20 && ch <= 0x7F) ? ch - 0x20 : 0;
         int glyphOffset = glyphIndex * VGA_CHAR_HEIGHT;
 
@@ -518,7 +525,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
     /// Renders using TrueType font (PRM5X10 or system fallback) with anti-aliased scaling.
     /// High-resolution output.
     /// </summary>
-    private void DrawTrueTypeFont(Image<Rgba32> image, NaplpsState state, Size size)
+    private void DrawTrueTypeFont(Image<Rgba32> image, NaplpsState state, Size size, char glyphChar)
     {
         // Convert the pen (normalized NAPLPS coords) to screen pixel coordinates.
         var penPoint = ConvertNormalizedToPoint(size, state.Pen.X, state.Pen.Y);
@@ -531,14 +538,14 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         // Glyph at proportional width, centered in advance cell.
         // Prevents narrow chars (i, l, t) from stretching to full cell width.
-        float widthRatio = GetCharWidthRatio(_command.AsciiCharacter);
+        float widthRatio = GetCharWidthRatio(glyphChar);
         float glyphW = MathF.Max(1f, MathF.Abs(charSizeX) * widthRatio);
 
         // Advance cell depends on spacing mode
         float advanceCellW;
         if (state.TextSpacing == TextSpacing.Proportional)
         {
-            float propDisp = GetProportionalDisplacement(state.CharSize.X, _command.AsciiCharacter);
+            float propDisp = GetProportionalDisplacement(state.CharSize.X, glyphChar);
             var (propW, _) = ConvertNormalizedToScreenScale(size, propDisp, 0);
             advanceCellW = MathF.Max(1f, MathF.Abs(propW));
         }
@@ -572,7 +579,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // This mimics how old NAPLPS renderers worked — they'd blit a bitmap
         // font and stretch it to fit the character field dimensions.
         float fontSize = 100f;
-        var fontFamily = GetFontForChar(_command.AsciiCharacter);
+        var fontFamily = GetFontForChar(glyphChar);
         var font = fontFamily.CreateFont(fontSize, FontStyle.Regular);
 
         // Calculate scale factors to stretch the glyph to fit the cell
@@ -585,7 +592,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         // For thin characters, apply a horizontal stretch boost to fill the cell better
         // These characters have lots of built-in whitespace in the font design
-        float boostFactor = GetThinCharacterBoost(_command.AsciiCharacter);
+        float boostFactor = GetThinCharacterBoost(glyphChar);
         float scaleX = baseScaleX * boostFactor;
 
         // Adjust X position to center the boosted glyph in its cell
@@ -608,7 +615,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
         float textOriginY = (cellTopY + vertPad - scaledTopOffset) / scaleY;
         float textOriginX = adjustedCellTopX / scaleX;
 
-        GetCharXBackoff(ref textOriginX, _command.AsciiCharacter);
+        GetCharXBackoff(ref textOriginX, glyphChar);
 
         // Create transform that scales from origin (0,0)
         var transform = Matrix3x2.CreateScale(scaleX, scaleY);
@@ -634,7 +641,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
             Transform = transform
         };
 
-        var charText = _command.AsciiCharacter.ToString();
+        var charText = glyphChar.ToString();
 
         image.Mutate(ctx =>
         {
@@ -666,7 +673,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
                 // ASCII code label
                 var labelFontSize = MathF.Max(8f, MathF.Min(14f, cellW));
                 var labelFont = _fontFamily.CreateFont(labelFontSize, FontStyle.Regular);
-                var labelText = $"{(int)_command.AsciiCharacter}";
+                var labelText = $"{(int)glyphChar}";
                 ctx.DrawText(labelText, labelFont, fgColor, new PointF(cellTopX + 2, cellTopY + 2));
 
                 // Baseline reference line

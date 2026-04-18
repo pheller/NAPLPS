@@ -144,9 +144,9 @@ public partial class NaplpsFormat
         return FromBytes(data);
     }
 
-    public static NaplpsFormat New(NaplpsSystemType systemType = NaplpsSystemType.NAPLPS)
+    public static NaplpsFormat New(NaplpsSystemType systemType = NaplpsSystemType.NAPLPS, int colorCapacity = 16)
     {
-        var state = new NaplpsState();
+        var state = new NaplpsState(colorCapacity);
 
         if (systemType == NaplpsSystemType.Prodigy)
         {

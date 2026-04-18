@@ -134,4 +134,61 @@ public class WordWrapTests
         // Y should have decreased by approximately CharSize.Y * interrow multiplier
         Assert.IsTrue(state.Pen.Y < penYBefore, $"Expected pen Y to decrease, was {penYBefore}, now {state.Pen.Y}");
     }
+
+    /// <summary>
+    /// ANSI X3.110 §5.3.2.3.6: hyphen permits a word break mid-word. Unlike space (which
+    /// gets discarded at line-end), a hyphen is content — it must remain at the end of the
+    /// current line when wrap happens after it. Verifies hyphen behaves as a word-break char
+    /// AND is not subject to the trailing-space discard rule.
+    /// </summary>
+    [TestMethod]
+    public void HyphenMidWord_UpdatesBreakPoint()
+    {
+        var state = CreateFieldState();
+        state.IsWordWrapMode = true;
+        state.Pen = new Vector3(0.1f, 0.4f, 0);
+
+        new AsciiCharCommand('a', state, 0x61, new NaplpsOperands([]));
+        var penBeforeHyphen = state.LastWordBreakPen.X;
+        new AsciiCharCommand('-', state, 0x2D, new NaplpsOperands([]));
+        var penAfterHyphen = state.LastWordBreakPen.X;
+
+        // Hyphen must update the break-point anchor. Before the hyphen, LastWordBreakPen
+        // is still the field origin (no prior break); after the hyphen it should be the
+        // pen position immediately following the hyphen glyph.
+        Assert.AreNotEqual(penBeforeHyphen, penAfterHyphen, "hyphen must update LastWordBreakPen");
+        Assert.IsTrue(penAfterHyphen > 0.1f, $"break pen should be past field origin, got {penAfterHyphen}");
+    }
+
+    [TestMethod]
+    public void HyphenAtLineEnd_NotDiscarded()
+    {
+        // Set up a wrap-triggering pen position. Spec: hyphen is content, not whitespace —
+        // unlike trailing spaces, it must not be discarded at the wrap point.
+        var state = CreateFieldState(0.1f, 0.5f);
+        state.IsWordWrapMode = true;
+        state.Pen = new Vector3(0.16f, 0.4f, 0);
+
+        var cmd = new AsciiCharCommand('-', state, 0x2D, new NaplpsOperands([]));
+
+        Assert.IsFalse(cmd.IsDiscarded, "hyphen must never be discarded by word wrap (spec: only spaces discard)");
+    }
+
+    [TestMethod]
+    public void LetterAfterHyphen_DoesNotMoveBreakPoint()
+    {
+        var state = CreateFieldState();
+        state.IsWordWrapMode = true;
+        state.Pen = new Vector3(0.1f, 0.4f, 0);
+
+        new AsciiCharCommand('m', state, 0x6D, new NaplpsOperands([]));
+        new AsciiCharCommand('-', state, 0x2D, new NaplpsOperands([]));
+        var hyphenAnchor = state.LastWordBreakPen.X;
+
+        new AsciiCharCommand('i', state, 0x69, new NaplpsOperands([]));
+        new AsciiCharCommand('n', state, 0x6E, new NaplpsOperands([]));
+
+        // Subsequent letters must NOT update the break point — hyphen anchor stays put.
+        Assert.AreEqual(hyphenAnchor, state.LastWordBreakPen.X);
+    }
 }

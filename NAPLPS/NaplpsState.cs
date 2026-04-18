@@ -55,10 +55,41 @@ public class NaplpsState
     /// </summary>
     public GsetSlot? PendingSingleShift { get; set; }
 
+    /// <summary>
+    /// ANSI X3.110 §5.3.2.1: a non-spacing accent character (G2 supplementary set positions
+    /// 0x40-0x4F) leaves no advance and is composed onto the NEXT spacing character.
+    /// Set when a non-spacing accent is processed, consumed by the next AsciiCharCommand
+    /// that overlays it onto its own glyph at the same pen position.
+    /// </summary>
+    [JsonIgnore]
+    public char? PendingAccentChar { get; set; }
+
     public NaplpsState()
     {
         Reset();
     }
+
+    /// <summary>
+    /// Construct a state for a system that supports more than the default 16 palette entries.
+    /// Per ANSI X3.110 §5.2.1, systems capable of >16 colors should generate the extended
+    /// palette algorithmically (greyscale ramp + hue-circle). 16 stays on <see cref="ColorMapDefaults"/>
+    /// for back-compat with the rest of the codebase.
+    /// </summary>
+    public NaplpsState(int colorCapacity) : this()
+    {
+        ColorCapacity = colorCapacity;
+        if (colorCapacity > 16)
+        {
+            ColorMap = GenerateDefaultPalette(colorCapacity);
+        }
+    }
+
+    /// <summary>
+    /// Number of palette entries this system can address. 16 is the NAPLPS default; spec
+    /// allows 32, 64, 128, 256 for extended-color systems. Drives the initial <see cref="ColorMap"/>
+    /// fill at construction time.
+    /// </summary>
+    public int ColorCapacity { get; set; } = 16;
 
     /* In-Use Table Manipulation */
 

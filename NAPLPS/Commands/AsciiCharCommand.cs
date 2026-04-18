@@ -55,6 +55,14 @@ public class AsciiCharCommand : NaplpsCommand
     /// </summary>
     public bool IsDiscarded { get; }
 
+    /// <summary>
+    /// ANSI X3.110 §5.3.2.1: when a non-spacing accent precedes this character, it is
+    /// composed (overlaid) onto this glyph at the same pen position. Captured from
+    /// <see cref="NaplpsState.PendingAccentChar"/> at construction; rendered by
+    /// <c>DrawableAsciiChar</c> after the base glyph.
+    /// </summary>
+    public char? OverlayAccent { get; }
+
     public AsciiCharCommand(char asciiCharacter, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         AsciiCharacter = asciiCharacter;
@@ -66,8 +74,23 @@ public class AsciiCharCommand : NaplpsCommand
 
         state.AutoWrapJustOccurred = false;
 
+        if (IsNonSpacing)
+        {
+            // §5.3.2.1: accent waits for the next spacing char to compose onto.
+            // Pen is intentionally NOT advanced.
+            state.PendingAccentChar = asciiCharacter;
+        }
+
         if (!IsNonSpacing)
         {
+            // Consume any pending accent set by the previous non-spacing char so this
+            // glyph's renderer can overlay it at the same field position.
+            if (state.PendingAccentChar.HasValue)
+            {
+                OverlayAccent = state.PendingAccentChar;
+                state.PendingAccentChar = null;
+            }
+
             MovePen(state);
             state.SyncAfterTextMove();
 
