@@ -600,7 +600,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         // Ask the user for format/scale/quality options BEFORE the file picker so the
         // file-type filter can match the chosen format.
-        var vm = await ExportDialog.PromptAsync(App.MainWindow, drawContext.Image.Width, drawContext.Image.Height);
+        // Estimate APNG frame count = number of WAIT commands (each yields a captured frame
+        // in DrawContext.RenderToApng) + 1 for the final state. Surfaces the count in the
+        // export dialog so the user knows what they're getting before committing.
+        int waitCount = loadedFile?.Commands.Count(s => s.Command is NAPLPS.Commands.WaitCommand wc && wc.IsValid) ?? 0;
+        int estimatedFrames = waitCount + 1;
+
+        var vm = await ExportDialog.PromptAsync(App.MainWindow, drawContext.Image.Width, drawContext.Image.Height, estimatedFrames);
         if (vm == null) { return; }
 
         var (ext, patterns, label) = vm.Format switch
