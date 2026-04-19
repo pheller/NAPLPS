@@ -30,4 +30,8 @@ public class ToolPreview
 
     /// <summary>Whether this is a selection highlight rather than a tool preview.</summary>
     public bool IsSelection { get; set; }
+
+    /// <summary>Vertex handles painted as small squares on top of the selection outline.
+    /// Used by SelectTool to show draggable anchors on the selected command's vertices.</summary>
+    public List<(float X, float Y)> Handles { get; set; } = [];
 }

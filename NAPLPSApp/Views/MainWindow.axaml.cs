@@ -277,7 +277,7 @@ public partial class MainWindow : Window
 
             case PreviewShape.Polygon:
             {
-                if (preview.Points.Count < 2) break;
+                if (preview.Points.Count < 2) goto paint_handles;
 
                 for (int i = 0; i < preview.Points.Count - 1; i++)
                 {
@@ -296,6 +296,31 @@ public partial class MainWindow : Window
                     overlay.Children.Add(line);
                 }
                 break;
+            }
+        }
+
+        paint_handles:
+        // Vertex handles — small filled cyan squares on top of the selection outline.
+        // Draw LAST so they sit on top of the bbox stroke and any preview dashes.
+        if (preview.Handles.Count > 0)
+        {
+            var handleBrush = new SolidColorBrush(Avalonia.Media.Colors.Cyan);
+            var handleStroke = new SolidColorBrush(Avalonia.Media.Colors.Black);
+            const double handleSize = 8;
+            foreach (var (hx, hy) in preview.Handles)
+            {
+                var hp = CoordinateMapper.NaplpsToScreen(hx, hy, controlSize, canvasSize, stretch);
+                var square = new Avalonia.Controls.Shapes.Rectangle
+                {
+                    Width = handleSize,
+                    Height = handleSize,
+                    Fill = handleBrush,
+                    Stroke = handleStroke,
+                    StrokeThickness = 1,
+                };
+                Canvas.SetLeft(square, hp.X - handleSize / 2);
+                Canvas.SetTop(square, hp.Y - handleSize / 2);
+                overlay.Children.Add(square);
             }
         }
     }

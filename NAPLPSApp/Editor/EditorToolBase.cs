@@ -46,4 +46,14 @@ public abstract class EditorToolBase
     /// <summary>Current position during drag.</summary>
     public float CurrentX { get; protected set; }
     public float CurrentY { get; protected set; }
+
+    /// <summary>
+    /// Optional replacement action produced by the tool after a pointer release — used
+    /// by SelectTool's drag-to-edit vertex handles, which MUTATE an existing command
+    /// instead of APPENDING a new one. The ViewModel's commit path inspects this after
+    /// <see cref="OnPointerReleased"/> returns and, if non-null, executes it through the
+    /// undo manager before falling through to the add-commands path. Tools that don't
+    /// edit-in-place leave this as null (the default).
+    /// </summary>
+    public virtual IEditorAction? PendingEditAction => null;
 }

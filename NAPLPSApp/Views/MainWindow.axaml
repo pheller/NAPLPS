@@ -535,7 +535,61 @@
 								<Run Text="operands: "/><Run Text="{Binding SelectedCommandOperandsHex}"/>
 							</TextBlock>
 							<TextBlock Text="{Binding SelectedCommandSummary}" FontSize="11" FontStyle="Italic" Opacity="0.85" TextWrapping="Wrap"/>
-							<Button Content="Delete" Command="{Binding DeleteSelectedCommand}" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+
+							<!-- Single-vertex edit form: appears for PointSetAbs / PointAbs / LineAbs.
+							     Shift+Arrow nudges by 1 pel; these fields allow arbitrary coords. -->
+							<StackPanel Orientation="Vertical" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedSingleVertex}">
+								<TextBlock Text="Edit coordinates:" FontSize="10" Opacity="0.75"/>
+								<Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+									<StackPanel Grid.Column="0" Spacing="2">
+										<TextBlock Text="X:" FontSize="11"/>
+										<NumericUpDown Value="{Binding EditSelectedX}" Minimum="-1" Maximum="1" Increment="0.01" FormatString="0.0000"/>
+									</StackPanel>
+									<StackPanel Grid.Column="1" Spacing="2">
+										<TextBlock Text="Y:" FontSize="11"/>
+										<NumericUpDown Value="{Binding EditSelectedY}" Minimum="-1" Maximum="1" Increment="0.01" FormatString="0.0000"/>
+									</StackPanel>
+								</Grid>
+							</StackPanel>
+
+							<!-- SelectColor edit form -->
+							<StackPanel Orientation="Vertical" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedSelectColor}">
+								<TextBlock Text="Edit palette index:" FontSize="10" Opacity="0.75"/>
+								<Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+									<StackPanel Grid.Column="0" Spacing="2">
+										<TextBlock Text="FG:" FontSize="11"/>
+										<NumericUpDown Value="{Binding EditSelectedColorFg}" Minimum="0" Maximum="15" FormatString="0"/>
+									</StackPanel>
+									<StackPanel Grid.Column="1" Spacing="2">
+										<TextBlock Text="BG:" FontSize="11"/>
+										<NumericUpDown Value="{Binding EditSelectedColorBg}" Minimum="0" Maximum="15" FormatString="0"/>
+									</StackPanel>
+								</Grid>
+							</StackPanel>
+
+							<!-- Domain edit form -->
+							<StackPanel Orientation="Vertical" Spacing="2" Margin="0,6,0,0" IsVisible="{Binding IsSelectedDomain}">
+								<TextBlock Text="Edit domain:" FontSize="10" Opacity="0.75"/>
+								<Grid ColumnDefinitions="*,*,*" ColumnSpacing="4">
+									<StackPanel Grid.Column="0" Spacing="2">
+										<TextBlock Text="sv:" FontSize="11"/>
+										<NumericUpDown Value="{Binding EditSelectedDomainSv}" Minimum="1" Maximum="3" FormatString="0"/>
+									</StackPanel>
+									<StackPanel Grid.Column="1" Spacing="2">
+										<TextBlock Text="mv:" FontSize="11"/>
+										<NumericUpDown Value="{Binding EditSelectedDomainMv}" Minimum="1" Maximum="8" FormatString="0"/>
+									</StackPanel>
+									<StackPanel Grid.Column="2" Spacing="2">
+										<TextBlock Text="dim:" FontSize="11"/>
+										<NumericUpDown Value="{Binding EditSelectedDomainDim}" Minimum="2" Maximum="3" FormatString="0"/>
+									</StackPanel>
+								</Grid>
+							</StackPanel>
+
+							<Grid ColumnDefinitions="*,*" ColumnSpacing="4" Margin="0,4,0,0">
+								<Button Grid.Column="0" Content="Apply Edit" Command="{Binding ApplySelectedEditCommand}" HorizontalAlignment="Stretch"/>
+								<Button Grid.Column="1" Content="Delete" Command="{Binding DeleteSelectedCommand}" HorizontalAlignment="Stretch"/>
+							</Grid>
 						</StackPanel>
 					</Expander>
 

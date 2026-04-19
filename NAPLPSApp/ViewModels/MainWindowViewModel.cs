@@ -294,6 +294,128 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// a useful inline summary (the operand-byte listing covers those).</summary>
     public string SelectedCommandSummary => BuildSelectedCommandSummary();
 
+    // ---- Editable selection-inspector fields ------------------------------------------
+    // Populated by OnSelectedCommandIndexChanged based on the selected command's type.
+    // The XAML binds per-type panels to these; the user hits Apply to fire a
+    // ReplaceCommandAction that re-emits the command with the edited values at the same
+    // stream index — byte-exact undo/redo preserved.
+
+    [ObservableProperty] private double editSelectedX;
+    [ObservableProperty] private double editSelectedY;
+    [ObservableProperty] private int editSelectedColorFg;
+    [ObservableProperty] private int editSelectedColorBg;
+    [ObservableProperty] private int editSelectedDomainSv = 1;
+    [ObservableProperty] private int editSelectedDomainMv = 3;
+    [ObservableProperty] private int editSelectedDomainDim = 2;
+
+    /// <summary>Selected command is a single-vertex geometric op (PointSet/Point/Line absolute)
+    /// whose X/Y operands can be edited in the inspector.</summary>
+    public bool IsSelectedSingleVertex
+    {
+        get
+        {
+            var cmd = GetSelectedCommandSafe();
+            return cmd is NAPLPS.Commands.PointSetAbsoluteCommand
+                or NAPLPS.Commands.PointAbsoluteCommand
+                or NAPLPS.Commands.LineAbsoluteCommand;
+        }
+    }
+
+    public bool IsSelectedSelectColor => GetSelectedCommandSafe() is NAPLPS.Commands.SelectColorCommand;
+    public bool IsSelectedDomain => GetSelectedCommandSafe() is NAPLPS.Commands.DomainCommand;
+
+    /// <summary>Re-populate the editable fields whenever the selection changes.</summary>
+    partial void OnSelectedCommandIndexChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsSelectedSingleVertex));
+        OnPropertyChanged(nameof(IsSelectedSelectColor));
+        OnPropertyChanged(nameof(IsSelectedDomain));
+
+        var cmd = GetSelectedCommandSafe();
+        if (cmd == null || loadedFile == null) { return; }
+
+        var seq = loadedFile.Commands[SelectedCommandIndex];
+        int mv = Math.Max(1, (int)seq.State.MultiByteValue);
+
+        switch (cmd)
+        {
+            case NAPLPS.Commands.PointSetAbsoluteCommand:
+            case NAPLPS.Commands.PointAbsoluteCommand:
+            case NAPLPS.Commands.LineAbsoluteCommand when cmd.Operands.Count >= mv:
+            {
+                var (x, y) = NAPLPS.NaplpsEncoder.DecodeVertex2D(new NAPLPS.NaplpsOperands(cmd.Operands.GetRange(0, mv)), multiByteValue: mv);
+                EditSelectedX = x;
+                EditSelectedY = y;
+                break;
+            }
+            case NAPLPS.Commands.SelectColorCommand sc when sc.Operands.Count >= 1:
+            {
+                EditSelectedColorFg = NAPLPS.NaplpsUtils.ConvertBitsToByte([sc.Operands[0, 3], sc.Operands[0, 4], sc.Operands[0, 5], sc.Operands[0, 6]]);
+                if (sc.Operands.Count >= 2)
+                {
+                    EditSelectedColorBg = NAPLPS.NaplpsUtils.ConvertBitsToByte([sc.Operands[1, 3], sc.Operands[1, 4], sc.Operands[1, 5], sc.Operands[1, 6]]);
+                }
+                break;
+            }
+            case NAPLPS.Commands.DomainCommand dc when dc.Operands.Count >= 1:
+            {
+                var (sv, mvByte, dim) = NAPLPS.Commands.DomainCommand.ProcessFixedByte(dc.Operands);
+                EditSelectedDomainSv = sv;
+                EditSelectedDomainMv = mvByte;
+                EditSelectedDomainDim = dim;
+                break;
+            }
+        }
+    }
+
+    /// <summary>Apply the inspector's edits to the selected command by building new operands
+    /// and replacing it in place. Undo restores the prior byte-exact state.</summary>
+    [RelayCommand]
+    private async Task ApplySelectedEdit()
+    {
+        if (loadedFile == null || SelectedCommandIndex < 0 || SelectedCommandIndex >= loadedFile.Commands.Count) { return; }
+        var seq = loadedFile.Commands[SelectedCommandIndex];
+        var cmd = seq.Command;
+        int mv = Math.Max(1, (int)seq.State.MultiByteValue);
+
+        NAPLPS.NaplpsOperands? newOps = null;
+
+        switch (cmd)
+        {
+            case NAPLPS.Commands.PointSetAbsoluteCommand:
+            case NAPLPS.Commands.PointAbsoluteCommand:
+            case NAPLPS.Commands.LineAbsoluteCommand:
+            {
+                newOps = NAPLPS.NaplpsEncoder.EncodeVertex2D((float)EditSelectedX, (float)EditSelectedY, mv);
+                break;
+            }
+            case NAPLPS.Commands.SelectColorCommand sc:
+            {
+                newOps = sc.Operands.Count >= 2
+                    ? NAPLPS.NaplpsEncoder.EncodeSelectColorForegroundBackground((byte)EditSelectedColorFg, (byte)EditSelectedColorBg)
+                    : NAPLPS.NaplpsEncoder.EncodeSelectColorForeground((byte)EditSelectedColorFg);
+                break;
+            }
+            case NAPLPS.Commands.DomainCommand:
+            {
+                newOps = new NAPLPS.NaplpsOperands { NAPLPS.NaplpsEncoder.EncodeDomainFixedByte((byte)EditSelectedDomainSv, (byte)EditSelectedDomainMv, (byte)EditSelectedDomainDim) };
+                break;
+            }
+        }
+
+        if (newOps == null) { return; }
+
+        var action = new Editor.ReplaceCommandAction(loadedFile, SelectedCommandIndex, cmd.OpCode, newOps);
+        undoManager.Execute(action, loadedFile);
+        IsFileDirty = true;
+        BuildDrawContext();
+        await UpdateCanvas();
+
+        // Refresh the read-only inspector display so the hex/summary lines reflect the edit.
+        OnPropertyChanged(nameof(SelectedCommandOperandsHex));
+        OnPropertyChanged(nameof(SelectedCommandSummary));
+    }
+
     private NAPLPS.Commands.NaplpsCommand? GetSelectedCommandSafe()
     {
         if (loadedFile == null || SelectedCommandIndex < 0 || SelectedCommandIndex >= loadedFile.Commands.Count)
@@ -1616,6 +1738,23 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         // Clear preview on release
         EditorPreview = null;
+
+        // Drag-to-edit vertex handles: SelectTool produces a ReplaceCommandAction instead of
+        // a list of new commands. Execute it separately so the add-commands path below stays
+        // single-purpose.
+        var editAction = ActiveTool.PendingEditAction;
+        if (editAction != null)
+        {
+            undoManager.Execute(editAction, loadedFile);
+            IsFileDirty = true;
+            BuildDrawContext();
+            await UpdateCanvas();
+            // Refresh inspector read-only + editable fields to match the new operand bytes.
+            OnSelectedCommandIndexChanged(SelectedCommandIndex);
+            OnPropertyChanged(nameof(SelectedCommandOperandsHex));
+            OnPropertyChanged(nameof(SelectedCommandSummary));
+            return;
+        }
 
         if (commands.Count == 0)
         {
