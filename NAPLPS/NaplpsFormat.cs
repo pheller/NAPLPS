@@ -892,12 +892,22 @@ public partial class NaplpsFormat
         {
             var peakValue = reader.PeekByte();
 
-            // Check for valid intermediate and final bytes according to NAPLPS standards
-            if ((peakValue >= 0x20 && peakValue <= 0x2F) || // Intermediate bytes
-                (peakValue >= 0x30 && peakValue <= 0x7E))   // Final bytes
+            // ANSI X3.110-1983 §4.3.3: an ESC sequence consists of zero or more
+            // intermediate bytes (0x20-0x2F) followed by a single final byte. The final
+            // byte is in 0x30-0x7E for 7-bit transmission, or 0xA0-0xFE for 8-bit.
+            // Earlier parser only handled the 7-bit final range — so 8-bit ESC sequences
+            // like `ESC 0xDF` (= 7-bit `ESC 0x5F`, "Designate other coding system") leaked
+            // their final byte into the next command-decode iteration, producing a stray
+            // bare NaplpsCommand. 82 occurrences of 0xDF across the corpus turned out to
+            // be exactly this case in dow-jones-frame.nap and similar Prodigy files.
+            bool isIntermediate = peakValue >= 0x20 && peakValue <= 0x2F;
+            bool isFinal7Bit = peakValue >= 0x30 && peakValue <= 0x7E;
+            bool isFinal8Bit = peakValue >= 0xA0 && peakValue <= 0xFE;
+
+            if (isIntermediate || isFinal7Bit || isFinal8Bit)
             {
                 additionalParameters.Add(reader.ReadByte());
-                isEscape = !(peakValue >= 0x30 && peakValue <= 0x7E); // Stop at final character
+                isEscape = !(isFinal7Bit || isFinal8Bit); // Stop at any final byte
             }
             else
             {
