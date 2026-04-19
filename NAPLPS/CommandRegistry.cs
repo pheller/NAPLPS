@@ -109,9 +109,11 @@ public static class CommandRegistry
         var byKeyword = new Dictionary<string, CommandDescriptor>(StringComparer.OrdinalIgnoreCase);
         var byOpcode = new Dictionary<byte, CommandDescriptor>();
 
-        var assembly = typeof(NaplpsCommand).Assembly;
-
-        foreach (var type in assembly.GetTypes())
+        // AOT: iterate the hand-maintained static type list instead of Assembly.GetTypes()
+        // so the trimmer can prove every command subclass is reachable. New commands need
+        // to be added to CommandRegistryKnownTypes.All — the build succeeds without the
+        // entry, but parsing will fall back to the generic NaplpsCommand for that opcode.
+        foreach (var type in CommandRegistryKnownTypes.All)
         {
             var attr = type.GetCustomAttribute<AddCommandAttribute>();
 

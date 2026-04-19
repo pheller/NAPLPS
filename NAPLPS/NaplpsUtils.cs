@@ -234,30 +234,20 @@ public static class NaplpsUtils
         return point;
     }
 
+    /// <summary>
+    /// Enumerate the human-readable names of every <c>[AddCommand]</c>-attributed command
+    /// class. Iterates the AOT-safe static type list in <see cref="CommandRegistryKnownTypes"/>
+    /// instead of <c>Assembly.GetTypes()</c> so the trimmer preserves command classes.
+    /// </summary>
     public static List<string> GetAddCommands()
     {
-        Assembly assembly = Assembly.GetExecutingAssembly();
-
-        // Find all classes with the AddCommandAttribute
-        var typesWithAttribute = assembly.GetTypes()
-            .Where(type => type.GetCustomAttributes(typeof(AddCommandAttribute), false).Length > 0)
-            .ToList();
-
         var output = new List<string>();
 
-        // Iterate and print information about each class
-        foreach (var type in typesWithAttribute)
+        foreach (var type in CommandRegistryKnownTypes.All)
         {
             var attribute = type.GetCustomAttributes(typeof(AddCommandAttribute), false)?.FirstOrDefault();
-
-            if (attribute == null)
-            {
-                continue;
-            }
-
+            if (attribute == null) { continue; }
             output.Add(((AddCommandAttribute)attribute).Name);
-
-            // Console.WriteLine($"Class: {type.Name}, Height: {attribute.Height}, Name: {attribute.Name}, Description: {attribute.Description}");
         }
 
         return output;

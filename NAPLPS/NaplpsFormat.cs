@@ -847,7 +847,10 @@ public partial class NaplpsFormat
     /// Attempts to instantiate a command from its type and parameters.
     /// Returns null if instantiation fails.
     /// </summary>
-    private NaplpsCommand? TryInstantiateCommand(Type commandType, List<object> commandParameters, byte opcode, NaplpsOperands additionalParameters, BinaryReader reader)
+    private NaplpsCommand? TryInstantiateCommand(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)]
+        Type commandType,
+        List<object> commandParameters, byte opcode, NaplpsOperands additionalParameters, BinaryReader reader)
     {
         var finalCommandParams = commandParameters.Concat([State, opcode, additionalParameters]).ToArray();
 

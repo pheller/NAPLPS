@@ -347,6 +347,10 @@ public class NaplpsState
 
     /* In-Use Tables */
     [Browsable(false)]
+    // AOT: route this property through the NCR-array converter so the JSON source gen
+    // doesn't attempt to generate reflection-based code for NaplpsCommandReference (which
+    // has a DAM-annotated Type parameter the source gen can't satisfy statically).
+    [JsonConverter(typeof(NAPLPS.Helpers.NCRArrayJsonConverter))]
     public NCR[] InUseTable { get; set; } = new NCR[256];
 
     [Category("In-Use Tables")]
@@ -675,9 +679,37 @@ public class NaplpsState
 
     /* Helpers */
 
-    public string ToJson() => JsonSerializer.Serialize(this, GlobalJsonSerializerOptions);
+    // AOT-safe JSON round-trip: use the source-generated JsonTypeInfo for NaplpsState.
+    // We can't pass the whole GlobalJsonSerializerOptions (with its runtime Converters list)
+    // directly to the typed overload, so we instead look up the type-info from a dedicated
+    // context that inherits the naming policy + write-indented setting, and inject the
+    // custom converters via the typeinfo's Options property.
+    private static readonly JsonTypeInfo<NaplpsState> s_typeInfo = CreateTypeInfo();
 
-    public static NaplpsState FromJson(string json) => JsonSerializer.Deserialize<NaplpsState>(json, GlobalJsonSerializerOptions) ?? new();
+    private static JsonTypeInfo<NaplpsState> CreateTypeInfo()
+    {
+        // Build fresh options that carry OUR custom converters (NCRArray/Vector3/Vector2)
+        // alongside the source gen's naming policy + indentation, then hand them to a new
+        // context instance. Can't mutate `NaplpsStateJsonContext.Default.Options` — that
+        // instance is locked read-only once any type-info has been resolved from it.
+        var opts = new JsonSerializerOptions(GlobalJsonSerializerOptions);
+        var ctx = new NaplpsStateJsonContext(opts);
+        return (JsonTypeInfo<NaplpsState>)ctx.GetTypeInfo(typeof(NaplpsState))!;
+    }
+
+    // The source gen still emits a metadata table for NaplpsCommandReference because NCR[]
+    // appears as a property type even though InUseTable has an explicit converter. That
+    // metadata is DEAD CODE — NCRArrayJsonConverter handles NCR[] end-to-end without
+    // ever invoking the generated NCR ctor metadata. Suppressing IL2026/IL3050 at the
+    // Serialize/Deserialize call sites since we've verified the actual runtime path is
+    // converter-only.
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "NCR[] round-trips through NCRArrayJsonConverter; generated NCR metadata is never executed.")]
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "NCR[] round-trips through NCRArrayJsonConverter; generated NCR metadata is never executed.")]
+    public string ToJson() => JsonSerializer.Serialize(this, s_typeInfo);
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "NCR[] round-trips through NCRArrayJsonConverter; generated NCR metadata is never executed.")]
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "NCR[] round-trips through NCRArrayJsonConverter; generated NCR metadata is never executed.")]
+    public static NaplpsState FromJson(string json) => JsonSerializer.Deserialize(json, s_typeInfo) ?? new();
 
     public NaplpsState Clone()
     {

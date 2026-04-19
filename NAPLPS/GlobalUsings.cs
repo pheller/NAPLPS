@@ -12,6 +12,8 @@ global using SixLabors.ImageSharp.PixelFormats;
 global using System.Numerics;
 global using System.Text.Json;
 global using System.Text.Json.Serialization;
+global using System.Text.Json.Serialization.Metadata;
+global using System.Diagnostics.CodeAnalysis;
 global using static NAPLPS.Commands.TextCommand;
 global using static NAPLPS.NaplpsControlCommands;
 global using static NAPLPS.NaplpsUtils;
