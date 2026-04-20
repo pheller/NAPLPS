@@ -1,0 +1,5 @@
+module CNaplps [system] {
+    header "shim.h"
+    link "NAPLPS"
+    export *
+}
