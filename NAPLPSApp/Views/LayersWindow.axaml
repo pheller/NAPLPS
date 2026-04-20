@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:i="using:NAPLPSApp.Icons"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:vm="using:NAPLPSApp.ViewModels"
+		mc:Ignorable="d" d:DesignWidth="360" d:DesignHeight="420"
+		x:Class="NAPLPSApp.Views.LayersWindow"
+		x:DataType="vm:LayersWindowViewModel"
+		Title="Layers"
+		Icon="/Assets/naplps.ico"
+		Width="360" Height="420"
+		WindowStartupLocation="CenterOwner">
+	<DockPanel Margin="8">
+		<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
+			<Button Command="{Binding AddLayerCommand}" ToolTip.Tip="New layer">
+				<i:Icon Value="fa-solid fa-plus" FontSize="14"/>
+			</Button>
+			<Button Command="{Binding RemoveLayerCommand}" CommandParameter="{Binding ActiveLayer}" ToolTip.Tip="Delete active layer">
+				<i:Icon Value="fa-solid fa-trash" FontSize="14"/>
+			</Button>
+			<Border Width="1" Background="#444" Margin="4,2"/>
+			<Button Command="{Binding MoveLayerUpCommand}" CommandParameter="{Binding ActiveLayer}" ToolTip.Tip="Move up">
+				<i:Icon Value="fa-solid fa-arrow-up" FontSize="14"/>
+			</Button>
+			<Button Command="{Binding MoveLayerDownCommand}" CommandParameter="{Binding ActiveLayer}" ToolTip.Tip="Move down">
+				<i:Icon Value="fa-solid fa-arrow-down" FontSize="14"/>
+			</Button>
+		</StackPanel>
+
+		<Border BorderBrush="#333" BorderThickness="1">
+			<ListBox ItemsSource="{Binding Layers}"
+					 SelectedItem="{Binding ActiveLayer, Mode=TwoWay}"
+					 Background="#1a1a1a">
+				<ListBox.ItemTemplate>
+					<DataTemplate>
+						<Grid ColumnDefinitions="Auto,*" Margin="2">
+							<CheckBox Grid.Column="0" IsChecked="{Binding IsVisible, Mode=TwoWay}"
+									  VerticalAlignment="Center" Margin="0,0,6,0"
+									  ToolTip.Tip="Visible (layer info is saved to .td regardless)"/>
+							<TextBox Grid.Column="1" Text="{Binding Name, Mode=TwoWay}"
+									 Background="Transparent" BorderThickness="0"
+									 VerticalAlignment="Center"/>
+						</Grid>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
+		</Border>
+	</DockPanel>
+</Window>

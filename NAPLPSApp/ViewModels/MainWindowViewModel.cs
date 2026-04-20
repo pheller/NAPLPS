@@ -87,6 +87,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly SemaphoreSlim renderLock = new(1, 1);
 
     private Window? sequenceWindow;
+    private Window? layersWindow;
+
+    /// <summary>Editor-side layer management. Layers are a .td-only concept; the NAPLPS
+    /// binary format has no layer semantics, so saves to .nap flatten them.</summary>
+    public LayerManager LayerManager { get; } = new();
 
     // Blink animation timer
     private Avalonia.Threading.DispatcherTimer? blinkTimer;
@@ -712,6 +717,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 // Save as Telidraw source — decompile the current format to text.
                 var tdSource = NAPLPS.Telidraw.Decompiler.Decompile(loadedFile);
+                // Layer membership is a .td-only concept; inject structured comments so
+                // reloading this file restores the layer table + per-command assignment.
+                // Binary .nap has no comment facility, so layers collapse on .nap save.
+                tdSource = LayerSerializer.InjectLayerMarkers(tdSource, loadedFile, LayerManager);
                 // Preserve the reference-image overlay across reloads by stamping a
                 // structured comment at the top of the source. The compiler's lexer
                 // already skips // comments, so this doesn't affect parsing.
@@ -1072,12 +1081,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    private async Task ToggleLayers()
-    {
-        await MessageBoxManager.GetMessageBoxStandard("The Future", "This would've triggered the layers window/pane?").ShowAsync();
-    }
-
-    [RelayCommand]
     private async Task ToggleDebugTextDrawing()
     {
         DebugTextDrawing = !DebugTextDrawing;
@@ -1119,6 +1122,22 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             sequenceWindow.Close();
             sequenceWindow = null;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleLayers()
+    {
+        if (layersWindow == null)
+        {
+            layersWindow = new LayersWindow(LayerManager);
+            layersWindow.Closed += (_, _) => layersWindow = null;
+            layersWindow.Show();
+        }
+        else
+        {
+            layersWindow.Close();
+            layersWindow = null;
         }
     }
 
@@ -2344,6 +2363,20 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     #endregion
 
+    /// <summary>Guarantee a Background layer exists and is active — called after every
+    /// file open/new so the user always has something to draw into.</summary>
+    private void EnsureDefaultLayer()
+    {
+        if (LayerManager.Layers.Count == 0)
+        {
+            LayerManager.AddLayer("Background");
+        }
+        else
+        {
+            LayerManager.ActiveLayer ??= LayerManager.Layers[0];
+        }
+    }
+
     private async Task FileNew()
     {
         FileClose();
@@ -2424,9 +2457,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         sequenceWindow?.Close();
         sequenceWindow = null;
 
+        layersWindow?.Close();
+        layersWindow = null;
+
         propertiesWindow?.Close();
         propertiesWindow = null;
 
+        LayerManager.Reset();
         undoManager.Clear();
 
         loadedFile = null;
@@ -2468,6 +2505,37 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                     {
                         SetReferenceImage(refSpec.Value.Path, refSpec.Value.X, refSpec.Value.Y,
                             refSpec.Value.Width, refSpec.Value.Height, refSpec.Value.Opacity, refSpec.Value.Visible);
+                    }
+
+                    // Pull layer table + per-command membership. When present, rebuild the
+                    // layer set exactly; when absent, EnsureDefaultLayer + SyncAssignments
+                    // below will collapse everything into a single Background layer.
+                    var layerSpec = LayerSerializer.Extract(source);
+                    if (layerSpec != null)
+                    {
+                        LayerManager.Reset();
+                        foreach (var def in layerSpec.Defs)
+                        {
+                            var layer = LayerManager.AddLayer(def.Name);
+                            layer.IsVisible = def.Visible;
+                        }
+                        if (LayerManager.Layers.Count == 0) { LayerManager.AddLayer("Background"); }
+                        LayerManager.ActiveLayer = LayerManager.Layers[0];
+
+                        // Walk the compiled commands in parallel with the per-line name list
+                        // we captured. Commands whose line had no marker stay on the default
+                        // (first) layer.
+                        int maxIdx = Math.Min(loadedFile.Commands.Count, layerSpec.CommandLayerNames.Count);
+                        for (int i = 0; i < maxIdx; i++)
+                        {
+                            var name = layerSpec.CommandLayerNames[i];
+                            if (name == null) { continue; }
+                            var layer = LayerManager.Layers.FirstOrDefault(l => l.Name == name);
+                            if (layer != null)
+                            {
+                                LayerManager.AssignCommand(loadedFile.Commands[i], layer.Id);
+                            }
+                        }
                     }
                 }
                 else
@@ -2610,6 +2678,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             return;
         }
+
+        // Any freshly-added commands get assigned to whatever layer is active so the
+        // membership map stays complete. Self-healing so we don't need to touch every
+        // AddCommandsAction caller.
+        EnsureDefaultLayer();
+        LayerManager.SyncAssignments(loadedFile);
 
         var (width, height) = GetSize();
 
