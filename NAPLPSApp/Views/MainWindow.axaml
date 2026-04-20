@@ -75,6 +75,12 @@
 				</MenuItem>
 				<MenuItem Header="_Export..." Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
 				<Separator/>
+				<MenuItem Header="_Reference Image..." Command="{Binding LoadReferenceImageFileCommand}"
+						  IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-image"
+						  ToolTip.Tip="Overlay a photo/sketch behind the canvas as a drawing reference. Saved only in .td source."/>
+				<MenuItem Header="Clea_r Reference Image" Command="{Binding ClearReferenceImageCommand}"
+						  IsEnabled="{Binding IsReferenceImageLoaded}" i:MenuItem.Icon="fa-solid fa-ban"/>
+				<Separator/>
 				<MenuItem Header="_Quit" Command="{Binding QuitCommand}" i:MenuItem.Icon="fa-solid fa-door-open"/>
 			</MenuItem>
 			<MenuItem Header="_Edit">
@@ -361,6 +367,12 @@
 				<ToggleButton IsChecked="{Binding IsIncrementalPointToolActive}" ToolTip.Tip="Raster Paint (IncrementalPoint) — drag to paint 1-bit pixels"
 							  Command="{Binding SetActiveToolCommand}" CommandParameter="IncrementalPoint" Padding="6">
 					<i:Icon Value="fa-solid fa-pen-nib" FontSize="16"/>
+				</ToggleButton>
+				<ToggleButton IsChecked="{Binding IsReferenceToolActive}"
+							  IsEnabled="{Binding IsReferenceImageLoaded}"
+							  ToolTip.Tip="Reference Image — drag to move; drag bottom-right corner to resize"
+							  Command="{Binding SetActiveToolCommand}" CommandParameter="Reference" Padding="6">
+					<i:Icon Value="fa-solid fa-image" FontSize="16"/>
 				</ToggleButton>
 				<Separator Margin="0,4"/>
 
@@ -802,6 +814,17 @@
 				<Image Source="{Binding CanvasImage}" Name="CanvasImageControl"
 					   HorizontalAlignment="Center" VerticalAlignment="Center"
 					   Stretch="{Binding ImageStretch}"/>
+				<!-- Reference image overlay. Position/size is set in code-behind to track
+				     CanvasImageControl's actual rendered bounds, translated/scaled by
+				     ReferenceImage.X/Y/W/H. Sits ABOVE the NAPLPS canvas so the user can
+				     trace through a reduced-opacity image. -->
+				<Image Name="ReferenceImageControl"
+					   Source="{Binding ReferenceImage.Bitmap}"
+					   Opacity="{Binding ReferenceImage.Opacity}"
+					   IsVisible="{Binding ReferenceImage.IsVisible}"
+					   IsHitTestVisible="False"
+					   Stretch="Fill"
+					   HorizontalAlignment="Left" VerticalAlignment="Top"/>
 				<Canvas Name="EditorOverlay" Background="Transparent"
 						IsVisible="{Binding IsEditorMode}"/>
 			</Grid>

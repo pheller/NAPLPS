@@ -133,18 +133,38 @@ public partial class MainWindow : Window
             // Without this, the outline only updates on the pointer-event path.
             vm.PropertyChanged += (_, args) =>
             {
-                if (args.PropertyName != nameof(MainWindowViewModel.EditorPreview)) { return; }
-                var ov = this.FindControl<Canvas>("EditorOverlay");
-                if (ov == null) { return; }
-                if (vm.EditorPreview == null)
+                if (args.PropertyName == nameof(MainWindowViewModel.EditorPreview))
                 {
-                    ClearPreviewOverlay();
+                    var ov = this.FindControl<Canvas>("EditorOverlay");
+                    if (ov == null) { return; }
+                    if (vm.EditorPreview == null)
+                    {
+                        ClearPreviewOverlay();
+                    }
+                    else
+                    {
+                        UpdatePreviewOverlay(vm, ov);
+                    }
                 }
-                else
+
+                if (args.PropertyName == nameof(MainWindowViewModel.ReferenceImage))
                 {
-                    UpdatePreviewOverlay(vm, ov);
+                    HookReferenceImageChanges(vm);
+                    UpdateReferenceImagePlacement(vm);
                 }
             };
+
+            // Initial reference-image hookup + placement.
+            HookReferenceImageChanges(vm);
+
+            // The reference image lives in coordinates relative to the NAPLPS canvas's
+            // actual rendered rect; when that rect changes (resize, stretch change, source
+            // swap), reposition the overlay.
+            var canvasCtrl = this.FindControl<Avalonia.Controls.Image>("CanvasImageControl");
+            if (canvasCtrl != null)
+            {
+                canvasCtrl.LayoutUpdated += (_, _) => UpdateReferenceImagePlacement(vm);
+            }
         }
     }
 
@@ -361,6 +381,63 @@ public partial class MainWindow : Window
                 overlay.Children.Add(square);
             }
         }
+    }
+
+    private ReferenceImage? _hookedReferenceImage;
+
+    private void HookReferenceImageChanges(MainWindowViewModel vm)
+    {
+        // Detach from the previous instance so we don't leak handlers on every swap.
+        if (_hookedReferenceImage != null)
+        {
+            _hookedReferenceImage.PropertyChanged -= OnReferenceImagePropertyChanged;
+        }
+
+        _hookedReferenceImage = vm.ReferenceImage;
+
+        if (_hookedReferenceImage != null)
+        {
+            _hookedReferenceImage.PropertyChanged += OnReferenceImagePropertyChanged;
+        }
+    }
+
+    private void OnReferenceImagePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            UpdateReferenceImagePlacement(vm);
+        }
+    }
+
+    /// <summary>Translate ReferenceImage.X/Y/W/H (normalized NAPLPS coords — X: 0..1,
+    /// Y: 0..0.75) into pixel Margin + Width/Height on ReferenceImageControl, keyed to
+    /// the actual rendered bounds of CanvasImageControl. Called on any change to either.</summary>
+    private void UpdateReferenceImagePlacement(MainWindowViewModel vm)
+    {
+        var refCtrl = this.FindControl<Avalonia.Controls.Image>("ReferenceImageControl");
+        var canvasCtrl = this.FindControl<Avalonia.Controls.Image>("CanvasImageControl");
+
+        if (refCtrl == null || canvasCtrl == null) { return; }
+
+        var ri = vm.ReferenceImage;
+        if (ri == null)
+        {
+            refCtrl.IsVisible = false;
+            return;
+        }
+
+        var b = canvasCtrl.Bounds;
+        if (b.Width <= 0 || b.Height <= 0) { return; }
+
+        // Y normalized range is 0..0.75 (4:3 aspect). So one unit of Y spans b.Height/0.75 px.
+        double yScale = b.Height / 0.75;
+
+        refCtrl.Margin = new Thickness(
+            b.X + ri.X * b.Width,
+            b.Y + ri.Y * yScale,
+            0, 0);
+        refCtrl.Width  = ri.Width  * b.Width;
+        refCtrl.Height = ri.Height * yScale;
     }
 
     private void ClearPreviewOverlay()

@@ -105,6 +105,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IncrementalLineTool incrementalLineTool = new();
     private readonly IncrementalPolygonTool incrementalPolygonTool = new();
     private readonly IncrementalPointTool incrementalPointTool = new();
+    private readonly ReferenceTool referenceTool = new();
 
     /// <summary>
     /// Exposes the TextTool instance to XAML so the Attributes panel can bind directly
@@ -124,11 +125,20 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(IsIncrementalLineToolActive))]
     [NotifyPropertyChangedFor(nameof(IsIncrementalPolygonToolActive))]
     [NotifyPropertyChangedFor(nameof(IsIncrementalPointToolActive))]
+    [NotifyPropertyChangedFor(nameof(IsReferenceToolActive))]
     [NotifyPropertyChangedFor(nameof(ActiveToolName))]
     private EditorToolBase activeTool;
 
     [ObservableProperty]
     private bool isEditorMode;
+
+    /// <summary>Optional reference image shown behind the NAPLPS canvas so the user can
+    /// draw on top of a photo / sketch. Persisted to .td as a `// ref-image: ...` comment.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsReferenceImageLoaded))]
+    private ReferenceImage? referenceImage;
+
+    public bool IsReferenceImageLoaded => ReferenceImage != null;
 
     [ObservableProperty]
     private bool isFilledMode = true;
@@ -557,6 +567,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool IsIncrementalLineToolActive => ActiveTool is IncrementalLineTool;
     public bool IsIncrementalPolygonToolActive => ActiveTool is IncrementalPolygonTool;
     public bool IsIncrementalPointToolActive => ActiveTool is IncrementalPointTool;
+    public bool IsReferenceToolActive => ActiveTool is ReferenceTool;
     public string ActiveToolName => ActiveTool?.Name ?? "Select";
 
     public MainWindowViewModel()
@@ -701,6 +712,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 // Save as Telidraw source — decompile the current format to text.
                 var tdSource = NAPLPS.Telidraw.Decompiler.Decompile(loadedFile);
+                // Preserve the reference-image overlay across reloads by stamping a
+                // structured comment at the top of the source. The compiler's lexer
+                // already skips // comments, so this doesn't affect parsing.
+                tdSource = ReferenceImageSerializer.Prepend(tdSource, ReferenceImage);
                 await System.IO.File.WriteAllTextAsync(savePath, tdSource);
             }
             else
@@ -749,6 +764,65 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         FileClose();
+    }
+
+    /// <summary>Pick a raster image and install it as the reference overlay. The image
+    /// sits behind the NAPLPS canvas at user-adjustable position/size; switch to the
+    /// Reference tool to drag it around or resize via the bottom-right corner handle.</summary>
+    [RelayCommand]
+    private async Task LoadReferenceImageFile()
+    {
+        if (App.MainWindow == null) { return; }
+
+        var picker = await App.MainWindow.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Load Reference Image",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new Avalonia.Platform.Storage.FilePickerFileType("Images") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif"] }
+            ]
+        });
+        if (picker.Count == 0) { return; }
+
+        var path = picker[0].Path.LocalPath;
+        SetReferenceImage(path, x: 0f, y: 0f, width: 1f, height: 0.75f, opacity: 0.5, visible: true);
+    }
+
+    [RelayCommand]
+    private void ClearReferenceImage()
+    {
+        ReferenceImage = null;
+        referenceTool.Image = null;
+    }
+
+    /// <summary>Build a ReferenceImage from disk + the given layout state, and install it.
+    /// Shared by the file-picker flow and the .td comment restore path.</summary>
+    private void SetReferenceImage(string path, float x, float y, float width, float height, double opacity, bool visible)
+    {
+        try
+        {
+            var bmp = new Bitmap(path);
+            ReferenceImage = new ReferenceImage
+            {
+                SourcePath = path,
+                Bitmap     = bmp,
+                X          = x,
+                Y          = y,
+                Width      = width,
+                Height     = height,
+                Opacity    = opacity,
+                IsVisible  = visible,
+            };
+            referenceTool.Image = ReferenceImage;
+        }
+        catch
+        {
+            // Silent on malformed / missing files — the user sees no overlay, which is the
+            // sensible outcome. A toast would be nicer but we don't have one yet.
+            ReferenceImage = null;
+            referenceTool.Image = null;
+        }
     }
 
     /// <summary>
@@ -1158,8 +1232,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             "IncrementalLine" => incrementalLineTool,
             "IncrementalPolygon" => incrementalPolygonTool,
             "IncrementalPoint" => incrementalPointTool,
+            "Reference" => referenceTool,
             _ => selectTool
         };
+
+        // Reference tool needs the live image handle so drag-to-move mutates the right instance.
+        if (ActiveTool is ReferenceTool rt)
+        {
+            rt.Image = ReferenceImage;
+        }
 
         // Keep FillTool's format reference current so hit-tests are against the active file.
         if (ActiveTool is FillTool ft)
@@ -2379,6 +2460,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                     var compiler = new NAPLPS.Telidraw.Compiler(ast);
                     loadedFile = compiler.Compile();
                     TelidrawSource = source;
+
+                    // Pull any `// ref-image: ...` directive out of the source so the overlay
+                    // restores across sessions. Only applies to .td — binary .nap has no comments.
+                    var refSpec = ReferenceImageSerializer.Extract(source);
+                    if (refSpec != null)
+                    {
+                        SetReferenceImage(refSpec.Value.Path, refSpec.Value.X, refSpec.Value.Y,
+                            refSpec.Value.Width, refSpec.Value.Height, refSpec.Value.Opacity, refSpec.Value.Visible);
+                    }
                 }
                 else
                 {
