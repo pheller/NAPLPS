@@ -1,6 +1,19 @@
 ﻿# NAPLPS 📺✨
 
-A modern .NET 10 toolkit for the **North American Presentation Level Protocol Syntax**, ANSI X3.110-1983. For background on the format, Prodigy, and Telidon, see the Wikipedia articles: [NAPLPS](https://en.wikipedia.org/wiki/NAPLPS), [Prodigy (online service)](https://en.wikipedia.org/wiki/Prodigy_(online_service)), [Telidon](https://en.wikipedia.org/wiki/Telidon). ⚠️WARNING:⚠️ These are various amazing rabbit holes, be warned! 🐇🕳️
+A modern .NET 10 toolkit for the **North American Presentation Level Protocol Syntax**, ANSI X3.110-1983 — with live-rendering examples from the historical corpus. Click any tile below to open the full-size APNG; each is a bit-identical render from a real `.nap` file in `Examples/`. For background on the format, Prodigy, and Telidon, see the Wikipedia articles: [NAPLPS](https://en.wikipedia.org/wiki/NAPLPS), [Prodigy (online service)](https://en.wikipedia.org/wiki/Prodigy_(online_service)), [Telidon](https://en.wikipedia.org/wiki/Telidon). ⚠️WARNING:⚠️ These are various amazing rabbit holes, be warned! 🐇🕳️
+
+<table>
+  <tr>
+    <td align="center"><a href="NAPLPSTests/Visual/Baselines/girl.nap.apng"><img src="NAPLPSTests/Visual/Baselines/girl.nap.apng" width="240"/><br/><sub>girl.nap</sub></a></td>
+    <td align="center"><a href="NAPLPSTests/Visual/Baselines/dragon.nap.apng"><img src="NAPLPSTests/Visual/Baselines/dragon.nap.apng" width="240"/><br/><sub>dragon.nap</sub></a></td>
+    <td align="center"><a href="NAPLPSTests/Visual/Baselines/seaport.nap.apng"><img src="NAPLPSTests/Visual/Baselines/seaport.nap.apng" width="240"/><br/><sub>seaport.nap</sub></a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="NAPLPSTests/Visual/Baselines/earth.nap.apng"><img src="NAPLPSTests/Visual/Baselines/earth.nap.apng" width="240"/><br/><sub>earth.nap</sub></a></td>
+    <td align="center"><a href="NAPLPSTests/Visual/Baselines/SAIL.NAP.apng"><img src="NAPLPSTests/Visual/Baselines/SAIL.NAP.apng" width="240"/><br/><sub>SAIL.NAP</sub></a></td>
+    <td align="center"><a href="NAPLPSTests/Visual/Baselines/santa.nap.apng"><img src="NAPLPSTests/Visual/Baselines/santa.nap.apng" width="240"/><br/><sub>santa.nap</sub></a></td>
+  </tr>
+</table>
 
 A from-scratch, spec-focused parser, renderer, encoder, and authoring toolchain, with 375+ historical example files. The 1983 BYTE Magazine NAPLPS articles and historical spec documents are bundled in [`docs/`](docs/) as reference. 📚
 
