@@ -402,3 +402,44 @@ FodyWeavers.xsd
 
 # Auto-generated default content from New command
 Examples/\[Untitled\]*.nap
+
+# tools/aot/ native interop examples — build outputs
+tools/aot/publish/
+tools/aot/c/naplps_demo
+tools/aot/c/naplps_demo.exe
+tools/aot/c/*.png
+tools/aot/c/*.o
+tools/aot/cpp/naplps_demo
+tools/aot/cpp/naplps_demo.exe
+tools/aot/cpp/*.png
+tools/aot/cpp/*.o
+tools/aot/rust/target/
+tools/aot/rust/Cargo.lock
+tools/aot/rust/*.png
+tools/aot/python/__pycache__/
+tools/aot/python/*.png
+tools/aot/node/node_modules/
+tools/aot/node/package-lock.json
+tools/aot/node/*.png
+tools/aot/go/naplps_demo
+tools/aot/go/naplps_demo.exe
+tools/aot/go/*.png
+
+# More AOT example build outputs
+tools/aot/c/NAPLPS.dll
+tools/aot/c/*.obj
+tools/aot/cpp/NAPLPS.dll
+tools/aot/cpp/*.obj
+tools/aot/go/NAPLPS.dll
+tools/aot/go/go.sum
+tools/aot/rust/NAPLPS.dll
+tools/aot/zig/NAPLPS.dll
+tools/aot/zig/.zig-cache/
+tools/aot/zig/zig-out/
+tools/aot/zig/naplps_demo.exe
+tools/aot/php/NAPLPS.dll
+tools/aot/php/*.png
+tools/aot/ruby/NAPLPS.dll
+tools/aot/ruby/*.png
+tools/aot/swift/.build/
+tools/aot/swift/Package.resolved
