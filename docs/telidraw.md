@@ -1,8 +1,8 @@
-# Telidraw Language Reference
+﻿# Telidraw Language Reference ✍️✨
 
 Telidraw (`.td` files) is the canonical human-editable text format for NAPLPS scenes. Every `.td` file compiles to a `.nap` byte stream; every `.nap` decompiles back to a `.td` that recompiles byte-identical.
 
-## Directives
+## Directives 🧭
 
 ```td
 #coord fractions          // X in [0,1], Y in [0,0.75]  (default)
@@ -27,7 +27,7 @@ let w = 1/8                  // fraction literal
 let center = (x + 0.1) * 2   // arithmetic
 ```
 
-## Drawing verbs
+## Drawing verbs 🎨
 
 | Keyword                | Emits                  | Args                              |
 |------------------------|------------------------|-----------------------------------|
@@ -53,28 +53,18 @@ let center = (x + 0.1) * 2   // arithmetic
 | `polygon-set abs sx sy dx1 dy1 ...` | PolygonSetFilled | exact form: start abs + relative tail |
 | `text "..."`           | AsciiCharCommand seq   | ASCII string                      |
 
-## Turtle graphics
-
-```td
-forward 0.1   // walk in current heading
-back 0.05
-turn 90       // turn left 90°
-fd 0.1        // alias for forward
-bk 0.05       // alias for back
-```
-
-## Attributes
+## Attributes 🎛️
 
 | Keyword                       | Notes                                              |
 |-------------------------------|----------------------------------------------------|
-| `color N`                     | SelectColor — palette index (0-15)                 |
+| `color N`                     | SelectColor: palette index (0-15)                  |
 | `color FG BG`                 | SelectColor with bg                                |
 | `set-color G R B`             | Define palette entry RGB (3-bit each, 0-7)         |
-| `texture line highlight fill` | TEXTURE — line pattern (0-3), highlight bool, fill pattern (0-3) |
-| `domain sv mv [dim]`          | DOMAIN — single-byte/multi-byte/dimensionality     |
-| `wait n`                      | WAIT — n tenths of a second                        |
+| `texture line highlight fill` | TEXTURE: line pattern (0-3), highlight bool, fill pattern (0-3) |
+| `domain sv mv [dim]`          | DOMAIN: single-byte/multi-byte/dimensionality      |
+| `wait n`                      | WAIT: n tenths of a second                         |
 | `blink toIdx onTenths offTenths [delay]` | BLINK process                       |
-| `field`                       | IncrementalField — full screen                     |
+| `field`                       | IncrementalField: full screen                      |
 | `field x y w h`               | IncrementalField with bounds                       |
 | `reset`                       | RESET (selective)                                  |
 | `nsr`                         | Non-Selective Reset                                |
@@ -116,7 +106,7 @@ This is **always** byte-exact. The `// CommandName` comment is for human reading
 ## Quick example
 
 ```td
-// hello.td — minimal NAPLPS scene
+// hello.td: minimal NAPLPS scene
 #coord fractions
 
 domain 1 3 2
@@ -132,7 +122,7 @@ with color 1 {
 reset
 ```
 
-## Byte-fidelity guarantee
+## Byte-fidelity guarantee ✅
 
 For any `.nap` file F:
 ```
