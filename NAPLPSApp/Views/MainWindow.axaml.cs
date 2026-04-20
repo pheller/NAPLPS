@@ -172,6 +172,14 @@ public partial class MainWindow : Window
     {
         base.OnTextInput(e);
 
+        // Only forward typing to the canvas TextTool when the user ISN'T currently typing
+        // into a text control (Telidraw pane, TextBox fields, etc.). Otherwise the same
+        // character goes to both places and tool-switching shortcuts can steal keys.
+        if (IsFocusOnTextInputControl())
+        {
+            return;
+        }
+
         if (DataContext is MainWindowViewModel vm && vm.IsEditorMode && e.Text?.Length > 0)
         {
             foreach (var c in e.Text)
@@ -185,21 +193,29 @@ public partial class MainWindow : Window
     protected override void OnKeyDown(KeyEventArgs e)
     {
         // Intercept BEFORE base.OnKeyDown so Window.KeyBindings don't fire while typing.
-        // Without this, letter shortcuts (V/M/L/R/P/A/T/F) and Delete would steal keys
-        // out of the text buffer and switch tools mid-type.
-        if (DataContext is MainWindowViewModel vm && vm.IsEditorMode
-            && vm.ActiveTool is TextTool tt && tt.HasInsertionPoint)
+        // Two scenarios need suppression:
+        //   1. Canvas TextTool is in insertion-point mode (types into its buffer).
+        //   2. Focus is inside a text-input control (Telidraw AvaloniaEdit, plain TextBox).
+        // In both cases, unmodified letter keys would otherwise activate tool shortcuts.
+        bool textEntry =
+            (DataContext is MainWindowViewModel vm && vm.IsEditorMode
+                && vm.ActiveTool is TextTool tt && tt.HasInsertionPoint)
+            || IsFocusOnTextInputControl();
+
+        if (textEntry)
         {
-            if (e.Key == Key.Enter)
+            if (e.Key == Key.Enter && DataContext is MainWindowViewModel vmEnter
+                && vmEnter.ActiveTool is TextTool tte && tte.HasInsertionPoint)
             {
-                vm.OnEditorTextCommit();
+                vmEnter.OnEditorTextCommit();
                 e.Handled = true;
                 return;
             }
 
             // Any unmodified key while typing: consume so KeyBindings don't fire.
-            // Printable chars still arrive via OnTextInput (a separate platform event).
-            // Keep Escape free so CancelDrawCommand can abort the insertion point.
+            // Printable chars still arrive via OnTextInput (a separate platform event)
+            // and are delivered to the focused text control by the framework.
+            // Keep Escape free so CancelDrawCommand can abort the canvas insertion point.
             if (e.Key != Key.Escape
                 && (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0)
             {
@@ -208,6 +224,28 @@ public partial class MainWindow : Window
         }
 
         base.OnKeyDown(e);
+    }
+
+    /// <summary>True when the currently-focused element is a text-input control
+    /// (TextBox, AvaloniaEdit TextEditor/TextArea, AutoCompleteBox, etc.). Used to
+    /// suppress Window-level tool-shortcut KeyBindings while the user is typing.</summary>
+    private bool IsFocusOnTextInputControl()
+    {
+        var focused = FocusManager?.GetFocusedElement();
+        if (focused == null) { return false; }
+
+        // Walk up so that focus on a TextBox's inner TextPresenter still counts.
+        object? current = focused;
+        while (current != null)
+        {
+            if (current is TextBox) { return true; }
+            if (current is AvaloniaEdit.TextEditor) { return true; }
+            if (current is AvaloniaEdit.Editing.TextArea) { return true; }
+            if (current is AutoCompleteBox) { return true; }
+
+            current = current is Visual v ? Avalonia.VisualTree.VisualExtensions.GetVisualParent(v) : null;
+        }
+        return false;
     }
 
     private void OnEditorPointerPressed(object? sender, PointerPressedEventArgs e)
