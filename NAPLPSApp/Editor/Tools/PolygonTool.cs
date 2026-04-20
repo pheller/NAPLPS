@@ -7,6 +7,9 @@ namespace NAPLPSApp.Editor.Tools;
 /// <summary>
 /// Multi-click polygon tool. Click adds vertices, double-click finalizes.
 /// Creates PointSetAbsolute + PolygonFilled/Outlined commands.
+/// Once the pen has 3+ vertices and the cursor enters <see cref="SnapRadius"/> of
+/// the first vertex, the preview snaps closed and clicking commits the polygon.
+/// Ctrl-click overrides the snap to add another real vertex on top of the origin.
 /// </summary>
 public class PolygonTool : EditorToolBase
 {
@@ -19,12 +22,33 @@ public class PolygonTool : EditorToolBase
     /// <summary>Set by code-behind from PointerPressedEventArgs.ClickCount.</summary>
     public int ClickCount { get; set; } = 1;
 
+    /// <summary>Set by the VM before a press when Ctrl is held; bypasses the close-on-snap
+    /// behavior so the user can place a vertex on top of the origin.</summary>
+    public bool ForceAddVertex { get; set; }
+
+    /// <summary>Normalized-coord radius around the first vertex that snaps the free end
+    /// closed. 0.02 ≈ 12 screen pixels on a 640-wide canvas — easy to hit without being
+    /// twitchy about accidentally closing.</summary>
+    private const float SnapRadius = 0.02f;
+
+    /// <summary>True once the current press has landed inside the snap radius and the
+    /// upcoming release should finalize instead of adding another vertex.</summary>
+    private bool _shouldFinalize;
+
+    private bool NearFirstVertex(float x, float y)
+    {
+        if (_vertices.Count < 3) { return false; }
+        var first = _vertices[0];
+        return MathF.Abs(first.X - x) <= SnapRadius && MathF.Abs(first.Y - y) <= SnapRadius;
+    }
+
     public override void OnPointerPressed(float normX, float normY, bool isRightButton)
     {
         if (isRightButton)
         {
             // Right click cancels polygon
             _vertices.Clear();
+            _shouldFinalize = false;
             IsDragging = false;
             return;
         }
@@ -32,6 +56,17 @@ public class PolygonTool : EditorToolBase
         if (ClickCount >= 2 && _vertices.Count >= 2)
         {
             // Double-click finalizes
+            _shouldFinalize = true;
+            IsDragging = false;
+            return;
+        }
+
+        // Close-on-snap: clicking inside the snap radius closes the polygon instead of
+        // dropping another vertex. Ctrl forces a real add for the rare case the user
+        // actually wants a vertex on top of the origin.
+        if (!ForceAddVertex && NearFirstVertex(normX, normY))
+        {
+            _shouldFinalize = true;
             IsDragging = false;
             return;
         }
@@ -44,19 +79,36 @@ public class PolygonTool : EditorToolBase
 
     public override void OnPointerMoved(float normX, float normY)
     {
-        CurrentX = normX;
-        CurrentY = normY;
+        // Visual snap: once closing is possible, lock the preview's free end onto the
+        // origin when the pointer is close. Gives live feedback that "a click here closes."
+        if (!ForceAddVertex && NearFirstVertex(normX, normY))
+        {
+            CurrentX = _vertices[0].X;
+            CurrentY = _vertices[0].Y;
+        }
+        else
+        {
+            CurrentX = normX;
+            CurrentY = normY;
+        }
     }
 
     public override void Reset()
     {
         _vertices.Clear();
+        _shouldFinalize = false;
         ClickCount = 1;
         base.Reset();
     }
 
     public override List<(byte opcode, NaplpsOperands operands)> OnPointerReleased(float normX, float normY)
     {
+        if (_shouldFinalize)
+        {
+            _shouldFinalize = false;
+            return Finalize();
+        }
+
         if (ClickCount < 2 || _vertices.Count < 3)
         {
             // Not finalizing yet
@@ -124,6 +176,14 @@ public class PolygonTool : EditorToolBase
 
         // Add current mouse position as a live preview vertex
         preview.Points.Add((CurrentX, CurrentY));
+
+        // Once closing is possible, draw the origin as a handle so the user can see the
+        // snap target. If the cursor is currently snapped, CurrentX/Y already equals
+        // vertex[0], so the preview polyline visibly closes the shape.
+        if (_vertices.Count >= 3)
+        {
+            preview.Handles.Add(_vertices[0]);
+        }
 
         return preview;
     }

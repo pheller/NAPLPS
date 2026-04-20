@@ -1683,7 +1683,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     // Called from MainWindow code-behind
-    public void OnEditorPointerPressed(Avalonia.Point pos, Avalonia.Size controlSize, bool isRightButton, bool additive = false)
+    public void OnEditorPointerPressed(Avalonia.Point pos, Avalonia.Size controlSize, bool isRightButton, bool additive = false, bool ctrlHeld = false)
     {
         if (!IsEditorMode || loadedFile == null)
         {
@@ -1707,6 +1707,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             stPre.AdditiveModifier = additive;
         }
+
+        // Ctrl-click while drawing a polygon forces a real vertex on top of the origin
+        // instead of closing the shape via the auto-snap.
+        polygonTool.ForceAddVertex = ctrlHeld;
 
         ActiveTool.OnPointerPressed(normX, normY, isRightButton);
 

@@ -197,8 +197,9 @@ public partial class MainWindow : Window
             var pos = e.GetPosition(canvas);
             var controlSize = canvas.Bounds.Size;
             var additive = (e.KeyModifiers & (KeyModifiers.Shift | KeyModifiers.Control)) != 0;
+            var ctrlHeld = (e.KeyModifiers & KeyModifiers.Control) != 0;
             vm.SetClickCount(e.ClickCount);
-            vm.OnEditorPointerPressed(pos, controlSize, e.GetCurrentPoint(canvas).Properties.IsRightButtonPressed, additive);
+            vm.OnEditorPointerPressed(pos, controlSize, e.GetCurrentPoint(canvas).Properties.IsRightButtonPressed, additive, ctrlHeld);
             UpdatePreviewOverlay(vm, canvas);
         }
     }
