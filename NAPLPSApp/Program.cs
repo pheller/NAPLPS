@@ -878,6 +878,11 @@ sealed class Program
             WindowIcon = new WindowIcon(iconBitmap), // Set the window icon
             ImageIcon = iconBitmap,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            MinWidth = 520,
+            MaxWidth = 820,
+            MinHeight = 340,
+            SizeToContent = SizeToContent.Height,
+            CanResize = true,
         };
 
         var messageBox = MessageBoxManager.GetMessageBoxCustom(messageBoxParams);
@@ -898,6 +903,13 @@ sealed class Program
             WindowIcon = new WindowIcon(iconBitmap), // Set the window icon
             ImageIcon = iconBitmap,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            // Default dialog chrome cuts off multi-line prompts. Give a sensible minimum,
+            // let height auto-size to content, and allow the user to resize if still tight.
+            MinWidth = 460,
+            MaxWidth = 720,
+            MinHeight = 200,
+            SizeToContent = SizeToContent.Height,
+            CanResize = true,
         };
 
         var messageBox = MessageBoxManager.GetMessageBoxCustom(messageBoxParams);
