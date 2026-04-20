@@ -1635,20 +1635,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void UpdateColorBrushes()
     {
-        if (NaplpsState.ColorMapDefaults.TryGetValue(EditorForegroundIndex, out var fgColor))
+        var fg = PaletteColors?.FirstOrDefault(p => p.Index == EditorForegroundIndex);
+        if (fg != null)
         {
-            ForegroundColorBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(
-                (byte)(fgColor.Red * 255),
-                (byte)(fgColor.Green * 255),
-                (byte)(fgColor.Blue * 255)));
+            ForegroundColorBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(fg.Red, fg.Green, fg.Blue));
         }
 
-        if (NaplpsState.ColorMapDefaults.TryGetValue(EditorBackgroundIndex, out var bgColor))
+        var bg = PaletteColors?.FirstOrDefault(p => p.Index == EditorBackgroundIndex);
+        if (bg != null)
         {
-            BackgroundColorBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(
-                (byte)(bgColor.Red * 255),
-                (byte)(bgColor.Green * 255),
-                (byte)(bgColor.Blue * 255)));
+            BackgroundColorBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(bg.Red, bg.Green, bg.Blue));
         }
     }
 
