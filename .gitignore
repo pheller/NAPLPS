@@ -443,3 +443,5 @@ tools/aot/ruby/NAPLPS.dll
 tools/aot/ruby/*.png
 tools/aot/swift/.build/
 tools/aot/swift/Package.resolved
+tools/aot/zig/*.png
+tools/aot/swift/*.png
