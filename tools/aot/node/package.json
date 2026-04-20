@@ -1,0 +1,16 @@
+{
+  "name": "naplps-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node.js demo loading the NAPLPS NativeAOT library via koffi FFI",
+  "main": "naplps_demo.js",
+  "scripts": {
+    "demo": "node naplps_demo.js ../../../Examples/telidraw/hello.nap hello.png"
+  },
+  "dependencies": {
+    "koffi": "^2.10.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
