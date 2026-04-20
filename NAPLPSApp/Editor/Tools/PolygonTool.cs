@@ -17,6 +17,8 @@ public class PolygonTool : EditorToolBase
 
     public bool IsFilled { get; set; } = true;
 
+    public override bool EmitsFilledGeometry => IsFilled;
+
     private readonly List<(float X, float Y)> _vertices = [];
 
     /// <summary>Set by code-behind from PointerPressedEventArgs.ClickCount.</summary>

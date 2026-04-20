@@ -15,6 +15,8 @@ public class FillTool : EditorToolBase
 {
     public override string Name => "Fill";
 
+    public override bool EmitsFilledGeometry => true;
+
     /// <summary>The NaplpsFormat to hit-test against. Set by the ViewModel on tool activation.</summary>
     public NaplpsFormat? Format { get; set; }
 

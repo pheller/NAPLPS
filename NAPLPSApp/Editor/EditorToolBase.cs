@@ -56,4 +56,10 @@ public abstract class EditorToolBase
     /// edit-in-place leave this as null (the default).
     /// </summary>
     public virtual IEditorAction? PendingEditAction => null;
+
+    /// <summary>True when this tool's next commit will produce filled geometry. The commit
+    /// path uses this to prepend a TEXTURE command that carries the UI's current fill-pattern
+    /// selection, so patterns actually take effect on blank files (which have no prior
+    /// TEXTURE in the stream). Shape tools override this based on their IsFilled toggle.</summary>
+    public virtual bool EmitsFilledGeometry => false;
 }

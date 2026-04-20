@@ -14,6 +14,8 @@ public class RectangleTool : EditorToolBase
     /// <summary>Whether to draw filled or outlined rectangles.</summary>
     public bool IsFilled { get; set; } = true;
 
+    public override bool EmitsFilledGeometry => IsFilled;
+
     public override void OnPointerPressed(float normX, float normY, bool isRightButton)
     {
         StartX = normX;

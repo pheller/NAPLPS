@@ -12,6 +12,8 @@ public class ArcTool : EditorToolBase
 
     public bool IsFilled { get; set; } = false;
 
+    public override bool EmitsFilledGeometry => IsFilled;
+
     private readonly List<(float X, float Y)> _clickPoints = [];
 
     public override void OnPointerPressed(float normX, float normY, bool isRightButton)

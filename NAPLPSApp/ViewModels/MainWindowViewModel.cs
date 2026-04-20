@@ -1798,6 +1798,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             commands.Insert(0, (colorOp, colorOps));
         }
 
+        // If the stroke produces filled geometry, also prepend a TEXTURE command with the
+        // UI's current fill-pattern selection. Without this, a blank file (which has no
+        // prior TEXTURE in the stream) would render every fill as solid regardless of the
+        // picker — the bug reported against File→New.
+        if (ActiveTool.EmitsFilledGeometry)
+        {
+            commands.Insert(0, BuildCurrentTextureCommand());
+        }
+
         var action = new AddCommandsAction(commands);
         undoManager.Execute(action, loadedFile);
         IsFileDirty = true;
@@ -1805,6 +1814,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         // Re-render
         BuildDrawContext();
         await UpdateCanvas();
+    }
+
+    /// <summary>Build a TEXTURE command from the UI's fill-pattern picker state (index +
+    /// pel size). Used to ensure filled strokes honor the picker even when the file has
+    /// no pre-existing TEXTURE in its stream.</summary>
+    private (byte opcode, NaplpsOperands operands) BuildCurrentTextureCommand()
+    {
+        byte fillPattern = (byte)Math.Clamp(FillPatternIndex, 0, 3);
+        var maskSize = new Vector3((float)FillPelWidth / 40.0f, (float)FillPelHeight / 40.0f, 0);
+        return NaplpsCommandBuilder.BuildTexture(linePattern: 0, highlight: false, fillPattern: fillPattern, maskSize: maskSize);
     }
 
     /// <summary>
@@ -1823,6 +1842,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             var (colorOp, colorOps) = NaplpsCommandBuilder.BuildSelectColor(EditorForegroundIndex, EditorBackgroundIndex);
             commands.Insert(0, (colorOp, colorOps));
+        }
+
+        // Prepend TEXTURE for filled strokes so the UI-picked fill pattern actually
+        // renders on blank files too (mirrors OnEditorPointerReleased).
+        if (ActiveTool.EmitsFilledGeometry)
+        {
+            commands.Insert(0, BuildCurrentTextureCommand());
         }
 
         // If the macro recorder is running, also copy each command's raw bytes into the
