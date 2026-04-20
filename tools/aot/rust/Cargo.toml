@@ -1,0 +1,13 @@
+[package]
+name = "naplps-demo"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "naplps_demo"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
