@@ -6,6 +6,7 @@ using AvaloniaEdit;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
 using NAPLPSApp.Editor;
+using NAPLPSApp.Editor.Tools;
 
 namespace NAPLPSApp.Views;
 
@@ -139,21 +140,36 @@ public partial class MainWindow : Window
             {
                 vm.OnEditorTextInput(c);
             }
+            e.Handled = true;
         }
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        base.OnKeyDown(e);
-
-        if (DataContext is MainWindowViewModel vm && vm.IsEditorMode)
+        // Intercept BEFORE base.OnKeyDown so Window.KeyBindings don't fire while typing.
+        // Without this, letter shortcuts (V/M/L/R/P/A/T/F) and Delete would steal keys
+        // out of the text buffer and switch tools mid-type.
+        if (DataContext is MainWindowViewModel vm && vm.IsEditorMode
+            && vm.ActiveTool is TextTool tt && tt.HasInsertionPoint)
         {
             if (e.Key == Key.Enter)
             {
                 vm.OnEditorTextCommit();
                 e.Handled = true;
+                return;
+            }
+
+            // Any unmodified key while typing: consume so KeyBindings don't fire.
+            // Printable chars still arrive via OnTextInput (a separate platform event).
+            // Keep Escape free so CancelDrawCommand can abort the insertion point.
+            if (e.Key != Key.Escape
+                && (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0)
+            {
+                e.Handled = true;
             }
         }
+
+        base.OnKeyDown(e);
     }
 
     private void OnEditorPointerPressed(object? sender, PointerPressedEventArgs e)
