@@ -331,6 +331,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsSelectedSelectColor));
         OnPropertyChanged(nameof(IsSelectedDomain));
 
+        // Keep the SelectTool's own selection list in step with the VM's single-index state
+        // and refresh the canvas outline. This way a selection change from any source —
+        // sequence panel click, error-jump, keyboard nav — shows the blue outline on the canvas.
+        if (selectTool.SelectedIndex != value)
+        {
+            selectTool.SelectedIndex = value;
+        }
+        if (ActiveTool is SelectTool stActive)
+        {
+            EditorPreview = stActive.GetPreview();
+        }
+
         var cmd = GetSelectedCommandSafe();
         if (cmd == null || loadedFile == null) { return; }
 
@@ -1671,7 +1683,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     // Called from MainWindow code-behind
-    public void OnEditorPointerPressed(Avalonia.Point pos, Avalonia.Size controlSize, bool isRightButton)
+    public void OnEditorPointerPressed(Avalonia.Point pos, Avalonia.Size controlSize, bool isRightButton, bool additive = false)
     {
         if (!IsEditorMode || loadedFile == null)
         {
@@ -1688,6 +1700,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         var (normX, normY) = CoordinateMapper.ScreenToNaplps(pos, controlSize, canvasSizeObj, ImageStretch);
         normX = GridSettings.SnapX(normX);
         normY = GridSettings.SnapY(normY);
+
+        // Feed Shift/Ctrl state into SelectTool BEFORE the press so hit-tests honor
+        // additive-selection semantics (toggle instead of replace).
+        if (ActiveTool is SelectTool stPre)
+        {
+            stPre.AdditiveModifier = additive;
+        }
+
         ActiveTool.OnPointerPressed(normX, normY, isRightButton);
 
         // Update selection state from SelectTool
@@ -1732,8 +1752,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         var commands = ActiveTool.OnPointerReleased(normX, normY);
 
-        // Clear preview on release
-        EditorPreview = null;
+        // Keep the selection outline up after release: SelectTool's GetPreview() returns
+        // the bbox + vertex handles of the primary selection even when idle. Every other
+        // tool returns null once the stroke is committed, so nulling still works for them.
+        if (ActiveTool is SelectTool stRel)
+        {
+            SelectedCommandIndex = stRel.SelectedIndex;
+            EditorPreview = stRel.GetPreview();
+        }
+        else
+        {
+            EditorPreview = null;
+        }
 
         // Drag-to-edit vertex handles: SelectTool produces a ReplaceCommandAction instead of
         // a list of new commands. Execute it separately so the add-commands path below stays

@@ -127,6 +127,24 @@ public partial class MainWindow : Window
                 // Initial paint.
                 RenderGrid(vm, overlay);
             }
+
+            // Re-render the selection outline whenever EditorPreview changes — including
+            // programmatic changes (e.g. sequence-panel click → SelectedCommandIndex change).
+            // Without this, the outline only updates on the pointer-event path.
+            vm.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName != nameof(MainWindowViewModel.EditorPreview)) { return; }
+                var ov = this.FindControl<Canvas>("EditorOverlay");
+                if (ov == null) { return; }
+                if (vm.EditorPreview == null)
+                {
+                    ClearPreviewOverlay();
+                }
+                else
+                {
+                    UpdatePreviewOverlay(vm, ov);
+                }
+            };
         }
     }
 
@@ -178,8 +196,9 @@ public partial class MainWindow : Window
         {
             var pos = e.GetPosition(canvas);
             var controlSize = canvas.Bounds.Size;
+            var additive = (e.KeyModifiers & (KeyModifiers.Shift | KeyModifiers.Control)) != 0;
             vm.SetClickCount(e.ClickCount);
-            vm.OnEditorPointerPressed(pos, controlSize, e.GetCurrentPoint(canvas).Properties.IsRightButtonPressed);
+            vm.OnEditorPointerPressed(pos, controlSize, e.GetCurrentPoint(canvas).Properties.IsRightButtonPressed, additive);
             UpdatePreviewOverlay(vm, canvas);
         }
     }
@@ -203,7 +222,9 @@ public partial class MainWindow : Window
             var controlSize = canvas.Bounds.Size;
             vm.OnEditorPointerReleased(pos, controlSize);
 
-            // Only clear preview if tool isn't still in a multi-click operation
+            // SelectTool keeps a preview (selection outline) after release, and multi-click
+            // tools like Polygon keep one during the click sequence. Only clear when the VM
+            // has confirmed nothing's to show.
             if (vm.EditorPreview == null)
             {
                 ClearPreviewOverlay();
