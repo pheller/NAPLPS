@@ -51,7 +51,11 @@ public static class VisualTestContext
     public const int CanvasWidth = 1024;
     public const int CanvasHeight = 768;
 
-    private static readonly string[] SkipExtensions = [".jpg", ".png", ".txt", ".exe"];
+    // `.td` files are Telidraw source, not NAPLPS binary. They round-trip as ASCII text
+    // (every byte 0x20-0x7E maps to AsciiCharCommand) so the round-trip test treats them
+    // fine, but rendering them as NAPLPS just prints the source text onto the canvas — not
+    // meaningful for visual regression.
+    private static readonly string[] SkipExtensions = [".jpg", ".png", ".txt", ".exe", ".td"];
 
     public static readonly ConcurrentDictionary<string, VisualTestResult> Results = new();
 
