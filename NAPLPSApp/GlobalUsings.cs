@@ -20,6 +20,7 @@ global using NAPLPS.Drawing;
 global using Avalonia;
 global using Avalonia.Controls;
 global using Avalonia.Controls.Templates;
+global using Avalonia.Input.Platform;
 global using Avalonia.Platform;
 
 global using Avalonia.Media;

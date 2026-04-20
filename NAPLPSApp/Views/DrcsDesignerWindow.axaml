@@ -3,7 +3,7 @@
 		xmlns:vm="using:NAPLPSApp.ViewModels"
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-		xmlns:i="https://github.com/projektanker/icons.avalonia"
+		xmlns:i="using:NAPLPSApp.Icons"
 		mc:Ignorable="d" d:DesignWidth="360" d:DesignHeight="480"
 		Width="360" Height="480"
 		x:Class="NAPLPSApp.Views.DrcsDesignerWindow"

@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-		xmlns:i="https://github.com/projektanker/icons.avalonia"
+		xmlns:i="using:NAPLPSApp.Icons"
 		xmlns:c="clr-namespace:NAPLPSApp.Converters"
 		xmlns:b="clr-namespace:Avalonia.Xaml.Interactions.Core;assembly=Avalonia.Xaml.Interactions"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -62,7 +62,7 @@
 
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
-				<TextBox Text="{Binding SearchText}" Width="180" Watermark="Search opcode / type / DSL keyword..." VerticalAlignment="Center"/>
+				<TextBox Text="{Binding SearchText}" Width="180" PlaceholderText="Search opcode / type / DSL keyword..." VerticalAlignment="Center"/>
 
 				<Border Margin="10,0" Width="{DynamicResource MenuFlyoutSeparatorThemeHeight}" Background="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 

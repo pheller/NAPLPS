@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:vm="using:NAPLPSApp.ViewModels"
-		xmlns:i="https://github.com/projektanker/icons.avalonia"
+		xmlns:i="using:NAPLPSApp.Icons"
 		x:Class="NAPLPSApp.Views.PropertiesWindow"
 		x:DataType="vm:PropertiesWindowViewModel"
 		Title="File Properties"

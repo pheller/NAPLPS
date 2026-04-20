@@ -3,8 +3,6 @@
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Models;
-using Projektanker.Icons.Avalonia;
-using Projektanker.Icons.Avalonia.FontAwesome;
 using System.Reflection;
 using System.Text.Json;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -859,9 +857,6 @@ sealed class Program
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
     {
-        IconProvider.Current
-            .Register<FontAwesomeIconProvider>();
-
         return AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
