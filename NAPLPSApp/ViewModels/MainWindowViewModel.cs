@@ -1757,10 +1757,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        // Prepend a SelectColor command if we're not using the default color
-        if (EditorForegroundIndex != 0)
+        // Prepend a SELECT COLOR (mode 2) so the stroke honors both user-chosen FG and BG.
+        // Mode 2 sets both in one command; fill patterns / text cells use the BG byte.
         {
-            var (colorOp, colorOps) = NaplpsCommandBuilder.BuildSelectColor(EditorForegroundIndex);
+            var (colorOp, colorOps) = NaplpsCommandBuilder.BuildSelectColor(EditorForegroundIndex, EditorBackgroundIndex);
             commands.Insert(0, (colorOp, colorOps));
         }
 
@@ -1784,10 +1784,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        // Prepend a SelectColor command if we're not using the default color
-        if (EditorForegroundIndex != 0)
+        // Prepend a SELECT COLOR (mode 2) so the stroke honors both user-chosen FG and BG.
+        // Mode 2 sets both in one command; fill patterns / text cells use the BG byte.
         {
-            var (colorOp, colorOps) = NaplpsCommandBuilder.BuildSelectColor(EditorForegroundIndex);
+            var (colorOp, colorOps) = NaplpsCommandBuilder.BuildSelectColor(EditorForegroundIndex, EditorBackgroundIndex);
             commands.Insert(0, (colorOp, colorOps));
         }
 
