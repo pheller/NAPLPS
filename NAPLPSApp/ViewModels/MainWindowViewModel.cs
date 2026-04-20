@@ -1804,7 +1804,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         // picker — the bug reported against File→New.
         if (ActiveTool.EmitsFilledGeometry)
         {
-            commands.Insert(0, BuildCurrentTextureCommand());
+            var tx = BuildCurrentTextureCommand();
+            if (!IsTextureRedundant(tx))
+            {
+                commands.Insert(0, tx);
+            }
         }
 
         var action = new AddCommandsAction(commands);
@@ -1824,6 +1828,39 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         byte fillPattern = (byte)Math.Clamp(FillPatternIndex, 0, 3);
         var maskSize = new Vector3((float)FillPelWidth / 40.0f, (float)FillPelHeight / 40.0f, 0);
         return NaplpsCommandBuilder.BuildTexture(linePattern: 0, highlight: false, fillPattern: fillPattern, maskSize: maskSize);
+    }
+
+    /// <summary>Scan backwards through the committed stream to find the effective texture
+    /// state, and return true when the proposed TEXTURE would just re-establish what's
+    /// already in force. Skipping redundant emissions keeps the stream tidy without
+    /// forcing a separate post-processing pass. NSR resets the state, so any TEXTURE
+    /// before an NSR doesn't count.</summary>
+    private bool IsTextureRedundant((byte opcode, NaplpsOperands operands) tx)
+    {
+        if (loadedFile == null) { return false; }
+
+        for (int i = loadedFile.Commands.Count - 1; i >= 0; i--)
+        {
+            var cmd = loadedFile.Commands[i].Command;
+
+            if (cmd is NAPLPS.Commands.TextureCommand)
+            {
+                var prev = cmd.Operands;
+                if (prev.Count != tx.operands.Count) { return false; }
+                for (int j = 0; j < prev.Count; j++)
+                {
+                    if (prev[j] != tx.operands[j]) { return false; }
+                }
+                return true;
+            }
+
+            if (cmd is NAPLPS.Commands.NonSelectiveResetCommand)
+            {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -1848,7 +1885,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         // renders on blank files too (mirrors OnEditorPointerReleased).
         if (ActiveTool.EmitsFilledGeometry)
         {
-            commands.Insert(0, BuildCurrentTextureCommand());
+            var tx = BuildCurrentTextureCommand();
+            if (!IsTextureRedundant(tx))
+            {
+                commands.Insert(0, tx);
+            }
         }
 
         // If the macro recorder is running, also copy each command's raw bytes into the
