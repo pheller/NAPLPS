@@ -47,11 +47,6 @@
 
     <!-- Drawing verbs -->
     <Keywords color="Verb">
-      <Word>forward</Word>
-      <Word>fd</Word>
-      <Word>back</Word>
-      <Word>bk</Word>
-      <Word>turn</Word>
       <Word>move</Word>
       <Word>goto</Word>
       <Word>line</Word>

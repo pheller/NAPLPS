@@ -19,14 +19,13 @@ public class LexerTests
     [TestMethod]
     public void Lexer_Keyword_MapsToSpecificKind()
     {
-        var tokens = new Lexer("forward back turn move line rect").Tokenize();
+        var tokens = new Lexer("move line rect arc polygon").Tokenize();
 
-        Assert.AreEqual(TokenKind.Forward, tokens[0].Kind);
-        Assert.AreEqual(TokenKind.Back, tokens[1].Kind);
-        Assert.AreEqual(TokenKind.Turn, tokens[2].Kind);
-        Assert.AreEqual(TokenKind.Move, tokens[3].Kind);
-        Assert.AreEqual(TokenKind.Line, tokens[4].Kind);
-        Assert.AreEqual(TokenKind.Rect, tokens[5].Kind);
+        Assert.AreEqual(TokenKind.Move, tokens[0].Kind);
+        Assert.AreEqual(TokenKind.Line, tokens[1].Kind);
+        Assert.AreEqual(TokenKind.Rect, tokens[2].Kind);
+        Assert.AreEqual(TokenKind.Arc, tokens[3].Kind);
+        Assert.AreEqual(TokenKind.Polygon, tokens[4].Kind);
     }
 
     [TestMethod]
@@ -75,11 +74,11 @@ public class LexerTests
     [TestMethod]
     public void Lexer_Comment_IsDiscarded()
     {
-        var tokens = new Lexer("forward 10 // keep going\nback 5").Tokenize();
+        var tokens = new Lexer("move 10 // keep going\nline 5").Tokenize();
 
-        Assert.AreEqual(TokenKind.Forward, tokens[0].Kind);
+        Assert.AreEqual(TokenKind.Move, tokens[0].Kind);
         Assert.AreEqual(TokenKind.IntLiteral, tokens[1].Kind);
-        Assert.AreEqual(TokenKind.Back, tokens[2].Kind);
+        Assert.AreEqual(TokenKind.Line, tokens[2].Kind);
         Assert.AreEqual(TokenKind.IntLiteral, tokens[3].Kind);
     }
 
@@ -106,17 +105,16 @@ public class LexerTests
     [TestMethod]
     public void Lexer_ShorthandAliases_MapToCanonicalKinds()
     {
-        var tokens = new Lexer("fd bk poly").Tokenize();
+        var tokens = new Lexer("poly rect").Tokenize();
 
-        Assert.AreEqual(TokenKind.Forward, tokens[0].Kind);
-        Assert.AreEqual(TokenKind.Back, tokens[1].Kind);
-        Assert.AreEqual(TokenKind.Polygon, tokens[2].Kind);
+        Assert.AreEqual(TokenKind.Polygon, tokens[0].Kind);
+        Assert.AreEqual(TokenKind.Rect, tokens[1].Kind);
     }
 
     [TestMethod]
     public void Lexer_LineAndColumn_TrackCorrectly()
     {
-        var tokens = new Lexer("move\n  forward 10").Tokenize();
+        var tokens = new Lexer("move\n  line 10").Tokenize();
 
         Assert.AreEqual(1, tokens[0].Line);
         Assert.AreEqual(1, tokens[0].Column);

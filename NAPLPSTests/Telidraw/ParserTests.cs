@@ -30,7 +30,7 @@ public class ParserTests
     [TestMethod]
     public void Parser_RepeatBlock_ContainsBody()
     {
-        var program = Parse("repeat 5 { forward 10 turn 72 }");
+        var program = Parse("repeat 5 { move 10 20 line 30 40 }");
 
         Assert.AreEqual(1, program.Statements.Count);
         var rep = (RepeatNode)program.Statements[0];
@@ -41,7 +41,7 @@ public class ParserTests
     [TestMethod]
     public void Parser_ForLoop_ParsesRange()
     {
-        var program = Parse("for i in 1..10 { forward i }");
+        var program = Parse("for i in 1..10 { line i 0 }");
 
         var f = (ForNode)program.Statements[0];
         Assert.AreEqual("i", f.Variable);
@@ -64,7 +64,7 @@ public class ParserTests
     [TestMethod]
     public void Parser_ProcDecl_CapturesParametersAndBody()
     {
-        var program = Parse("proc star(x, y, size) { move x y forward size }");
+        var program = Parse("proc star(x, y, size) { move x y line size size }");
 
         var p = (ProcDeclNode)program.Statements[0];
         Assert.AreEqual("star", p.Name);
@@ -76,7 +76,7 @@ public class ParserTests
     [TestMethod]
     public void Parser_MacroAttribute_MarksProcAsMacro()
     {
-        var program = Parse("@macro proc m() { forward 1 }");
+        var program = Parse("@macro proc m() { line 1 1 }");
 
         var p = (ProcDeclNode)program.Statements[0];
         Assert.IsTrue(p.AsMacro);
@@ -85,7 +85,7 @@ public class ParserTests
     [TestMethod]
     public void Parser_Directive_HoistedToProgramHeader()
     {
-        var program = Parse("#coord pixels\nforward 10");
+        var program = Parse("#coord pixels\nline 10 20");
 
         Assert.AreEqual(1, program.Directives.Count);
         Assert.AreEqual("coord", program.Directives[0].Name);
@@ -115,7 +115,7 @@ public class ParserTests
     [TestMethod]
     public void Parser_ExpressionPrecedence_IsStandard()
     {
-        var program = Parse("forward 1 + 2 * 3");
+        var program = Parse("wait 1 + 2 * 3");
 
         var cmd = (CommandCallNode)program.Statements[0];
         // 1 + (2 * 3)  — top is Plus with right being the * node

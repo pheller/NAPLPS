@@ -23,7 +23,7 @@ public abstract record StatementNode(int Line, int Column) : AstNode(Line, Colum
 /// </summary>
 public sealed record DirectiveNode(string Name, IReadOnlyList<ExpressionNode> Args, int Line, int Column) : StatementNode(Line, Column);
 
-/// <summary>A command invocation like `move 0.5 0.5`, `forward 100`, `rect 0.3 0.2`.</summary>
+/// <summary>A command invocation like `move 0.5 0.5`, `line 0.2 0.3`, `rect 0.3 0.2`.</summary>
 public sealed record CommandCallNode(TokenKind Command, IReadOnlyList<ExpressionNode> Args, int Line, int Column) : StatementNode(Line, Column);
 
 /// <summary>A user procedure call like `star 0.2 0.8 0.1`.</summary>

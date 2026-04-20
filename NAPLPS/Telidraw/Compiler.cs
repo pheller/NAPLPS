@@ -19,13 +19,6 @@ public enum CoordMode
 }
 
 /// <summary>
-/// Turtle-graphics state used by <c>forward</c> / <c>back</c> / <c>turn</c>.
-/// Heading is in degrees, 0 = +X (right), 90 = +Y (up), matching the NAPLPS
-/// convention where Y increases upward.
-/// </summary>
-public record struct TurtleState(Vector3 Position, float HeadingDegrees);
-
-/// <summary>
 /// Walks a Telidraw <see cref="ProgramNode"/> and emits NAPLPS commands into a
 /// <see cref="NaplpsFormat"/> via <see cref="NaplpsCommandBuilder"/>. Per D2, <c>with</c>
 /// blocks compile to explicit-restore: the compiler snapshots the relevant attribute,
@@ -43,10 +36,10 @@ public sealed class Compiler
     private readonly Dictionary<string, double> _paletteAliases = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ProcDeclNode> _procs = new(StringComparer.Ordinal);
 
-    private TurtleState _turtle = new(Vector3.Zero, 0f);
+    private Vector3 _pen = Vector3.Zero;
 
     /// <summary>
-    /// Initial pen position for the turtle. Set by callers (e.g. the decompiler verifier)
+    /// Initial pen position for the pen tracker. Set by callers (e.g. the decompiler verifier)
     /// when compiling a single command in isolation, so relative-to-pen conversions match
     /// the position the original command was emitted from. Default (0,0) for full programs.
     /// </summary>
@@ -119,7 +112,7 @@ public sealed class Compiler
 
         // Apply caller-supplied initial pen so the compiler's relative-vertex math (used by
         // EmitPolygon*, EmitArc*) matches the position the original command was emitted from.
-        _turtle.Position = InitialPenPosition;
+        _pen = InitialPenPosition;
 
         foreach (var d in _program.Directives)
         {
@@ -226,21 +219,6 @@ public sealed class Compiler
             case TokenKind.Line:
                 ExpectArgs(c, 2);
                 EmitLine((float)NormX(Evaluate(c.Args[0])), (float)NormY(Evaluate(c.Args[1])));
-                break;
-
-            case TokenKind.Forward:
-                ExpectArgs(c, 1);
-                EmitForward((float)Evaluate(c.Args[0]), draw: true);
-                break;
-
-            case TokenKind.Back:
-                ExpectArgs(c, 1);
-                EmitForward(-(float)Evaluate(c.Args[0]), draw: true);
-                break;
-
-            case TokenKind.Turn:
-                ExpectArgs(c, 1);
-                _turtle.HeadingDegrees += (float)Evaluate(c.Args[0]);
                 break;
 
             case TokenKind.Rect:
@@ -499,61 +477,43 @@ public sealed class Compiler
     private void EmitMove(float x, float y)
     {
         EmitCommand(NaplpsCommandBuilder.BuildPointSetAbsolute(x, y, CurrentMv));
-        _turtle.Position = new Vector3(x, y, 0);
+        _pen = new Vector3(x, y, 0);
     }
 
     private void EmitPoint(float x, float y)
     {
         EmitCommand(NaplpsCommandBuilder.BuildPointAbsolute(x, y, CurrentMv));
-        _turtle.Position = new Vector3(x, y, 0);
+        _pen = new Vector3(x, y, 0);
     }
 
     private void EmitLine(float x, float y)
     {
         EmitCommand(NaplpsCommandBuilder.BuildLineAbsolute(x, y, CurrentMv));
-        _turtle.Position = new Vector3(x, y, 0);
-    }
-
-    private void EmitForward(float distance, bool draw)
-    {
-        float rad = _turtle.HeadingDegrees * MathF.PI / 180f;
-        float nx = _turtle.Position.X + distance * MathF.Cos(rad);
-        float ny = _turtle.Position.Y + distance * MathF.Sin(rad);
-
-        if (draw)
-        {
-            EmitCommand(NaplpsCommandBuilder.BuildLineAbsolute(nx, ny, CurrentMv));
-        }
-        else
-        {
-            EmitCommand(NaplpsCommandBuilder.BuildPointSetAbsolute(nx, ny, CurrentMv));
-        }
-
-        _turtle.Position = new Vector3(nx, ny, 0);
+        _pen = new Vector3(x, y, 0);
     }
 
     private void EmitRectFilled(float w, float h)
     {
         EmitCommand(NaplpsCommandBuilder.BuildRectangleFilled(w, h, CurrentMv));
-        _turtle.Position = new Vector3(_turtle.Position.X + w, _turtle.Position.Y, 0);
+        _pen = new Vector3(_pen.X + w, _pen.Y, 0);
     }
 
     private void EmitArcFilled(float midX, float midY, float endX, float endY)
     {
         // Command operands are (mid relative, end relative) in NAPLPS convention. The
         // Telidraw surface gives absolutes; convert by subtracting pen position.
-        float penX = _turtle.Position.X;
-        float penY = _turtle.Position.Y;
+        float penX = _pen.X;
+        float penY = _pen.Y;
         EmitCommand(NaplpsCommandBuilder.BuildArcFilled(midX - penX, midY - penY, endX - midX, endY - midY, CurrentMv));
-        _turtle.Position = new Vector3(endX, endY, 0);
+        _pen = new Vector3(endX, endY, 0);
     }
 
     private void EmitArcOutlined(float midX, float midY, float endX, float endY)
     {
-        float penX = _turtle.Position.X;
-        float penY = _turtle.Position.Y;
+        float penX = _pen.X;
+        float penY = _pen.Y;
         EmitCommand(NaplpsCommandBuilder.BuildArcOutlined(midX - penX, midY - penY, endX - midX, endY - midY, CurrentMv));
-        _turtle.Position = new Vector3(endX, endY, 0);
+        _pen = new Vector3(endX, endY, 0);
     }
 
     private void EmitPolygonFilled(CommandCallNode c)
@@ -571,7 +531,7 @@ public sealed class Compiler
         // Convert absolute vertices into relative displacements from the pen — that's the
         // operand shape for PolygonFilled.
         var relVerts = new Vector3[verts.Length];
-        var pen = _turtle.Position;
+        var pen = _pen;
 
         for (int i = 0; i < verts.Length; i++)
         {
@@ -580,7 +540,7 @@ public sealed class Compiler
         }
 
         EmitCommand(NaplpsCommandBuilder.BuildPolygonFilled(relVerts, CurrentMv));
-        _turtle.Position = verts[^1];
+        _pen = verts[^1];
     }
 
     private void EmitPolygonOutlined(CommandCallNode c)
@@ -596,7 +556,7 @@ public sealed class Compiler
         }
 
         var relVerts = new Vector3[verts.Length];
-        var pen = _turtle.Position;
+        var pen = _pen;
 
         for (int i = 0; i < verts.Length; i++)
         {
@@ -605,7 +565,7 @@ public sealed class Compiler
         }
 
         EmitCommand(NaplpsCommandBuilder.BuildPolygonOutlined(relVerts, CurrentMv));
-        _turtle.Position = verts[^1];
+        _pen = verts[^1];
     }
 
     private void EmitLineSet(CommandCallNode c, bool relative)
@@ -629,7 +589,7 @@ public sealed class Compiler
         {
             // Each absolute vertex is independently encoded; no chain, no precision drift.
             EmitCommand(NaplpsCommandBuilder.BuildLineSetAbsolute(pts, CurrentMv));
-            _turtle.Position = pts[^1];
+            _pen = pts[^1];
         }
     }
 
@@ -647,7 +607,7 @@ public sealed class Compiler
             ? NaplpsCommandBuilder.BuildArcSetFilled(sx, sy, mx - sx, my - sy, ex - mx, ey - my, CurrentMv)
             : NaplpsCommandBuilder.BuildArcSetOutlined(sx, sy, mx - sx, my - sy, ex - mx, ey - my, CurrentMv));
 
-        _turtle.Position = new Vector3(ex, ey, 0);
+        _pen = new Vector3(ex, ey, 0);
     }
 
     private void EmitArcSetExact(CommandCallNode c, bool filled)
@@ -664,7 +624,7 @@ public sealed class Compiler
             ? NaplpsCommandBuilder.BuildArcSetFilled(sx, sy, dmx, dmy, dex, dey, CurrentMv)
             : NaplpsCommandBuilder.BuildArcSetOutlined(sx, sy, dmx, dmy, dex, dey, CurrentMv));
 
-        _turtle.Position = new Vector3(sx + dmx + dex, sy + dmy + dey, 0);
+        _pen = new Vector3(sx + dmx + dex, sy + dmy + dey, 0);
     }
 
     /// <summary>
@@ -694,7 +654,7 @@ public sealed class Compiler
 
         var pen = new Vector3(sx, sy, 0);
         foreach (var r in rels) { pen += r; }
-        _turtle.Position = pen;
+        _pen = pen;
     }
 
     /// <summary>
@@ -728,7 +688,7 @@ public sealed class Compiler
             ? NaplpsCommandBuilder.BuildPolygonSetFilled(start, relTail, CurrentMv)
             : NaplpsCommandBuilder.BuildPolygonSetOutlined(start, relTail, CurrentMv));
 
-        _turtle.Position = verts[^1];
+        _pen = verts[^1];
     }
 
     private void EmitText(CommandCallNode c)
@@ -996,9 +956,9 @@ public sealed class Compiler
         _format.Commands.Add(new NaplpsSequence(_format.State.Clone(), bareCmd));
 
         // Pen tracking: when raw bytes encode a position-changing PDI command, mirror its
-        // pen-end side effect onto the turtle so that subsequent high-level commands
+        // pen-end side effect onto the pen tracker so that subsequent high-level commands
         // (polygon, arc) compute relative deltas from the right anchor.
-        UpdateTurtleFromRaw(opcode, operands);
+        UpdatePenFromRaw(opcode, operands);
 
         // State mutation from raw bytes: Domain changes sv/mv/dim, which every subsequent
         // geometric command reads via CurrentMv. Without this, raw-emitted Domain leaves
@@ -1044,12 +1004,12 @@ public sealed class Compiler
 
     /// <summary>
     /// Mirror the pen-end side effect of a raw-emitted PDI command. The compiler doesn't
-    /// instantiate raw commands through their real classes, so the turtle would otherwise
+    /// instantiate raw commands through their real classes, so the pen tracker would otherwise
     /// drift away from the actual pen position the renderer ends up at. Only handle the
     /// opcodes whose normal constructor moves the pen — others (Reset, Color, Texture, etc.)
     /// are no-ops here.
     /// </summary>
-    private void UpdateTurtleFromRaw(byte opcode, NaplpsOperands operands)
+    private void UpdatePenFromRaw(byte opcode, NaplpsOperands operands)
     {
         // Strip bit 7 to normalize 7-bit (0x20-0x7F) and 8-bit (0xA0-0xFF) presentations.
         byte normalized = (byte)(opcode & 0x7F);
@@ -1065,7 +1025,7 @@ public sealed class Compiler
                 if (operands.Count >= mv)
                 {
                     var (x, y) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
-                    _turtle.Position = new Vector3(x, y, 0);
+                    _pen = new Vector3(x, y, 0);
                 }
                 break;
             }
@@ -1078,7 +1038,7 @@ public sealed class Compiler
                 if (operands.Count >= mv)
                 {
                     var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
-                    _turtle.Position += new Vector3(dx, dy, 0);
+                    _pen += new Vector3(dx, dy, 0);
                 }
                 break;
             }
@@ -1089,13 +1049,13 @@ public sealed class Compiler
             {
                 if (operands.Count >= mv && operands.Count % mv == 0)
                 {
-                    var pen = _turtle.Position;
+                    var pen = _pen;
                     for (int i = 0; i < operands.Count; i += mv)
                     {
                         var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[i..(i + mv)]));
                         pen += new Vector3(dx, dy, 0);
                     }
-                    _turtle.Position = pen;
+                    _pen = pen;
                 }
                 break;
             }
@@ -1107,7 +1067,7 @@ public sealed class Compiler
                 {
                     int lastStart = operands.Count - mv;
                     var (x, y) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[lastStart..(lastStart + mv)]));
-                    _turtle.Position = new Vector3(x, y, 0);
+                    _pen = new Vector3(x, y, 0);
                 }
                 break;
             }
@@ -1117,13 +1077,13 @@ public sealed class Compiler
             {
                 if (operands.Count >= mv && operands.Count % mv == 0)
                 {
-                    var pen = _turtle.Position;
+                    var pen = _pen;
                     for (int i = 0; i < operands.Count; i += mv)
                     {
                         var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[i..(i + mv)]));
                         pen += new Vector3(dx, dy, 0);
                     }
-                    _turtle.Position = pen;
+                    _pen = pen;
                 }
                 break;
             }
@@ -1137,7 +1097,7 @@ public sealed class Compiler
                     var (sx, sy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
                     var (dmx, dmy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[mv..(mv * 2)]));
                     var (dex, dey) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[(mv * 2)..(mv * 3)]));
-                    _turtle.Position = new Vector3(sx + dmx + dex, sy + dmy + dey, 0);
+                    _pen = new Vector3(sx + dmx + dex, sy + dmy + dey, 0);
                 }
                 break;
             }
@@ -1155,7 +1115,7 @@ public sealed class Compiler
                         var (dx, dy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[i..(i + mv)]));
                         pen += new Vector3(dx, dy, 0);
                     }
-                    _turtle.Position = pen;
+                    _pen = pen;
                 }
                 break;
             }
@@ -1168,7 +1128,7 @@ public sealed class Compiler
                 {
                     var (mdx, mdy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[0..mv]));
                     var (edx, edy) = NaplpsEncoder.DecodeVertex2D(new NaplpsOperands(operands[mv..(mv * 2)]));
-                    _turtle.Position += new Vector3(mdx + edx, mdy + edy, 0);
+                    _pen += new Vector3(mdx + edx, mdy + edy, 0);
                 }
                 break;
             }

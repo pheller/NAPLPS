@@ -313,9 +313,6 @@ public sealed class AstPrinter
     {
         return kind switch
         {
-            TokenKind.Forward => "forward",
-            TokenKind.Back => "back",
-            TokenKind.Turn => "turn",
             TokenKind.Move => "move",
             TokenKind.Goto => "goto",
             TokenKind.Line => "line",

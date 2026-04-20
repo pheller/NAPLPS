@@ -243,24 +243,6 @@ public class CompilerTests
     }
 
     [TestMethod]
-    public void Compile_TurtleForward_EmitsLineAtHeading()
-    {
-        // At heading 0 (→ +X), forward 0.5 from (0.1, 0.1) lands at (0.6, 0.1).
-        var compiled = Compile("""
-            move 0.1 0.1
-            forward 0.5
-            """);
-
-        var reference = NaplpsFormat.New();
-        var m = NaplpsCommandBuilder.BuildPointSetAbsolute(0.1f, 0.1f);
-        reference.AddCommand(m.opcode, m.operands);
-        var l = NaplpsCommandBuilder.BuildLineAbsolute(0.6f, 0.1f);
-        reference.AddCommand(l.opcode, l.operands);
-
-        CollectionAssert.AreEqual(reference.ToBytes(), compiled.ToBytes());
-    }
-
-    [TestMethod]
     public void Compile_Reset_EmitsResetCommand()
     {
         var compiled = Compile("reset");

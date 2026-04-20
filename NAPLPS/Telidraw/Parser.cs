@@ -13,7 +13,6 @@ public sealed class Parser
 {
     private static readonly HashSet<TokenKind> CommandVerbs =
     [
-        TokenKind.Forward, TokenKind.Back, TokenKind.Turn,
         TokenKind.Move, TokenKind.MoveRel, TokenKind.Goto,
         TokenKind.Line, TokenKind.LineRel, TokenKind.LineSet, TokenKind.LineSetRel,
         TokenKind.Rect, TokenKind.RectOutline, TokenKind.RectSet, TokenKind.RectSetOutline,

@@ -27,10 +27,7 @@ public enum TokenKind
     Palette,           // palette cyan = 1 (aliases a name to a palette index)
     Let,               // let x = <expr>
 
-    // Turtle / drawing verbs
-    Forward,
-    Back,
-    Turn,
+    // Drawing verbs
     Move,              // absolute position set (PointSetAbsolute)
     MoveRel,           // relative position set (PointSetRelative)
     Goto,              // alias for move

@@ -24,11 +24,6 @@ public sealed class Lexer
         ["let"] = TokenKind.Let,
 
         // Drawing verbs
-        ["forward"] = TokenKind.Forward,
-        ["fd"] = TokenKind.Forward,             // Logo-style shorthand
-        ["back"] = TokenKind.Back,
-        ["bk"] = TokenKind.Back,
-        ["turn"] = TokenKind.Turn,
         ["move"] = TokenKind.Move,
         ["move-rel"] = TokenKind.MoveRel,
         ["goto"] = TokenKind.Goto,
