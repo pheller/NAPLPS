@@ -81,17 +81,89 @@ public class ArcTool : EditorToolBase
 
         var preview = new ToolPreview
         {
-            Shape = PreviewShape.Polygon
+            Shape = PreviewShape.Polygon,
+            IsFilled = IsFilled
         };
 
+        // Show the clicks the user has already planted so they know where their anchors are.
         foreach (var p in _clickPoints)
+        {
+            preview.Handles.Add(p);
+        }
+
+        if (_clickPoints.Count == 1)
+        {
+            // First segment — just a straight line from the start to the cursor. No arc yet.
+            preview.Points.Add(_clickPoints[0]);
+            preview.Points.Add((CurrentX, CurrentY));
+            return preview;
+        }
+
+        // 2 clicks: live arc through start, mid-click, and cursor-as-end.
+        // 3 clicks: frozen arc through all three (brief window between press-3 and release-3).
+        var start = _clickPoints[0];
+        var mid   = _clickPoints[1];
+        var end   = _clickPoints.Count >= 3 ? _clickPoints[2] : (CurrentX, CurrentY);
+
+        foreach (var p in SampleArcCurve(start, mid, end))
         {
             preview.Points.Add(p);
         }
 
-        // Add current mouse position as preview
-        preview.Points.Add((CurrentX, CurrentY));
-
         return preview;
+    }
+
+    /// <summary>Sample N points along the circular arc that passes through a, b, c
+    /// (in that order). Falls back to the straight polyline when the three points are
+    /// near-collinear so the preview stays sensible at degenerate configurations.</summary>
+    private static List<(float X, float Y)> SampleArcCurve((float X, float Y) a, (float X, float Y) b, (float X, float Y) c)
+    {
+        // Circumcenter of triangle ABC. |D| proportional to twice the signed area — small
+        // means near-collinear, so no well-defined circle.
+        float D = 2f * (a.X * (b.Y - c.Y) + b.X * (c.Y - a.Y) + c.X * (a.Y - b.Y));
+
+        if (MathF.Abs(D) < 1e-6f)
+        {
+            return [a, b, c];
+        }
+
+        float aSq = a.X * a.X + a.Y * a.Y;
+        float bSq = b.X * b.X + b.Y * b.Y;
+        float cSq = c.X * c.X + c.Y * c.Y;
+
+        float cx = (aSq * (b.Y - c.Y) + bSq * (c.Y - a.Y) + cSq * (a.Y - b.Y)) / D;
+        float cy = (aSq * (c.X - b.X) + bSq * (a.X - c.X) + cSq * (b.X - a.X)) / D;
+
+        float radius = MathF.Sqrt((a.X - cx) * (a.X - cx) + (a.Y - cy) * (a.Y - cy));
+
+        float angleA = MathF.Atan2(a.Y - cy, a.X - cx);
+        float angleB = MathF.Atan2(b.Y - cy, b.X - cx);
+        float angleC = MathF.Atan2(c.Y - cy, c.X - cx);
+
+        // Direction choice: sweep from A to C the way that actually passes through B.
+        float ccwFull = NormalizeAngle(angleC - angleA);
+        float ccwMid  = NormalizeAngle(angleB - angleA);
+        bool sweepCCW = ccwMid < ccwFull;
+
+        float sweep = sweepCCW ? ccwFull : ccwFull - 2f * MathF.PI;
+
+        const int segments = 48;
+        var pts = new List<(float X, float Y)>(segments + 1);
+
+        for (int i = 0; i <= segments; i++)
+        {
+            float t = (float)i / segments;
+            float angle = angleA + t * sweep;
+            pts.Add((cx + radius * MathF.Cos(angle), cy + radius * MathF.Sin(angle)));
+        }
+
+        return pts;
+    }
+
+    private static float NormalizeAngle(float a)
+    {
+        while (a < 0f)            { a += 2f * MathF.PI; }
+        while (a >= 2f * MathF.PI) { a -= 2f * MathF.PI; }
+        return a;
     }
 }
