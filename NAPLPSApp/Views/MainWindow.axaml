@@ -18,10 +18,10 @@
 		<KeyBinding Command="{Binding NextFrameCommand}" Gesture="Right"/>
 		<KeyBinding Command="{Binding FirstFrameCommand}" Gesture="Home"/>
 		<KeyBinding Command="{Binding LastFrameCommand}" Gesture="End"/>
-		<KeyBinding Command="{Binding UndoCommand}" Gesture="Ctrl+Z"/>
-		<KeyBinding Command="{Binding RedoCommand}" Gesture="Ctrl+Y"/>
-		<KeyBinding Command="{Binding SaveCommand}" Gesture="Ctrl+S"/>
-		<KeyBinding Command="{Binding SaveAsCommand}" Gesture="Ctrl+Shift+S"/>
+		<KeyBinding Command="{Binding UndoCommand}" Gesture="{DynamicResource UndoGesture}"/>
+		<KeyBinding Command="{Binding RedoCommand}" Gesture="{DynamicResource RedoGesture}"/>
+		<KeyBinding Command="{Binding SaveCommand}" Gesture="{DynamicResource SaveGesture}"/>
+		<KeyBinding Command="{Binding SaveAsCommand}" Gesture="{DynamicResource SaveAsGesture}"/>
 		<KeyBinding Command="{Binding DeleteSelectedCommand}" Gesture="Delete"/>
 
 		<!-- Shift+Arrow nudges the selected geometric command's coordinates by 1 pel.
@@ -58,157 +58,7 @@
 	</Design.DataContext>
 
 	<DockPanel>
-		<Menu DockPanel.Dock="Top">
-			<MenuItem Header="_File">
-				<MenuItem Header="_New" Command="{Binding NewCommand}" i:MenuItem.Icon="fa-solid fa-file"/>
-				<Separator/>
-				<MenuItem Header="_Open" Command="{Binding OpenCommand}"  i:MenuItem.Icon="fa-solid fa-folder-open"/>
-				<MenuItem Header="_Save" Command="{Binding SaveCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-floppy-disk" InputGesture="Ctrl+S"/>
-				<MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-floppy-disk" InputGesture="Ctrl+Shift+S"/>
-				<MenuItem Header="_Close" Command="{Binding CloseCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-xmark"/>
-				<Separator/>
-				<MenuItem Header="_Import" i:MenuItem.Icon="fa-solid fa-file-import">
-					<MenuItem Header="_SVG..." Command="{Binding ImportSvgCommand}" i:MenuItem.Icon="fa-solid fa-bezier-curve"
-							  ToolTip.Tip="Convert an SVG file's paths to Telidraw line commands"/>
-					<MenuItem Header="_Bitmap..." Command="{Binding ImportBitmapCommand}" i:MenuItem.Icon="fa-solid fa-image"
-							  ToolTip.Tip="Quantize a raster image to the 16-color palette and emit as filled cells"/>
-				</MenuItem>
-				<MenuItem Header="_Export..." Command="{Binding ExportCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-file-export"/>
-				<Separator/>
-				<MenuItem Header="_Reference Image..." Command="{Binding LoadReferenceImageFileCommand}"
-						  IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-image"
-						  ToolTip.Tip="Overlay a photo/sketch behind the canvas as a drawing reference. Saved only in .td source."/>
-				<MenuItem Header="Clea_r Reference Image" Command="{Binding ClearReferenceImageCommand}"
-						  IsEnabled="{Binding IsReferenceImageLoaded}" i:MenuItem.Icon="fa-solid fa-ban"/>
-				<Separator/>
-				<MenuItem Header="_Quit" Command="{Binding QuitCommand}" i:MenuItem.Icon="fa-solid fa-door-open"/>
-			</MenuItem>
-			<MenuItem Header="_Edit">
-				<MenuItem Header="_Undo" Command="{Binding UndoCommand}" i:MenuItem.Icon="fa-solid fa-rotate-left" InputGesture="Ctrl+Z"/>
-				<MenuItem Header="_Redo" Command="{Binding RedoCommand}" i:MenuItem.Icon="fa-solid fa-rotate-right" InputGesture="Ctrl+Y"/>
-				<Separator/>
-				<MenuItem Header="_Group Layers" IsEnabled="false"/>
-				<MenuItem Header="_Ungroup Layers" IsEnabled="false"/>
-			</MenuItem>
-			<MenuItem Header="_NAPLPS">
-				<MenuItem Header="_Palette">
-					<MenuItem Header="Load _NAPLPS Default Palette"
-							  Command="{Binding LoadDefaultPaletteCommand}"
-							  IsEnabled="{Binding IsFileLoaded}"
-							  i:MenuItem.Icon="fa-solid fa-palette"
-							  ToolTip.Tip="Replace palette with NAPLPS spec 3-bit GRB ramp (emits SET COLOR commands, undoable)"/>
-					<MenuItem Header="Load _Prodigy Palette"
-							  Command="{Binding LoadProdigyPaletteCommand}"
-							  IsEnabled="{Binding IsFileLoaded}"
-							  i:MenuItem.Icon="fa-solid fa-swatchbook"
-							  ToolTip.Tip="Replace palette with Prodigy's canonical CLUT (black, red, grey, blue, light grey, brown, green, white + highs)"/>
-				</MenuItem>
-				<MenuItem Header="_DRCS Character..."
-						  Command="{Binding OpenDrcsDesignerCommand}"
-						  CommandParameter="{Binding $parent[Window]}"
-						  IsEnabled="{Binding IsFileLoaded}"
-						  i:MenuItem.Icon="fa-solid fa-keyboard"
-						  ToolTip.Tip="Design a custom 8\u00d710 bitmap character and commit it as a DEF DRCS command"/>
-				<MenuItem Header="_Texture Mask..."
-						  Command="{Binding OpenTextureDesignerCommand}"
-						  CommandParameter="{Binding $parent[Window]}"
-						  IsEnabled="{Binding IsFileLoaded}"
-						  i:MenuItem.Icon="fa-solid fa-grip"
-						  ToolTip.Tip="Design a fill pattern + mask and commit as a DEF TEXTURE command"/>
-				<Separator/>
-				<MenuItem Header="_Macro Recording">
-					<MenuItem Header="_Start Recording"
-							  Command="{Binding StartMacroRecordingCommand}"
-							  IsEnabled="{Binding IsFileLoaded}"
-							  i:MenuItem.Icon="fa-solid fa-circle"/>
-					<MenuItem Header="_Stop &amp; Save Macro"
-							  Command="{Binding StopMacroRecordingCommand}"
-							  IsEnabled="{Binding IsMacroRecording}"
-							  i:MenuItem.Icon="fa-solid fa-stop"/>
-					<MenuItem Header="_Cancel Recording"
-							  Command="{Binding CancelMacroRecordingCommand}"
-							  IsEnabled="{Binding IsMacroRecording}"
-							  i:MenuItem.Icon="fa-solid fa-ban"/>
-				</MenuItem>
-				<Separator/>
-				<MenuItem Header="_Network" i:MenuItem.Icon="fa-solid fa-network-wired">
-					<MenuItem Header="_Start Listener" Command="{Binding StartNetworkListenerCommand}"
-							  IsEnabled="{Binding !IsNetworkListening}" i:MenuItem.Icon="fa-solid fa-circle-play"
-							  ToolTip.Tip="Begin accepting incoming NAPLPS streams on the configured port (default 5510)"/>
-					<MenuItem Header="S_top Listener" Command="{Binding StopNetworkListenerCommand}"
-							  IsEnabled="{Binding IsNetworkListening}" i:MenuItem.Icon="fa-solid fa-circle-stop"/>
-					<Separator/>
-					<MenuItem Header="Send _Document to Remote" Command="{Binding SendDocumentToRemoteCommand}"
-							  IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-paper-plane"
-							  ToolTip.Tip="Push the current .nap byte stream to the configured remote host:port"/>
-				</MenuItem>
-				<Separator/>
-				<MenuItem Header="_Re-render" Command="{Binding RerenderCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-recycle"/>
-				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding IsAnimated}" i:MenuItem.Icon="fa-solid fa-check"/>
-				<MenuItem Header="_Animate" Command="{Binding ToggleAnimateCommand}" IsVisible="{Binding !IsAnimated}"/>
-				<MenuItem Header="_Loop" Command="{Binding ToggleLoopCommand}" ToggleType="CheckBox" IsChecked="{Binding IsLooping}" i:MenuItem.Icon="fa-solid fa-repeat"/>
-				<MenuItem Header="_Palette Animation" Command="{Binding TogglePaletteAnimationCommand}" ToggleType="CheckBox" IsChecked="{Binding IsPaletteAnimationMode}" i:MenuItem.Icon="fa-solid fa-palette"/>
-				<MenuItem Header="_Speed" i:MenuItem.Icon="fa-solid fa-gauge">
-					<MenuItem Header="Fastest" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="0" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=0}" />
-					<MenuItem Header="460Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="460800" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=460800}" />
-					<MenuItem Header="230Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="230400" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=230400}" />
-					<MenuItem Header="115Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="115200" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=115200}" />
-					<MenuItem Header="56Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="57600" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=57600}" />
-					<MenuItem Header="38.4Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="38400" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=38400}" />
-					<MenuItem Header="33.6Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="33600" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=33600}" />
-					<MenuItem Header="28.8Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="28800" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=28800}" />
-					<MenuItem Header="19.2Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="19200" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=19200}" />
-					<MenuItem Header="14.4Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="14400" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=14400}" />
-					<MenuItem Header="9.6Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="9600" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=9600}" />
-					<MenuItem Header="2.4Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="2400" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=2400}" />
-					<MenuItem Header="1.2Kbps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="1200" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=1200}" />
-					<MenuItem Header="300bps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="300" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=300}" />
-					<MenuItem Header="110bps" Command="{Binding SetBaudRateCommand}" ToggleType="CheckBox" CommandParameter="110" IsChecked="{Binding BaudRate, Converter={StaticResource EqualityConverter}, ConverterParameter=110}" />
-				</MenuItem>
-			</MenuItem>
-			<MenuItem Header="_View">
-				<MenuItem Header="_Toolbox" Command="{Binding ToggleToolboxCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-pen-ruler"/>
-				<MenuItem Header="_Properties" Command="{Binding PropertiesCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-circle-info"/>
-				<MenuItem Header="_Layers" Command="{Binding ToggleLayersCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-layer-group"/>
-				<MenuItem Header="_Sequence" Command="{Binding ToggleSequenceCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-shoe-prints"/>
-				<MenuItem Header="T_elidraw Source" Command="{Binding ToggleTelidrawPaneCommand}" IsEnabled="{Binding IsFileLoaded}" i:MenuItem.Icon="fa-solid fa-code" ToggleType="CheckBox" IsChecked="{Binding IsTelidrawPaneVisible}"/>
-				<Separator/>
-				<MenuItem Header="_Canvas Size" i:MenuItem.Icon="fa-solid fa-display">
-					<MenuItem Header="160x120" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="160x120" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='160x120'}" />
-					<MenuItem Header="320x200" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="320x200" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='320x200'}" />
-					<MenuItem Header="320x240" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="320x240" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='320x240'}" />
-					<MenuItem Header="640x480" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="640x480" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='640x480'}" />
-					<MenuItem Header="800x600" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="800x600" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='800x600'}" />
-					<MenuItem Header="1024x768" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="1024x768" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='1024x768'}" />
-					<MenuItem Header="1280x960" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="1280x960" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='1280x960'}" />
-					<MenuItem Header="1600x1200" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="1600x1200" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='1600x1200'}" />
-					<MenuItem Header="2048x1536" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="2048x1536" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='2048x1536'}" />
-					<MenuItem Header="4096x3072" Command="{Binding SetCanvasSizeCommand}" ToggleType="CheckBox" CommandParameter="4096x3072" IsChecked="{Binding CanvasSize, Converter={StaticResource EqualityConverter}, ConverterParameter='4096x3072'}" />
-				</MenuItem>
-				<MenuItem Header="_Display Ratio" i:MenuItem.Icon="fa-solid fa-tv">
-					<MenuItem Header="0.75 (ANSI X3.110 Spec)" Command="{Binding SetDisplayRatioCommand}" ToggleType="Radio" CommandParameter="0.75" IsChecked="{Binding DisplayRatio, Converter={StaticResource EqualityConverter}, ConverterParameter='0.75'}" />
-					<MenuItem Header="0.78 (Byte Magazine 1983)" Command="{Binding SetDisplayRatioCommand}" ToggleType="Radio" CommandParameter="0.78" IsChecked="{Binding DisplayRatio, Converter={StaticResource EqualityConverter}, ConverterParameter='0.78'}" />
-					<MenuItem Header="0.80 (PP3/Prodigy)" Command="{Binding SetDisplayRatioCommand}" ToggleType="Radio" CommandParameter="0.80" IsChecked="{Binding DisplayRatio, Converter={StaticResource EqualityConverter}, ConverterParameter='0.80'}" />
-				</MenuItem>
-				<MenuItem Header="_Stretch" i:MenuItem.Icon="fa-solid fa-maximize">
-					<MenuItem Header="None" Command="{Binding SetStretchModeCommand}" CommandParameter="None" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.None}}" />
-					<MenuItem Header="Fill" Command="{Binding SetStretchModeCommand}" CommandParameter="Fill" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.Fill}}" />
-					<MenuItem Header="Uniform" Command="{Binding SetStretchModeCommand}" CommandParameter="Uniform" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.Uniform}}" />
-					<MenuItem Header="Uniform To Fill" Command="{Binding SetStretchModeCommand}" CommandParameter="UniformToFill" ToggleType="Radio" IsChecked="{Binding ImageStretch, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static Media:Stretch.UniformToFill}}" />
-				</MenuItem>
-				<Separator/>
-				<MenuItem Header="_Debug" i:MenuItem.Icon="fa-solid fa-bug">
-					<MenuItem Header="_Text Debug" Command="{Binding ToggleDebugTextDrawingCommand}" IsEnabled="{Binding IsFileLoaded}" ToggleType="CheckBox" IsChecked="{Binding DebugTextDrawing}" i:MenuItem.Icon="fa-solid fa-font"/>
-				</MenuItem>
-			</MenuItem>
-			<MenuItem Header="_Help">
-				<MenuItem Header="_Help (github.com)" Command="{Binding HelpCommand}" i:MenuItem.Icon="fa-solid fa-question"/>
-				<Separator/>
-				<MenuItem Header="GitHub Code" Command="{Binding GitHubCommand}" i:MenuItem.Icon="fa-brand fa-github"/>
-				<Separator/>
-				<MenuItem Header="_About" Command="{Binding AboutCommand}" i:MenuItem.Icon="fa-solid fa-circle-info"/>
-			</MenuItem>
-		</Menu>
+		<Menu x:Name="InWindowMenu" DockPanel.Dock="Top"/>
 
 		<Border DockPanel.Dock="Bottom" VerticalAlignment="Bottom" Background="{DynamicResource SystemControlBackgroundBase}" Padding="5">
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">

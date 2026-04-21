@@ -2,6 +2,7 @@
 
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using NAPLPSApp.Resources;
 
 namespace NAPLPSApp;
 
@@ -14,6 +15,8 @@ public partial class App : Application
         DataContext = new AppViewModel();
 
         AvaloniaXamlLoader.Load(this);
+
+        PlatformGestures.Register(this);
     }
 
     public override void OnFrameworkInitializationCompleted()

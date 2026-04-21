@@ -7,6 +7,9 @@ using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
 using NAPLPSApp.Editor;
 using NAPLPSApp.Editor.Tools;
+using NAPLPSApp.Resources;
+using NAPLPSApp.ViewModels.Menus;
+using NAPLPSApp.Views.Menus;
 
 namespace NAPLPSApp.Views;
 
@@ -14,11 +17,42 @@ public partial class MainWindow : Window
 {
     private TextEditor? _telidrawEditor;
     private bool _suppressEditorTextSync;
+    private bool _menusBuilt;
 
     public MainWindow()
     {
         InitializeComponent();
         InitializeTelidrawEditor();
+
+        DataContextChanged += (_, _) => BuildMenusFromViewModel();
+        BuildMenusFromViewModel();
+    }
+
+    /// <summary>
+    /// Builds both the in-window <see cref="Menu"/> and (on macOS) the
+    /// <see cref="NativeMenu"/> from the single <see cref="MenuTreeBuilder"/> tree.
+    /// Re-runs on DataContext assignment; idempotent thereafter.
+    /// </summary>
+    private void BuildMenusFromViewModel()
+    {
+        if (_menusBuilt || DataContext is not MainWindowViewModel vm) { return; }
+
+        var tree = MenuTreeBuilder.Build(vm, PlatformGestureSet.Current, windowForCommandParameter: this);
+
+        if (OperatingSystem.IsMacOS())
+        {
+            NativeMenu.SetMenu(this, MenuRenderer.BuildNativeMenu(vm, tree));
+            if (InWindowMenu is not null)
+            {
+                InWindowMenu.IsVisible = false;
+            }
+        }
+        else if (InWindowMenu is not null)
+        {
+            MenuRenderer.PopulateInWindowMenu(InWindowMenu, vm, tree);
+        }
+
+        _menusBuilt = true;
     }
 
     /// <summary>
