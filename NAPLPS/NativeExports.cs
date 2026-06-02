@@ -110,7 +110,7 @@ public static unsafe class NativeExports
     [UnmanagedCallersOnly(EntryPoint = "naplps_version")]
     public static int Version(byte* outBuf, int outBufLen)
     {
-        const string version = "0.10.0";
+        const string version = "0.11.0";
         var bytes = System.Text.Encoding.ASCII.GetBytes(version);
         if (outBuf == null || outBufLen < bytes.Length + 1) { return outBufLen == 0 ? bytes.Length + 1 : -2; }
         Marshal.Copy(bytes, 0, (nint)outBuf, bytes.Length);
