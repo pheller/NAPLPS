@@ -135,7 +135,26 @@
 
 		<!-- Editor Toolbar (left dock) -->
 		<Border DockPanel.Dock="Left" Background="{DynamicResource SystemControlBackgroundBase}" Padding="2" IsVisible="{Binding IsEditorMode}">
-			<StackPanel Orientation="Vertical" Spacing="2">
+			<!-- #27: vertical WrapPanel so a height-constrained window reflows the toolbox into
+			     a second column instead of clipping over the status bar. #26: scoped styles give
+			     every tool button a uniform width with a centred icon, so non-monospaced Font
+			     Awesome glyphs no longer drive differing widths. Styles stay scoped here so they
+			     don't touch flyout/dialog/status-bar icons. -->
+			<WrapPanel Orientation="Vertical">
+				<WrapPanel.Styles>
+					<Style Selector="ToggleButton">
+						<Setter Property="HorizontalAlignment" Value="Stretch"/>
+						<Setter Property="HorizontalContentAlignment" Value="Center"/>
+						<Setter Property="MinWidth" Value="34"/>
+						<Setter Property="Margin" Value="0,1"/>
+					</Style>
+					<Style Selector="CheckBox">
+						<Setter Property="HorizontalAlignment" Value="Stretch"/>
+						<Setter Property="HorizontalContentAlignment" Value="Center"/>
+						<Setter Property="MinWidth" Value="34"/>
+						<Setter Property="Margin" Value="0,1"/>
+					</Style>
+				</WrapPanel.Styles>
 				<ToggleButton IsChecked="{Binding IsSelectToolActive}" ToolTip.Tip="Select"
 							  Command="{Binding SetActiveToolCommand}" CommandParameter="Select" Padding="6">
 					<i:Icon Value="fa-solid fa-arrow-pointer" FontSize="16"/>
@@ -355,7 +374,7 @@
 						</DataTemplate>
 					</ItemsControl.ItemTemplate>
 				</ItemsControl>
-			</StackPanel>
+			</WrapPanel>
 		</Border>
 
 		<Border DockPanel.Dock="Right"
