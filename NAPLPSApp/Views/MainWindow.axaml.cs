@@ -226,34 +226,89 @@ public partial class MainWindow : Window
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        // Intercept BEFORE base.OnKeyDown so Window.KeyBindings don't fire while typing.
-        // Two scenarios need suppression:
-        //   1. Canvas TextTool is in insertion-point mode (types into its buffer).
+        var vm = DataContext as MainWindowViewModel;
+
+        // Are we typing? Two cases:
+        //   1. The canvas Text tool has a live insertion point (chars feed its buffer).
         //   2. Focus is inside a text-input control (Telidraw AvaloniaEdit, plain TextBox).
-        // In both cases, unmodified letter keys would otherwise activate tool shortcuts.
         bool textEntry =
-            (DataContext is MainWindowViewModel vm && vm.IsEditorMode
-                && vm.ActiveTool is TextTool tt && tt.HasInsertionPoint)
+            (vm != null && vm.IsEditorMode && vm.ActiveTool is TextTool tt && tt.HasInsertionPoint)
             || IsFocusOnTextInputControl();
 
         if (textEntry)
         {
-            if (e.Key == Key.Enter && DataContext is MainWindowViewModel vmEnter
-                && vmEnter.ActiveTool is TextTool tte && tte.HasInsertionPoint)
+            // Enter commits the canvas Text tool's buffer; everything else is left for the
+            // focused control to handle. The plain-key app shortcuts are dispatched below,
+            // which we skip entirely while typing â€” that's the whole point of moving them
+            // out of Window.KeyBindings.
+            if (e.Key == Key.Enter && vm?.ActiveTool is TextTool tte && tte.HasInsertionPoint)
             {
-                vmEnter.OnEditorTextCommit();
+                vm.OnEditorTextCommit();
                 e.Handled = true;
                 return;
             }
 
-            // Any unmodified key while typing: consume so KeyBindings don't fire.
-            // Printable chars still arrive via OnTextInput (a separate platform event)
-            // and are delivered to the focused text control by the framework.
-            // Keep Escape free so CancelDrawCommand can abort the canvas insertion point.
-            if (e.Key != Key.Escape
-                && (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0)
+            base.OnKeyDown(e);
+            return;
+        }
+
+        // Not typing: dispatch the plain-key shortcuts that used to be Window.KeyBindings.
+        // Ctrl/Alt/Meta combos stay declared in XAML and are handled by KeyboardDevice.
+        if (vm != null && (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0)
+        {
+            if ((e.KeyModifiers & KeyModifiers.Shift) != 0)
             {
-                e.Handled = true;
+                // Shift+Arrow nudges the selected geometric command's coordinates by 1 pel.
+                string? dir = e.Key switch
+                {
+                    Key.Left  => "Left",
+                    Key.Right => "Right",
+                    Key.Up    => "Up",
+                    Key.Down  => "Down",
+                    _         => null
+                };
+                if (dir != null && vm.NudgeSelectedCommand.CanExecute(dir))
+                {
+                    vm.NudgeSelectedCommand.Execute(dir);
+                    e.Handled = true;
+                    return;
+                }
+            }
+            else
+            {
+                // Tool-selection hotkeys (editor mode only).
+                if (vm.IsEditorMode)
+                {
+                    string? tool = e.Key switch
+                    {
+                        Key.V => "Select",
+                        Key.M => "MovePen",
+                        Key.L => "Line",
+                        Key.R => "Rectangle",
+                        Key.P => "Polygon",
+                        Key.A => "Arc",
+                        Key.T => "Text",
+                        Key.F => "Fill",
+                        _     => null
+                    };
+                    if (tool != null)
+                    {
+                        vm.SetActiveToolCommand.Execute(tool);
+                        e.Handled = true;
+                        return;
+                    }
+                }
+
+                // Frame navigation + delete (work in viewer and editor). Plain arrows stay on
+                // frame nav so animation playback isn't disrupted.
+                switch (e.Key)
+                {
+                    case Key.Left   when vm.PreviousFrameCommand.CanExecute(null): vm.PreviousFrameCommand.Execute(null); e.Handled = true; return;
+                    case Key.Right  when vm.NextFrameCommand.CanExecute(null):     vm.NextFrameCommand.Execute(null);     e.Handled = true; return;
+                    case Key.Home   when vm.FirstFrameCommand.CanExecute(null):    vm.FirstFrameCommand.Execute(null);    e.Handled = true; return;
+                    case Key.End    when vm.LastFrameCommand.CanExecute(null):     vm.LastFrameCommand.Execute(null);     e.Handled = true; return;
+                    case Key.Delete when vm.DeleteSelectedCommand.CanExecute(null): vm.DeleteSelectedCommand.Execute(null); e.Handled = true; return;
+                }
             }
         }
 

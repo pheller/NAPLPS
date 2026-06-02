@@ -13,33 +13,19 @@
 		x:DataType="vm:MainWindowViewModel"
 		Icon="/Assets/naplps.ico"
 		Title="{Binding TitleBarDisplay}">
+	<!-- Only modifier-based and non-printable shortcuts live here. The plain-key shortcuts
+	     (tool letters, Delete, frame-nav Left/Right/Home/End, Shift+Arrow nudge) are handled
+	     in MainWindow.OnKeyDown instead. Avalonia processes Window.KeyBindings in KeyboardDevice
+	     *before* OnKeyDown ever runs, so a plain-key KeyBinding fires even while typing into a
+	     text control â€” which let letters switch tools and arrows jump frames mid-edit. Routing
+	     them through OnKeyDown lets the text-entry guard suppress them when the Telidraw editor,
+	     a TextBox, or the canvas Text tool has focus. -->
 	<Window.KeyBindings>
-		<KeyBinding Command="{Binding PreviousFrameCommand}" Gesture="Left"/>
-		<KeyBinding Command="{Binding NextFrameCommand}" Gesture="Right"/>
-		<KeyBinding Command="{Binding FirstFrameCommand}" Gesture="Home"/>
-		<KeyBinding Command="{Binding LastFrameCommand}" Gesture="End"/>
 		<KeyBinding Command="{Binding UndoCommand}" Gesture="{DynamicResource UndoGesture}"/>
 		<KeyBinding Command="{Binding RedoCommand}" Gesture="{DynamicResource RedoGesture}"/>
 		<KeyBinding Command="{Binding SaveCommand}" Gesture="{DynamicResource SaveGesture}"/>
 		<KeyBinding Command="{Binding SaveAsCommand}" Gesture="{DynamicResource SaveAsGesture}"/>
-		<KeyBinding Command="{Binding DeleteSelectedCommand}" Gesture="Delete"/>
 
-		<!-- Shift+Arrow nudges the selected geometric command's coordinates by 1 pel.
-		     Plain arrows stay bound to frame nav so animation playback isn't disrupted. -->
-		<KeyBinding Command="{Binding NudgeSelectedCommand}" CommandParameter="Left"  Gesture="Shift+Left"/>
-		<KeyBinding Command="{Binding NudgeSelectedCommand}" CommandParameter="Right" Gesture="Shift+Right"/>
-		<KeyBinding Command="{Binding NudgeSelectedCommand}" CommandParameter="Up"    Gesture="Shift+Up"/>
-		<KeyBinding Command="{Binding NudgeSelectedCommand}" CommandParameter="Down"  Gesture="Shift+Down"/>
-
-		<!-- Tool selection hotkeys (ignored when typing in text controls). -->
-		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Select"    Gesture="V"/>
-		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="MovePen"   Gesture="M"/>
-		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Line"      Gesture="L"/>
-		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Rectangle" Gesture="R"/>
-		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Polygon"   Gesture="P"/>
-		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Arc"       Gesture="A"/>
-		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Text"      Gesture="T"/>
-		<KeyBinding Command="{Binding SetActiveToolCommand}" CommandParameter="Fill"      Gesture="F"/>
 
 		<!-- Esc cancels the in-progress draw (e.g. multi-click polygon). -->
 		<KeyBinding Command="{Binding CancelDrawCommand}" Gesture="Escape"/>
