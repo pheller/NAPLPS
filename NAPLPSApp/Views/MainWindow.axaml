@@ -262,10 +262,10 @@
 					</Button>
 				</Grid>
 				<Separator Margin="0,4"/>
-				<CheckBox IsChecked="{Binding GridSettings.IsVisible}" ToolTip.Tip="Grid" Command="{Binding ToggleGridCommand}">
+				<CheckBox IsChecked="{Binding GridSettings.IsVisible}" ToolTip.Tip="Grid">
 					<i:Icon Value="fa-solid fa-border-all" FontSize="16"/>
 				</CheckBox>
-				<CheckBox IsChecked="{Binding GridSettings.IsSnapEnabled}" ToolTip.Tip="Snap to Grid" Command="{Binding ToggleSnapCommand}">
+				<CheckBox IsChecked="{Binding GridSettings.IsSnapEnabled}" ToolTip.Tip="Snap to Grid">
 					<i:Icon Value="fa-solid fa-magnet" FontSize="16"/>
 				</CheckBox>
 
