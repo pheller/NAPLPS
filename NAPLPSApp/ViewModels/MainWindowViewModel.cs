@@ -1883,6 +1883,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             OnSelectedCommandIndexChanged(SelectedCommandIndex);
             OnPropertyChanged(nameof(SelectedCommandOperandsHex));
             OnPropertyChanged(nameof(SelectedCommandSummary));
+            SyncTelidrawFromFormat();
             return;
         }
 
@@ -1918,6 +1919,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         // Re-render
         BuildDrawContext();
         await UpdateCanvas();
+        // Keep the Telidraw source pane in step with the freshly drawn geometry â€” the inline
+        // commit path here didn't, so the pane went stale after a draw (no-ops when hidden).
+        SyncTelidrawFromFormat();
     }
 
     /// <summary>Build a TEXTURE command from the UI's fill-pattern picker state (index +
@@ -2468,6 +2472,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         loadedFile = null;
         loadedFilePath = string.Empty;
+
+        // Clear the source pane so a closed/new file never shows the previous document's text.
+        // Safe: OnTelidrawSourceChanged early-returns on empty/null loadedFile, so no recompile.
+        TelidrawSource = string.Empty;
 
         ClearDiagnostics();
 

@@ -13,6 +13,10 @@
 	<Application.Styles>
 		<FluentTheme />
 		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+		<!-- AvaloniaEdit's TextEditor is a templated control; without its control theme the
+		     Telidraw source pane renders blank no matter what text it holds (the root cause of
+		     the empty-source-pane report). -->
+		<StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml"/>
 	</Application.Styles>
 
 	 <NativeMenu.Menu>
