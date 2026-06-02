@@ -18,7 +18,26 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private const string DEFAULT_NO_FILE_NAME = "Idle";
 
     [ObservableProperty]
-    private Stretch imageStretch = Stretch.None;
+    private Stretch imageStretch = Stretch.Uniform;
+
+    /// <summary>Min/max canvas zoom (1.0 = fit-to-window baseline under Stretch.Uniform).</summary>
+    public const double MinZoom = 0.1;
+    public const double MaxZoom = 16.0;
+
+    /// <summary>Independent zoom applied on top of the Stretch fit, via a RenderTransform on
+    /// the canvas viewport. Because the transform is purely visual (layout bounds are
+    /// unchanged), the coordinate mapper, grid, preview and reference overlay all keep
+    /// working in unscaled space and scale along for free. Driven by Ctrl+scroll.</summary>
+    [ObservableProperty]
+    private double zoomFactor = 1.0;
+
+    /// <summary>Pan offset (cell-space px) paired with <see cref="ZoomFactor"/> so Ctrl+scroll
+    /// can zoom toward the cursor rather than the centre.</summary>
+    [ObservableProperty]
+    private double panX;
+
+    [ObservableProperty]
+    private double panY;
 
     [ObservableProperty]
     private Bitmap? canvasImage;
@@ -1183,6 +1202,17 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>Reset the canvas to fit the viewport: Uniform stretch, zoom 1.0, no pan.
+    /// Bound to the View menu and Ctrl+0.</summary>
+    [RelayCommand]
+    private void FitToWindow()
+    {
+        ImageStretch = Stretch.Uniform;
+        ZoomFactor = 1.0;
+        PanX = 0;
+        PanY = 0;
+    }
+
     #endregion
 
     #region Help Menu Handlers
@@ -1919,7 +1949,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         // Re-render
         BuildDrawContext();
         await UpdateCanvas();
-        // Keep the Telidraw source pane in step with the freshly drawn geometry â€” the inline
+        // Keep the Telidraw source pane in step with the freshly drawn geometry — the inline
         // commit path here didn't, so the pane went stale after a draw (no-ops when hidden).
         SyncTelidrawFromFormat();
     }

@@ -138,6 +138,14 @@ public partial class MainWindow : Window
             overlay.PointerReleased += OnEditorPointerReleased;
         }
 
+        // Ctrl+scroll zooms the canvas toward the cursor. Attached to the clipping cell so it
+        // fires anywhere over the canvas area regardless of which layer is hit-tested.
+        var canvasCell = this.FindControl<Grid>("CanvasCell");
+        if (canvasCell != null)
+        {
+            canvasCell.PointerWheelChanged += OnCanvasWheel;
+        }
+
         // Listen for grid visibility changes
         if (DataContext is MainWindowViewModel vm)
         {
@@ -239,7 +247,7 @@ public partial class MainWindow : Window
         {
             // Enter commits the canvas Text tool's buffer; everything else is left for the
             // focused control to handle. The plain-key app shortcuts are dispatched below,
-            // which we skip entirely while typing â€” that's the whole point of moving them
+            // which we skip entirely while typing — that's the whole point of moving them
             // out of Window.KeyBindings.
             if (e.Key == Key.Enter && vm?.ActiveTool is TextTool tte && tte.HasInsertionPoint)
             {
@@ -335,6 +343,30 @@ public partial class MainWindow : Window
             current = current is Visual v ? Avalonia.VisualTree.VisualExtensions.GetVisualParent(v) : null;
         }
         return false;
+    }
+
+    /// <summary>Ctrl+scroll zoom, anchored at the cursor so the content point under the pointer
+    /// stays put (screen = content*zoom + pan). Plain scroll is left untouched.</summary>
+    private void OnCanvasWheel(object? sender, PointerWheelEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) { return; }
+        if ((e.KeyModifiers & KeyModifiers.Control) == 0) { return; }
+
+        var cell = this.FindControl<Grid>("CanvasCell");
+        if (cell == null) { return; }
+
+        double oldZoom = vm.ZoomFactor;
+        double newZoom = Math.Clamp(oldZoom * Math.Pow(1.15, e.Delta.Y), MainWindowViewModel.MinZoom, MainWindowViewModel.MaxZoom);
+        e.Handled = true;
+        if (Math.Abs(newZoom - oldZoom) < 1e-9) { return; }
+
+        var cursor = e.GetPosition(cell);
+        double contentX = (cursor.X - vm.PanX) / oldZoom;
+        double contentY = (cursor.Y - vm.PanY) / oldZoom;
+
+        vm.ZoomFactor = newZoom;
+        vm.PanX = cursor.X - contentX * newZoom;
+        vm.PanY = cursor.Y - contentY * newZoom;
     }
 
     private void OnEditorPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -542,9 +574,9 @@ public partial class MainWindow : Window
     private void UpdateReferenceImagePlacement(MainWindowViewModel vm)
     {
         var refCtrl = this.FindControl<Avalonia.Controls.Image>("ReferenceImageControl");
-        var canvasCtrl = this.FindControl<Avalonia.Controls.Image>("CanvasImageControl");
+        var overlay = this.FindControl<Canvas>("EditorOverlay");
 
-        if (refCtrl == null || canvasCtrl == null) { return; }
+        if (refCtrl == null || overlay == null) { return; }
 
         var ri = vm.ReferenceImage;
         if (ri == null)
@@ -553,17 +585,23 @@ public partial class MainWindow : Window
             return;
         }
 
-        var b = canvasCtrl.Bounds;
-        if (b.Width <= 0 || b.Height <= 0) { return; }
+        var size = overlay.Bounds.Size;
+        if (size.Width <= 0 || size.Height <= 0) { return; }
 
-        // Y normalized range is 0..0.75 (4:3 aspect). So one unit of Y spans b.Height/0.75 px.
-        double yScale = b.Height / 0.75;
+        // Place against the exact rendered rect the pointer mapper uses (same control size,
+        // same Stretch), so the overlay stays aligned with the canvas under any stretch mode —
+        // not just None. The zoom/pan RenderTransform on the shared parent scales this along.
+        var (offsetX, offsetY, renderW, renderH) = CoordinateMapper.GetImageRect(size, vm.GetSizeObj(), vm.ImageStretch);
+        if (renderW <= 0 || renderH <= 0) { return; }
+
+        // Y normalized range is 0..0.75 (4:3 aspect). So one unit of Y spans renderH/0.75 px.
+        double yScale = renderH / 0.75;
 
         refCtrl.Margin = new Thickness(
-            b.X + ri.X * b.Width,
-            b.Y + ri.Y * yScale,
+            offsetX + ri.X * renderW,
+            offsetY + ri.Y * yScale,
             0, 0);
-        refCtrl.Width  = ri.Width  * b.Width;
+        refCtrl.Width  = ri.Width  * renderW;
         refCtrl.Height = ri.Height * yScale;
     }
 

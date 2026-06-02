@@ -17,7 +17,7 @@
 	     (tool letters, Delete, frame-nav Left/Right/Home/End, Shift+Arrow nudge) are handled
 	     in MainWindow.OnKeyDown instead. Avalonia processes Window.KeyBindings in KeyboardDevice
 	     *before* OnKeyDown ever runs, so a plain-key KeyBinding fires even while typing into a
-	     text control â€” which let letters switch tools and arrows jump frames mid-edit. Routing
+	     text control — which let letters switch tools and arrows jump frames mid-edit. Routing
 	     them through OnKeyDown lets the text-entry guard suppress them when the Telidraw editor,
 	     a TextBox, or the canvas Text tool has focus. -->
 	<Window.KeyBindings>
@@ -26,6 +26,8 @@
 		<KeyBinding Command="{Binding SaveCommand}" Gesture="{DynamicResource SaveGesture}"/>
 		<KeyBinding Command="{Binding SaveAsCommand}" Gesture="{DynamicResource SaveAsGesture}"/>
 
+		<!-- Reset zoom + Uniform fit. -->
+		<KeyBinding Command="{Binding FitToWindowCommand}" Gesture="Ctrl+D0"/>
 
 		<!-- Esc cancels the in-progress draw (e.g. multi-click polygon). -->
 		<KeyBinding Command="{Binding CancelDrawCommand}" Gesture="Escape"/>
@@ -665,7 +667,14 @@
 			</Grid.ColumnDefinitions>
 
 			<!-- Canvas (left) -->
-			<Grid Grid.Column="0" Background="#222222">
+			<Grid Name="CanvasCell" Grid.Column="0" Background="#222222" ClipToBounds="True">
+				<Grid Name="CanvasViewport" RenderTransformOrigin="0,0">
+					<Grid.RenderTransform>
+						<TransformGroup>
+							<ScaleTransform ScaleX="{Binding ZoomFactor}" ScaleY="{Binding ZoomFactor}"/>
+							<TranslateTransform X="{Binding PanX}" Y="{Binding PanY}"/>
+						</TransformGroup>
+					</Grid.RenderTransform>
 				<Image Source="{Binding CanvasImage}" Name="CanvasImageControl"
 					   HorizontalAlignment="Center" VerticalAlignment="Center"
 					   Stretch="{Binding ImageStretch}"/>
@@ -682,6 +691,7 @@
 					   HorizontalAlignment="Left" VerticalAlignment="Top"/>
 				<Canvas Name="EditorOverlay" Background="Transparent"
 						IsVisible="{Binding IsEditorMode}"/>
+				</Grid>
 			</Grid>
 
 			<!-- Splitter -->

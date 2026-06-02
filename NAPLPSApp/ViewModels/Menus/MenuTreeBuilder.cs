@@ -125,6 +125,7 @@ public static class MenuTreeBuilder
                     BuildCanvasSizeMenu(vm),
                     BuildDisplayRatioMenu(vm),
                     BuildStretchMenu(vm),
+                    new MenuNode { Header = "Fit to Window", Command = vm.FitToWindowCommand, FontAwesomeIcon = "fa-solid fa-expand", IsEnabledFn = fileLoaded },
                     MenuNode.Separator,
                     new MenuNode
                     {

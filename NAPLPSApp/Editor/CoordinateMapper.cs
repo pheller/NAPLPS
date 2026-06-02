@@ -63,9 +63,10 @@ public class CoordinateMapper
 
     /// <summary>
     /// Calculates the rendered image rectangle within the control based on stretch mode.
-    /// Returns (offsetX, offsetY, renderWidth, renderHeight).
+    /// Returns (offsetX, offsetY, renderWidth, renderHeight). Public so the reference-image
+    /// overlay can place itself against the exact same rect the pointer mapper uses.
     /// </summary>
-    private static (double offsetX, double offsetY, double renderWidth, double renderHeight) GetImageRect(
+    public static (double offsetX, double offsetY, double renderWidth, double renderHeight) GetImageRect(
         Avalonia.Size controlSize,
         SixLabors.ImageSharp.Size canvasSize,
         Stretch stretch)
