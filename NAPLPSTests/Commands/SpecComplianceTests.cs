@@ -186,45 +186,45 @@ public class SpecComplianceTests
     [TestMethod]
     public void Repeat_CountByte_8BitMode_Works()
     {
-        // 8-bit mode: 0xE5 → subtract 0x40 = 165
+        // Spec (NAPLPS.ASC): count = bits 6..1 = byte & 0x3F. 0xE5 & 0x3F = 0x25 = 37.
         var state = new NaplpsState();
         var command = new ControlCommand(NaplpsControlCommands.Repeat, state, 0x86, new NaplpsOperands([0xE5]));
         var repeat = new DrawableRepeat(command);
 
-        Assert.AreEqual(165, repeat.GetRepeatCount(state));
+        Assert.AreEqual(0x25, repeat.GetRepeatCount(state));
     }
 
     [TestMethod]
     public void Repeat_CountByte_ValidRange_ReturnsCount()
     {
-        // 0x45 in 7-bit mode → count = 0x45 = 69
+        // Spec: count = byte & 0x3F. 0x45 & 0x3F = 5.
         var state = new NaplpsState();
         var command = new ControlCommand(NaplpsControlCommands.Repeat, state, 0x86, new NaplpsOperands([0x45]));
         var repeat = new DrawableRepeat(command);
 
-        Assert.AreEqual(0x45, repeat.GetRepeatCount(state));
+        Assert.AreEqual(0x05, repeat.GetRepeatCount(state));
     }
 
     [TestMethod]
-    public void Repeat_CountByte_0x40_ReturnsValue()
+    public void Repeat_CountByte_0x40_ReturnsZero()
     {
-        // 0x40 in 7-bit mode → count = 64
+        // Spec: 0x40 is in the valid gate (bits 7..1 in 0x40..0x7F) but bits 6..1 = 0.
         var state = new NaplpsState();
         var command = new ControlCommand(NaplpsControlCommands.Repeat, state, 0x86, new NaplpsOperands([0x40]));
         var repeat = new DrawableRepeat(command);
 
-        Assert.AreEqual(0x40, repeat.GetRepeatCount(state));
+        Assert.AreEqual(0, repeat.GetRepeatCount(state));
     }
 
     [TestMethod]
-    public void Repeat_CountByte_0x7F_Returns127()
+    public void Repeat_CountByte_0x7F_Returns63()
     {
-        // 0x7F in 7-bit mode → count = 127
+        // Spec: count = byte & 0x3F. 0x7F & 0x3F = 0x3F = 63.
         var state = new NaplpsState();
         var command = new ControlCommand(NaplpsControlCommands.Repeat, state, 0x86, new NaplpsOperands([0x7F]));
         var repeat = new DrawableRepeat(command);
 
-        Assert.AreEqual(0x7F, repeat.GetRepeatCount(state));
+        Assert.AreEqual(0x3F, repeat.GetRepeatCount(state));
     }
 
     // ========================================================================

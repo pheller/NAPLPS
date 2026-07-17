@@ -150,6 +150,31 @@ public class AsciiCharCommand : NaplpsCommand
         float fieldWidth = fieldRight - fieldLeft;
         float fieldHeight = fieldTop - fieldBottom;
 
+        // The field's line-wrap only governs text that is actually flowing within the field's
+        // rows/columns. When the pen has been explicitly moved outside the field's perpendicular
+        // extent (e.g. a fixed label drawn below the active field), the field boundary does not
+        // trigger an auto CR-LF. Gate on the perpendicular axis with one cell of tolerance.
+        bool inPerpBand;
+        switch (state.TextPath)
+        {
+            case TextPath.Right:
+            case TextPath.Left:
+                inPerpBand = pen.Y >= fieldBottom - state.CharSize.Y && pen.Y <= fieldTop + state.CharSize.Y;
+                break;
+            case TextPath.Up:
+            case TextPath.Down:
+                inPerpBand = pen.X >= fieldLeft - state.CharSize.X && pen.X <= fieldRight + state.CharSize.X;
+                break;
+            default:
+                inPerpBand = true;
+                break;
+        }
+
+        if (!inPerpBand)
+        {
+            return false;
+        }
+
         switch (state.TextPath)
         {
             case TextPath.Right:
@@ -230,59 +255,68 @@ public class AsciiCharCommand : NaplpsCommand
         state.Pen = pen;
     }
 
-    private void MovePen(NaplpsState state)
+    private void MovePen(NaplpsState state) => AdvancePen(state, AsciiCharacter);
+
+    /// <summary>
+    /// Advances the state's pen by one character cell for <paramref name="character"/>, per the
+    /// active spacing mode and text path. Shared by normal character advance, the REPEAT parser
+    /// handler, and render-time repeat expansion so all three stay consistent.
+    /// </summary>
+    public static void AdvancePen(NaplpsState state, char character)
     {
         var pen = state.Pen;
 
-        {
-            // PP3 confirmed: Spacing=One advances by full charW (pixel-counted at 640px).
-            // Spacing=Proportional uses charW * row8[class]/8 ratio.
-            float advance;
+        // PP3 confirmed: Spacing=One advances by full charW (pixel-counted at 640px).
+        // Spacing=Proportional uses charW * row8[class]/8 ratio.
+        float advance;
 
+        if (state.SystemType == NaplpsSystemType.Prodigy)
+        {
+            // MVDI supports proportional + 3 fixed horizontal spacing modes (confirmed via the
+            // Prodigy authoring tool). Fixed spacing advances by the full character cell (device
+            // pitch = round(CharSize.X*640): 15px@0.0234, 16px@0.0250) times the fixed
+            // multiplier; proportional advances per glyph. Verified against the reference render golden
+            // run pitch.
             if (state.TextSpacing == TextSpacing.Proportional)
             {
-                // GCU confirmed: advance = charW * displacement[row][class] / n
-                // where n = floor(charW * 256), row = clamp(n, 6, 11) - 6
-                advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, AsciiCharacter);
+                advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, character);
             }
             else
             {
-                float spacingMultiplier = state.TextSpacing switch
+                float mult = state.TextSpacing switch
                 {
                     TextSpacing.FiveQuarters => 1.25f,
                     TextSpacing.ThreeHalves => 1.5f,
                     _ => 1.0f
                 };
 
-                advance = state.CharSize.X * spacingMultiplier;
+                advance = state.CharSize.X * mult;
             }
-
-            switch (state.TextPath)
+        }
+        else if (state.TextSpacing == TextSpacing.Proportional)
+        {
+            // advance = charW * displacement[row][class] / n
+            // where n = floor(charW * 256), row = clamp(n, 6, 11) - 6
+            advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, character);
+        }
+        else
+        {
+            float spacingMultiplier = state.TextSpacing switch
             {
-                case TextPath.Right:
-                {
-                    pen.X += advance;
-                }
-                break;
+                TextSpacing.FiveQuarters => 1.25f,
+                TextSpacing.ThreeHalves => 1.5f,
+                _ => 1.0f
+            };
 
-                case TextPath.Left:
-                {
-                    pen.X -= advance;
-                }
-                break;
+            advance = state.CharSize.X * spacingMultiplier;
+        }
 
-                case TextPath.Up:
-                {
-                    pen.Y += state.CharSize.Y;
-                }
-                break;
-
-                case TextPath.Down:
-                {
-                    pen.Y -= state.CharSize.Y;
-                }
-                break;
-            }
+        switch (state.TextPath)
+        {
+            case TextPath.Right: pen.X += advance; break;
+            case TextPath.Left: pen.X -= advance; break;
+            case TextPath.Up: pen.Y += state.CharSize.Y; break;
+            case TextPath.Down: pen.Y -= state.CharSize.Y; break;
         }
 
         state.Pen = pen;
