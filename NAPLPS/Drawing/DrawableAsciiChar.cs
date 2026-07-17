@@ -205,9 +205,9 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
     /// <summary>
     /// Proportional spacing: advance = charW * displacement[row][class] / n.
-    /// GCU confirmed via Ghidra: pre-selects a displacement row based on text size,
-    /// then adds displacement directly to pen position. The ratio disp/n is constant
-    /// per class regardless of text size.
+    /// Pre-selects a displacement row based on text size, then adds displacement
+    /// directly to the pen position. The ratio disp/n is constant per class
+    /// regardless of text size.
     /// </summary>
     public static float GetProportionalDisplacement(float charFieldWidth, char c)
     {
@@ -638,7 +638,8 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         var drawingOptions = new DrawingOptions
         {
-            Transform = transform
+            Transform = transform,
+            GraphicsOptions = new GraphicsOptions { Antialias = !Options.HardText }
         };
 
         var charText = glyphChar.ToString();

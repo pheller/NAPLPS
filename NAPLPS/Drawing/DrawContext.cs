@@ -38,6 +38,33 @@ public class DrawContext : IDisposable
     /// </summary>
     public bool PaletteAnimationMode { get; set; }
 
+    /// <summary>
+    /// Display-model RGB gun width in bits (see <see cref="Drawable.Options.ColorGunWidth"/>).
+    /// Defaults to 2 for Prodigy-detected files and null (full precision) otherwise, but can be
+    /// overridden by the caller — e.g. when rendering a known-Prodigy corpus whose files do not
+    /// carry the A1 C8 domain marker and so are not auto-detected as Prodigy.
+    /// </summary>
+    public int? ColorGunWidth { get; set; }
+
+    /// <summary>
+    /// Vertical display ratio for this render (see <see cref="NaplpsUtils.DisplayRatio"/>).
+    /// Defaults to the Prodigy-calibrated ratio for Prodigy-detected files and the standard
+    /// ratio otherwise; overridable by the caller (e.g. a known-Prodigy corpus not auto-detected).
+    /// </summary>
+    public float DisplayRatio { get; set; } = NaplpsUtils.DefaultDisplayRatio;
+
+    /// <summary>
+    /// Render text with hard pixel edges (see <see cref="Drawable.Options.HardText"/>).
+    /// Defaults on for Prodigy-detected files, off (anti-aliased) otherwise.
+    /// </summary>
+    public bool HardText { get; set; }
+
+    /// <summary>
+    /// Render geometry with the integer pel plotter and no anti-aliasing
+    /// (see <see cref="Drawable.Options.AuthenticGeometry"/>).
+    /// </summary>
+    public bool AuthenticGeometry { get; set; }
+
     public DrawContext() { }
 
     public DrawContext(NaplpsFormat naplps, Size size)
@@ -47,6 +74,22 @@ public class DrawContext : IDisposable
         Image = new(Size.Width, Size.Height);
         CurrentIndex = 0;
         TotalFrames = (uint)NAPLPS.Commands.Count - 1;
+
+        // Prodigy display drivers had a 2-bit-per-gun DAC mapping; other systems
+        // render full-precision color until their gun widths are established.
+        ColorGunWidth = NAPLPS.SystemType == NaplpsSystemType.Prodigy ? 2 : null;
+
+        // Prodigy's display driver used a slightly taller vertical mapping than the
+        // NAPLPS default, calibrated against the reference render.
+        DisplayRatio = NAPLPS.SystemType == NaplpsSystemType.Prodigy
+            ? NaplpsUtils.ProdigyDisplayRatio
+            : NaplpsUtils.DefaultDisplayRatio;
+
+        // Prodigy's device-resolution character generator produced hard-edged text drawn from
+        // MVDI's own vector-stroke font.
+
+        // The original device line rasterizer drew hard staircased strokes; match it for Prodigy.
+        AuthenticGeometry = NAPLPS.SystemType == NaplpsSystemType.Prodigy;
     }
 
     public void Render(uint sequenceNumber = uint.MaxValue)
@@ -57,10 +100,16 @@ public class DrawContext : IDisposable
         var clutPalette = new Dictionary<byte, NaplpsColor>(NAPLPS.Commands[0].State.ColorMap);
         bool clutDirty = false;
 
-        foreach (var (command, state) in NAPLPS.Commands)
+        foreach (var seq in NAPLPS.Commands)
         {
-            // Track palette changes for CLUT animation
+            var command = seq.Command;
+            var state = seq.State;
+
+            // Track palette changes for CLUT animation. Prodigy MVDI has a fixed hardware
+            // palette and ignores SET COLOR redefinition, so never rebind the CLUT there
+            // (see docs/prodigy-fixed-palette-fix.md).
             if (command is SetColorCommand setColor &&
+                NAPLPS.SystemType != NaplpsSystemType.Prodigy &&
                 (state.ColorMode == 1 || state.ColorMode == 2) &&
                 setColor.Operands.Count > 0)
             {
@@ -122,6 +171,13 @@ public class DrawContext : IDisposable
     {
         CurrentIndex = 0;
         _lastDisplayedChar = null;
+
+        // Re-establish per-render display options on this thread right before drawing, so
+        // parallel/batch renders of files with different settings do not contaminate.
+        Drawable.Options.ColorGunWidth = ColorGunWidth;
+        Drawable.Options.HardText = HardText;
+        Drawable.Options.AuthenticGeometry = AuthenticGeometry;
+        NaplpsUtils.DisplayRatio = DisplayRatio;
 
         // Clear canvas (important for loop restarts and re-renders)
         Image.Mutate(ctx => ctx.Fill(ISColor.Black));
@@ -289,12 +345,18 @@ public class DrawContext : IDisposable
         var repeatCount = repeatDrawable.GetRepeatCount(state);
         var charToRepeat = _lastDisplayedChar.AsciiCharacter;
 
-        // Create a temporary drawable for the character and draw it N times
-        // We need to use the current state's pen position and advance it each time
+        // The parser advances the pen across the repeat (so following text starts after the run),
+        // and this command's state snapshot already reflects that post-run pen. Rewind by the run's
+        // total advance so the repeated glyphs draw at the run's true positions, then re-advance;
+        // restore the snapshot pen at the end so nothing downstream shifts.
+        var snapshotPen = state.Pen;
         for (int i = 0; i < repeatCount; i++)
         {
-            // Create a drawable for the repeated character using current pen position
-            // Check DRCS table first
+            RewindPen(state, charToRepeat);
+        }
+
+        for (int i = 0; i < repeatCount; i++)
+        {
             IDrawable charDrawable;
             if (state.DrcsCharacters.TryGetValue(_lastDisplayedChar.OpCode, out var bitmap))
             {
@@ -306,63 +368,19 @@ public class DrawContext : IDisposable
             }
             charDrawable.Draw(Image, state, Size);
 
-            // Advance pen position (same logic as AsciiCharCommand.MovePen)
-            AdvancePenForCharacter(state, charToRepeat);
+            AsciiCharCommand.AdvancePen(state, charToRepeat);
         }
+
+        state.Pen = snapshotPen;
     }
 
-    private static void AdvancePenForCharacter(NaplpsState state, char character)
+    /// <summary>Reverses one character advance (mirror of AsciiCharCommand.AdvancePen).</summary>
+    private static void RewindPen(NaplpsState state, char character)
     {
-        var pen = state.Pen;
-
-        {
-            float advance;
-
-            if (state.TextSpacing == TextSpacing.Proportional)
-            {
-                advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, character);
-            }
-            else
-            {
-                float spacingMultiplier = state.TextSpacing switch
-                {
-                    TextSpacing.FiveQuarters => 1.25f,
-                    TextSpacing.ThreeHalves => 1.5f,
-                    _ => 1.0f
-                };
-
-                advance = state.CharSize.X * spacingMultiplier;
-            }
-
-            switch (state.TextPath)
-            {
-                case TextPath.Right:
-                {
-                    pen.X += advance;
-                }
-                break;
-
-                case TextPath.Left:
-                {
-                    pen.X -= advance;
-                }
-                break;
-
-                case TextPath.Up:
-                {
-                    pen.Y += state.CharSize.Y;
-                }
-                break;
-
-                case TextPath.Down:
-                {
-                    pen.Y -= state.CharSize.Y;
-                }
-                break;
-            }
-        }
-
-        state.Pen = pen;
+        var before = state.Pen;
+        AsciiCharCommand.AdvancePen(state, character);
+        var delta = state.Pen - before;
+        state.Pen = before - delta;
     }
 
     /// <summary>
@@ -627,8 +645,9 @@ public class DrawContext : IDisposable
         {
             var (cmd, cmdState) = sequence;
 
-            // Track palette changes for CLUT animation
-            if (cmd is SetColorCommand setColor)
+            // Track palette changes for CLUT animation. Prodigy MVDI ignores SET COLOR
+            // redefinition (fixed hardware palette), so never rebind the CLUT there.
+            if (cmd is SetColorCommand setColor && NAPLPS.SystemType != NaplpsSystemType.Prodigy)
             {
                 if ((cmdState.ColorMode == 1 || cmdState.ColorMode == 2) && setColor.Operands.Count > 0)
                 {

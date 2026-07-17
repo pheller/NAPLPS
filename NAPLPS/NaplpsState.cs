@@ -48,6 +48,33 @@ public class NaplpsState
     private GsetSlot _glInvocation = GsetSlot.G0;
     private GsetSlot _grInvocation = GsetSlot.G1;
 
+    // Which G-set slots are designated as the MACRO SET (final byte 0x7A). The macro set has
+    // no static table: a byte resolved through a macro-designated slot invokes that macro
+    // (parse-time expansion). Tracked per-slot so SS3/LS3 into a macro-designated G3 works.
+    private readonly bool[] _gsetIsMacro = new bool[4];
+
+    /// <summary>
+    /// True if <paramref name="opcode"/> would resolve through a G-set currently designated as
+    /// the macro set (via the active single-shift, or the locked GL/GR invocation). The parser
+    /// treats such a byte as a macro invocation rather than a character/command lookup.
+    /// </summary>
+    public bool IsMacroByte(byte opcode)
+    {
+        bool inGL = opcode >= 0x20 && opcode <= 0x7F;
+        bool inGR = opcode >= 0xA0;
+        if (!inGL && !inGR)
+        {
+            return false;
+        }
+
+        if (PendingSingleShift.HasValue)
+        {
+            return _gsetIsMacro[(int)PendingSingleShift.Value];
+        }
+
+        return _gsetIsMacro[(int)(inGL ? _glInvocation : _grInvocation)];
+    }
+
     /// <summary>
     /// One-shot single-shift state per §6.1.3.3 / §6.1.3.4. When set, the very next
     /// resolved byte (in GL or GR) uses this slot's designation instead of the
@@ -63,6 +90,12 @@ public class NaplpsState
     /// </summary>
     [JsonIgnore]
     public char? PendingAccentChar { get; set; }
+
+    /// <summary>
+    /// The NAPLPS system this state belongs to. Set at parse time; drives Prodigy-specific text
+    /// metrics (MVDI vector-font advance widths) and defaults. Preserved across per-command clones.
+    /// </summary>
+    public NaplpsSystemType SystemType { get; set; } = NaplpsSystemType.NAPLPS;
 
     public NaplpsState()
     {
@@ -314,9 +347,18 @@ public class NaplpsState
 
             if (slot.HasValue)
             {
+                // Final byte 0x7A designates the MACRO SET into this slot (it has no static
+                // table). Bytes resolved through this slot then invoke macros (see IsMacroByte).
+                if (sequence[1] == 0x7A)
+                {
+                    _gsetIsMacro[(int)slot.Value] = true;
+                    return true;
+                }
+
                 var newSet = ResolveSetFromFinalByte(sequence[1]);
                 if (newSet != null)
                 {
+                    _gsetIsMacro[(int)slot.Value] = false;
                     DesignateGset(slot.Value, newSet);
                 }
                 return true;

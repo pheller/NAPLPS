@@ -25,7 +25,35 @@ public struct NaplpsColor
         Blue = blue;
     }
 
-    public readonly Color ToColor() => Color.FromArgb(Red, Green, Blue);
+    public readonly Color ToColor()
+    {
+        if (Drawing.Drawable.Options.ColorGunWidth is int bits and > 0 and < 8)
+        {
+            return Color.FromArgb(QuantizeGun(Red, bits), QuantizeGun(Green, bits), QuantizeGun(Blue, bits));
+        }
+
+        return Color.FromArgb(Red, Green, Blue);
+    }
+
+    /// <summary>
+    /// Reduces a gun value to its top <paramref name="bits"/> bits and expands back to
+    /// 8 bits by bit replication (e.g. width 2 yields levels 0/85/170/255). This is how
+    /// period display drivers mapped NAPLPS color values onto a limited-width DAC.
+    /// </summary>
+    public static byte QuantizeGun(byte value, int bits)
+    {
+        var q = value >> 8 - bits;
+        var result = 0;
+        var filled = 0;
+
+        while (filled < 8)
+        {
+            result = result << bits | q;
+            filled += bits;
+        }
+
+        return (byte)(result >> filled - 8);
+    }
 
     public static NaplpsColor From3BitGRB(int green3Bit, int red3Bit, int blue3Bit)
     {
