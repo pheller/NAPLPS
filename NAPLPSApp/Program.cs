@@ -238,7 +238,7 @@ sealed class Program
 
         if (opts.Batch)
         {
-            return HandleBatchExport(opts.InputFile, opts.OutputDir, opts.Format, width, height, opts.Loop, opts.Delay);
+            return HandleBatchExport(opts.InputFile, opts.OutputDir, opts.Format, width, height, opts.Loop, opts.Delay, opts.GunWidthSet, opts.GunWidth, opts.DisplayRatio, opts.HardText, opts.Authentic, opts.ForceProdigy);
         }
 
         var outputFile = opts.OutputFile;
@@ -256,8 +256,28 @@ sealed class Program
 
         try
         {
-            var naplps = NaplpsFormat.FromFile(opts.InputFile);
+            var naplps = NaplpsFormat.FromFile(opts.InputFile, opts.ForceProdigy ? NaplpsSystemType.Prodigy : null);
             using var drawContext = new DrawContext(naplps, new SixLabors.ImageSharp.Size(width, height));
+
+            if (opts.GunWidthSet)
+            {
+                drawContext.ColorGunWidth = opts.GunWidth;
+            }
+
+            if (opts.DisplayRatio is float dr)
+            {
+                drawContext.DisplayRatio = dr;
+            }
+
+            if (opts.HardText is bool ht)
+            {
+                drawContext.HardText = ht;
+            }
+
+            if (opts.Authentic)
+            {
+                drawContext.AuthenticGeometry = true;
+            }
 
             if (opts.PaletteAnim)
             {
@@ -287,7 +307,7 @@ sealed class Program
         string InputFile, string? OutputFile, string? OutputDir,
         string Format, string Size, bool UseStdout, bool Loop,
         bool Batch, bool PaletteAnim, int PaletteFrames, int Delay,
-        string? AtFrames, int BlinkCycles);
+        string? AtFrames, int BlinkCycles, bool GunWidthSet, int? GunWidth, float? DisplayRatio, bool? HardText, bool Authentic, bool ForceProdigy);
 
     /// <summary>
     /// Parses a printer-style range string like "1,2-5,10" into a sorted list of indices.
@@ -334,6 +354,12 @@ sealed class Program
         var delay = 5;
         string? atFrames = null;
         var blinkCycles = 0;
+        var gunWidthSet = false;
+        int? gunWidth = null;
+        float? displayRatio = null;
+        bool? hardText = null;
+        var authentic = false;
+        var forceProdigy = false;
 
         for (int i = 2; i < args.Length; i++)
         {
@@ -348,6 +374,31 @@ sealed class Program
             else if (args[i] == "--batch")
             {
                 batch = true;
+            }
+            else if (args[i].StartsWith("--display-ratio="))
+            {
+                if (!float.TryParse(args[i]["--display-ratio=".Length..], out var dr) || dr is <= 0 or > 1)
+                {
+                    error = "Error: Invalid display-ratio value. Expected a value in (0, 1].";
+                    break;
+                }
+                displayRatio = dr;
+            }
+            else if (args[i] == "--hard-text")
+            {
+                hardText = true;
+            }
+            else if (args[i] == "--no-hard-text")
+            {
+                hardText = false;
+            }
+            else if (args[i] == "--authentic")
+            {
+                authentic = true;
+            }
+            else if (args[i] == "--prodigy")
+            {
+                forceProdigy = true;
             }
             else if (args[i] == "--palette-anim")
             {
@@ -394,16 +445,34 @@ sealed class Program
                     break;
                 }
             }
+            else if (args[i].StartsWith("--gun-width="))
+            {
+                var val = args[i]["--gun-width=".Length..];
+                gunWidthSet = true;
+                if (val is "full" or "0" or "none")
+                {
+                    gunWidth = null;
+                }
+                else if (int.TryParse(val, out var gw) && gw is > 0 and < 8)
+                {
+                    gunWidth = gw;
+                }
+                else
+                {
+                    error = "Error: Invalid gun-width value. Expected 1-7, or 'full'.";
+                    break;
+                }
+            }
             else if (!args[i].StartsWith("--") && !args[i].StartsWith("-"))
             {
                 outputFile = args[i];
             }
         }
 
-        return new ExportOptions(inputFile, outputFile, outputDir, format, size, useStdout, loop, batch, paletteAnim, paletteFrames, delay, atFrames, blinkCycles);
+        return new ExportOptions(inputFile, outputFile, outputDir, format, size, useStdout, loop, batch, paletteAnim, paletteFrames, delay, atFrames, blinkCycles, gunWidthSet, gunWidth, displayRatio, hardText, authentic, forceProdigy);
     }
 
-    private static int HandleBatchExport(string inputDir, string? outputDir, string format, int width, int height, bool loop, int delay)
+    private static int HandleBatchExport(string inputDir, string? outputDir, string format, int width, int height, bool loop, int delay, bool gunWidthSet, int? gunWidth, float? displayRatio, bool? hardText, bool authentic, bool forceProdigy)
     {
         if (!Directory.Exists(inputDir))
         {
@@ -434,8 +503,28 @@ sealed class Program
             {
                 var outPath = outputDir != null ? IOPath.Combine(outputDir, IOPath.ChangeExtension(IOPath.GetFileName(file), format)) : IOPath.ChangeExtension(file, format);
 
-                var naplps = NaplpsFormat.FromFile(file);
+                var naplps = NaplpsFormat.FromFile(file, forceProdigy ? NaplpsSystemType.Prodigy : null);
                 using var drawContext = new DrawContext(naplps, parsedSize);
+
+                if (gunWidthSet)
+                {
+                    drawContext.ColorGunWidth = gunWidth;
+                }
+
+                if (displayRatio is float dr)
+                {
+                    drawContext.DisplayRatio = dr;
+                }
+
+                if (hardText is bool ht)
+                {
+                    drawContext.HardText = ht;
+                }
+
+                if (authentic)
+                {
+                    drawContext.AuthenticGeometry = true;
+                }
 
                 if (format == "gif")
                 {
