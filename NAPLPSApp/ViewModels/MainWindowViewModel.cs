@@ -661,6 +661,25 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Opens a file handed to the app from outside the picker (Finder open, drag onto the Dock
+    /// icon, "Open With"). Same dirty-check-then-load path as the in-app File > Open.
+    /// </summary>
+    public async Task OpenExternalFile(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath) || !System.IO.File.Exists(filePath))
+        {
+            return;
+        }
+
+        if (!await PromptSaveIfDirty())
+        {
+            return;
+        }
+
+        await FileLoad(filePath);
+    }
+
     [RelayCommand]
     private async Task Save()
     {
