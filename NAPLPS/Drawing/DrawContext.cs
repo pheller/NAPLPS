@@ -60,6 +60,12 @@ public class DrawContext : IDisposable
     public bool HardText { get; set; }
 
     /// <summary>
+    /// Render text with MVDI's vector-stroke font (see <see cref="MvdiFont"/>).
+    /// Defaults on for Prodigy (its authentic character generator), off otherwise.
+    /// </summary>
+    public bool UseMvdiFont { get; set; }
+
+    /// <summary>
     /// Render geometry with the integer pel plotter and no anti-aliasing
     /// (see <see cref="Drawable.Options.AuthenticGeometry"/>).
     /// </summary>
@@ -87,6 +93,7 @@ public class DrawContext : IDisposable
 
         // Prodigy's device-resolution character generator produced hard-edged text drawn from
         // MVDI's own vector-stroke font.
+        UseMvdiFont = NAPLPS.SystemType == NaplpsSystemType.Prodigy;
 
         // The original device line rasterizer drew hard staircased strokes; match it for Prodigy.
         AuthenticGeometry = NAPLPS.SystemType == NaplpsSystemType.Prodigy;
@@ -176,6 +183,7 @@ public class DrawContext : IDisposable
         // parallel/batch renders of files with different settings do not contaminate.
         Drawable.Options.ColorGunWidth = ColorGunWidth;
         Drawable.Options.HardText = HardText;
+        Drawable.Options.UseMvdiFont = UseMvdiFont;
         Drawable.Options.AuthenticGeometry = AuthenticGeometry;
         NaplpsUtils.DisplayRatio = DisplayRatio;
 

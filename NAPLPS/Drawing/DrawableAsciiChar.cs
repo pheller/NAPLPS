@@ -398,6 +398,14 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // OverlayAccent.HasValue. Currently disabled to preserve PP3-matching visual
         // baselines (existing render output of ec1060.nap and similar files relies on
         // accents drawing as standalone glyphs, not composites).
+        // Vector-stroke glyphs, drawn with the integer pel plotter to match the device character
+        // generator. This is the Prodigy default (see DrawMvdiFont).
+        if (Options.UseMvdiFont)
+        {
+            DrawMvdiFont(image, state, size, _command.AsciiCharacter);
+            return;
+        }
+
         if (Options.UseBitmapFont)
         {
             DrawBitmapFont(image, state, size, _command.AsciiCharacter);
@@ -405,6 +413,117 @@ public class DrawableAsciiChar : Drawable, IDrawable
         }
 
         DrawTrueTypeFont(image, state, size, _command.AsciiCharacter);
+    }
+
+
+    /// <summary>
+    /// Renders a character as MVDI's authentic vector strokes (see <see cref="MvdiFont"/>),
+    /// drawn with the integer pel plotter to match the reference render's hard-edged character generator.
+    /// </summary>
+    private void DrawMvdiFont(Image<Rgba32> image, NaplpsState state, Size size, char glyphChar)
+    {
+        // MVDI's device pen: round-half-up (not floor) of the normalized pen. Verified from
+        // reference captures — golden stroke offsets are pen-independent only under rounding.
+        double dr = NaplpsUtils.DisplayRatio;
+        int penXdev = (int)Math.Round((double)state.Pen.X * size.Width, MidpointRounding.AwayFromZero);
+        int penYdev = size.Height - (int)Math.Round((double)state.Pen.Y / dr * size.Height, MidpointRounding.AwayFromZero);
+
+        var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
+        float cellW = MathF.Max(1f, MathF.Abs(charSizeX));
+        float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
+
+        var (fgColor, bgColor) = GetISColorFromState(state);
+        if (state.IsReverseVideo)
+        {
+            (fgColor, bgColor) = (bgColor, fgColor);
+        }
+
+        // Color mode 2 fills the character field with the background color first.
+        if (state.ColorMode == 2)
+        {
+            var bgRect = new RectangleF(penXdev, penYdev - cellH, cellW + 1, cellH);
+            image.Mutate(ctx => ctx.Fill(new DrawingOptions(), bgColor, bgRect));
+        }
+
+        // Grid -> device mapping (calibrated pixel-for-pixel on the dominant corpus sizes):
+        //   device_x = penXdev + round(unitX * gridX)                       unitX = CharSize.X*W/7.5
+        //   device_y = penYdev - round(CharSize.Y*W*(7*gridY + 4)/75)
+        // Left bearing is spacing-conditional (verified vs reference): under FIXED spacing MVDI keeps
+        // the bearing (ink at penX + unitX*gridX, so glyphs sit at their natural grid position);
+        // under PROPORTIONAL spacing it left-justifies (subtract the bearing). The vertical scale is
+        // 7/3 device px per grid unit at CharSize.Y=10/256, baseline (gridY=2) at +6px, cap (gridY=8)
+        // at +20px above the pen.
+        var glyph = MvdiFont.ForChar(glyphChar);
+        double csx = Math.Abs(state.CharSize.X);
+        double csy = Math.Abs(state.CharSize.Y);
+        int kx = (int)Math.Round(csx * 256.0);
+        int ky = (int)Math.Round(csy * 256.0);
+
+        // Horizontal grid->device (calibrated pixel-exactly, see MvdiFont.HStep):
+        //   deviceX(gx) = round_half_up(640*penX + u(kx)*gx)
+        // The pen MUST stay fractional inside the round - its sub-pel value sets the DDA phase.
+        // u(kx) is a nonlinear staircase, NOT a clean em (the old CharSize*W/7.5 was wrong at kx>=6
+        // and dropping the fractional pen shifted small glyphs). Under proportional spacing MVDI
+        // left-justifies each glyph by its bearing (gx-lb); fixed spacing keeps the bearing.
+        double penXf = (double)state.Pen.X * size.Width;
+        double u = MvdiFont.HorizStep(kx);
+        double yScale = csy * size.Width / 75.0;
+        int lb = glyph.LeftBearing;
+
+        bool fixedSpacing = state.TextSpacing != TextSpacing.Proportional;
+        int DevX(int gridX) => (int)Math.Round(penXf + u * (fixedSpacing ? gridX : gridX - lb), MidpointRounding.AwayFromZero);
+        int DevY(int gridY) => penYdev - (int)Math.Round(yScale * (7 * gridY + 4));
+
+        // MVDI stamps a NON-SQUARE device pel (path point at top-left, extends right and down).
+        //   Ph (vertical-stroke width)       = MvdiFont.VertStrokePel(kx)  per-size reference table.
+        //   Pv (horizontal-stroke thickness) = round(CharSize.Y*640/20) = round(ky/8), which matches
+        //     the reference render better than the probed crossbar count (that measurement double-counts).
+        float pelLo = 0f;
+        float pelHiX = MvdiFont.VertStrokePel(kx);
+        float pelHiY = Math.Max(1, (int)Math.Round(csy * 640.0 / 20.0));
+
+        // Glyph rotation: MVDI rotates the whole character cell about the pen origin by TextRotation.
+        // The grid->device mapping above yields an upright glyph; rotate each stroke endpoint's offset
+        // from the pen (screen Y is down, so Ninety reads as 90 deg CCW). For the quarter turns the
+        // non-square pel turns with the strokes, so swap its X/Y extents. Zero leaves everything as-is.
+        var rot = state.TextRotation;
+        if (rot == TextRotation.Ninety || rot == TextRotation.TwoSeventy)
+        {
+            (pelHiX, pelHiY) = (pelHiY, pelHiX);
+        }
+
+        PointF RotPoint(int devX, int devY)
+        {
+            int dx = devX - penXdev, dy = devY - penYdev;
+            (int rx, int ry) = rot switch
+            {
+                TextRotation.Ninety => (dy, -dx),
+                TextRotation.OneEighty => (-dx, -dy),
+                TextRotation.TwoSeventy => (-dy, dx),
+                _ => (dx, dy),
+            };
+            return new PointF(penXdev + rx, penYdev + ry);
+        }
+
+        var segs = glyph.Segments;
+        for (int i = 0; i + 3 < segs.Length; i += 4)
+        {
+            var p1 = RotPoint(DevX(segs[i]), DevY(segs[i + 1]));
+            var p2 = RotPoint(DevX(segs[i + 2]), DevY(segs[i + 3]));
+            DrawableLine.PlotSweptPelLine(image, p1, p2, pelLo, pelHiX, pelLo, pelHiY, fgColor);
+        }
+
+        if (state.IsUnderline)
+        {
+            image.Mutate(ctx =>
+            {
+                float fullFieldW = MathF.Max(1f, MathF.Abs(charSizeX));
+                var (_, pelY) = ConvertNormalizedToScreenScale(size, state.LogicalPel.X, state.LogicalPel.Y);
+                float underlineThickness = MathF.Max(1f, MathF.Abs(pelY));
+                var underlinePen = Pens.Solid(fgColor, underlineThickness);
+                ctx.DrawLine(underlinePen, new PointF(penXdev, penYdev), new PointF(penXdev + fullFieldW, penYdev));
+            });
+        }
     }
 
     /// <summary>

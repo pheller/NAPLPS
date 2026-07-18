@@ -279,7 +279,10 @@ public class AsciiCharCommand : NaplpsCommand
             // run pitch.
             if (state.TextSpacing == TextSpacing.Proportional)
             {
-                advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, character);
+                // Exact Prodigy proportional advance (per-glyph integer metric keyed on AdvanceWidth
+                // + char-size register). Replaces the _displacementTable approximation that clamped
+                // size to k=6..11 and drifted.
+                advance = (float)MvdiFont.ProdigyProportionalAdvanceNorm(character, state.CharSize.X);
             }
             else
             {

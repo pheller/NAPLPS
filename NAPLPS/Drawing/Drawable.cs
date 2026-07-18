@@ -47,6 +47,14 @@ public class Drawable
         public static bool HardText;
 
         /// <summary>
+        /// Render text with MVDI's vector-stroke glyphs (see <see cref="MvdiFont"/>) drawn on
+        /// the integer pel plotter to match the device character generator, instead of the anti-aliased
+        /// TrueType path. Defaults on for Prodigy. ThreadStatic, re-established per render.
+        /// </summary>
+        [ThreadStatic]
+        public static bool UseMvdiFont;
+
+        /// <summary>
         /// Authentic geometry mode: draw lines/outlines with an integer pel plotter and no
         /// anti-aliasing, reproducing the hard staircase of the original device line rasterizer
         /// instead of the anti-aliased swept-pel polygon fill. ThreadStatic and re-established
