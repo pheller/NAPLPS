@@ -54,6 +54,59 @@ public static class MvdiFont
         Math.Max(1, kx < 0 ? PhX[0] : kx < PhX.Length ? PhX[kx] : (int)Math.Round(0.30 * kx));
 
     /// <summary>
+    /// Horizontal-stroke device pel thickness (the stroke HEIGHT) for the Y char-size register
+    /// ky = round(CharSize.Y*256). Calibrated as a staircase (dense ky sweep, crossbar of 'H'):
+    /// 1px through ky=8, 2px for ky 9..24, then +1 every 8 ky (3 at 25..32, 4 at 33..40, ...),
+    /// verified against the sparse ky sweep out to ky=90. The old round(CharSize.Y*640/20)
+    /// under-rounded the dominant body-text size (ky=10 -> 1.25 -> 1px, but the reference draws 2px),
+    /// thinning every horizontal stroke and leaving a 1px red edge on
+    /// body text across the corpus. The vertical shrink (0.779 display ratio) is why horizontal
+    /// strokes stay far thinner than vertical (PhX) at the same register.
+    /// </summary>
+    public static int HorizStrokePel(int ky) =>
+        ky <= 8 ? 1 : ky <= 24 ? 2 : 3 + (ky - 25) / 8;
+
+    // Vertical row map, calibrated as a staircase (dense E + '=' sweep, band tops for grid rows
+    // 2/4/5/6/8 across ky 8..40). The linear DevY formula (calibrated only at the baseline g=2 and
+    // cap g=8) rounds interior rows a pixel off - e.g. the g=4 crossbars of a/e/s/G. The reference
+    // per-row device offset from the pen is exactly the linear interpolation
+    // between the baseline offset Off2(ky) and the cap offset Off8(ky), then rounded:
+    //   offset(g,ky) = round(Off2 + (Off8-Off2)*(g-2)/6).
+    // Both tables are themselves staircases (no clean closed form), indexed ky=8..40; outside that
+    // range they extrapolate off the end slope.
+    private static readonly int[] Off2 =
+        { 5, 6, 7, 7, 8, 8, 9, 9, 10, 10, 10, 11, 12, 12, 12, 13, 14, 15, 15, 16, 16, 17, 17, 18, 18, 20, 20, 21, 21, 22, 22, 23, 23 };
+    private static readonly int[] Off8 =
+        { 15, 19, 21, 23, 24, 26, 29, 31, 32, 34, 36, 39, 40, 42, 43, 45, 48, 51, 52, 54, 56, 59, 61, 62, 64, 66, 69, 71, 73, 74, 76, 79, 81 };
+
+    private static double RowRefOffset(int[] tab, int ky)
+    {
+        if (ky <= 8) return tab[0] * ky / 8.0;
+        if (ky - 8 < tab.Length) return tab[ky - 8];
+        int n = tab.Length;
+        return tab[n - 1] + (tab[n - 1] - tab[n - 2]) * (ky - (8 + n - 1));
+    }
+
+    /// <summary>
+    /// Recovered device-Y offset (from the pen) of a horizontal glyph stroke's top pixel at grid
+    /// row <paramref name="gridY"/> for the Y char-size register <paramref name="ky"/>. Linear
+    /// interpolation between the reference-measured baseline (g=2) and cap (g=8) offsets; fixes the
+    /// interior-row crossbars the linear DevY formula mis-rounded.
+    /// </summary>
+    public static int HorizRowTopOffset(int gridY, int ky)
+    {
+        double o2 = RowRefOffset(Off2, ky);
+        double o8 = RowRefOffset(Off8, ky);
+        double v = o2 + (o8 - o2) * (gridY - 2) / 6.0;
+        // At/above the baseline the reference-measured staircase rounds; below it (descenders g/j/p/q/y,
+        // gridY 0..1) the offset extrapolates off the Off2 end where MVDI truncates, so round-half-up
+        // overshoots by 1px and the descender-tail diagonal steps a row early. Floor there.
+        return gridY < Baseline
+            ? (int)Math.Floor(v)
+            : (int)Math.Round(v, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
     /// MVDI's own horizontal advance for a character in NAPLPS normalized units, given the
     /// character-field width (normalized): advanceWidth(grid) * fieldWidth / EmW.
     /// </summary>

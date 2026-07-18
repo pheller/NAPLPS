@@ -448,12 +448,14 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         // Grid -> device mapping (calibrated pixel-for-pixel on the dominant corpus sizes):
         //   device_x = penXdev + round(unitX * gridX)                       unitX = CharSize.X*W/7.5
-        //   device_y = penYdev - round(CharSize.Y*W*(7*gridY + 4)/75)
-        // Left bearing is spacing-conditional (verified vs reference): under FIXED spacing MVDI keeps
-        // the bearing (ink at penX + unitX*gridX, so glyphs sit at their natural grid position);
-        // under PROPORTIONAL spacing it left-justifies (subtract the bearing). The vertical scale is
-        // 7/3 device px per grid unit at CharSize.Y=10/256, baseline (gridY=2) at +6px, cap (gridY=8)
-        // at +20px above the pen.
+        //   device_y = penYdev - round(CharSize.Y*W*(36*gridY + 18)/(5*75))
+        // Left bearing is spacing-conditional: under FIXED spacing the generator keeps the bearing
+        // (ink at penX + unitX*gridX, so glyphs sit at their natural grid position); under
+        // PROPORTIONAL spacing it left-justifies (subtract the bearing). The vertical row map is
+        // linear in gridY, anchored at the baseline (gridY=2 -> yScale*18, matches the reference at
+        // every size) with slope 7.2 px/unit (cap gridY=8 -> yScale*61.2). The earlier 7*gridY+4 was
+        // calibrated only at ky=10 and let tall glyphs fall ~1px short per ~22 ky (up to +4px at
+        // ky=90, e.g. SNOOP1's ky=66 wordmark); measured by the vscale sweep across ky 8..90.
         var glyph = _command.IsSupplementary
             ? MvdiFont.ForSupplementary(_command.SupplementaryCode)
             : MvdiFont.ForChar(glyphChar);
@@ -470,31 +472,37 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // left-justifies each glyph by its bearing (gx-lb); fixed spacing keeps the bearing.
         double penXf = (double)state.Pen.X * size.Width;
         double u = MvdiFont.HorizStep(kx);
-        double yScale = csy * size.Width / 75.0;
 
         bool fixedSpacing = state.TextSpacing != TextSpacing.Proportional;
         int DevX(int gridX, int lb) => (int)Math.Round(penXf + u * (fixedSpacing ? gridX : gridX - lb), MidpointRounding.AwayFromZero);
-        int DevY(int gridY) => penYdev - (int)Math.Round(yScale * (7 * gridY + 4));
 
-        // MVDI stamps a NON-SQUARE device pel (path point at top-left, extends right and down).
-        //   Ph (vertical-stroke width)       = MvdiFont.VertStrokePel(kx)  per-size reference table.
-        //   Pv (horizontal-stroke thickness) = round(CharSize.Y*640/20) = round(ky/8), which matches
-        //     the reference render better than the probed crossbar count (that measurement double-counts).
-        float pelLo = 0f;
-        float pelHiX = MvdiFont.VertStrokePel(kx);
-        float pelHiY = Math.Max(1, (int)Math.Round(csy * 640.0 / 20.0));
+        // UNIFIED grid->device Y: every stroke endpoint (horizontal, vertical, diagonal) uses the
+        // SAME per-row device offset (MvdiFont.HorizRowTopOffset, the Off2/Off8 staircase). The
+        // previous code split this - horizontals used the staircase but vertical/diagonal used a
+        // linear DevY a pixel off - which mis-registered every stroke junction on curved glyphs
+        // (a/e/s/o/n...). The generator builds one per-row device table and indexes it for both
+        // endpoints of every stroke, so horizontal and vertical strokes sharing a grid row hit the
+        // identical row.
+        int DevYrow(int gridY) => penYdev - MvdiFont.HorizRowTopOffset(gridY, ky);
+
+        // The generator stamps a UNIFORM rectangular pel (pelX wide x pelY tall) at every point
+        // along each stroke, extending down-right from the path point.
+        // pelX = vertical-stroke width (VertStrokePel, kx-keyed); pelY = horizontal-stroke height
+        // (HorizStrokePel, ky-keyed). There is NO direction-dependent thickness - one pel serves
+        // horizontals, verticals and diagonals alike (the old per-direction heuristics were the bug).
+        int pelX = MvdiFont.VertStrokePel(kx);
+        int pelY = MvdiFont.HorizStrokePel(ky);
 
         // Glyph rotation: MVDI rotates the whole character cell about the pen origin by TextRotation.
-        // The grid->device mapping above yields an upright glyph; rotate each stroke endpoint's offset
-        // from the pen (screen Y is down, so Ninety reads as 90 deg CCW). For the quarter turns the
-        // non-square pel turns with the strokes, so swap its X/Y extents. Zero leaves everything as-is.
+        // Rotate each stroke endpoint's offset from the pen (screen Y is down, so Ninety reads as
+        // 90 deg CCW). For quarter turns the non-square pel turns with the strokes, so swap X/Y.
         var rot = state.TextRotation;
         if (rot == TextRotation.Ninety || rot == TextRotation.TwoSeventy)
         {
-            (pelHiX, pelHiY) = (pelHiY, pelHiX);
+            (pelX, pelY) = (pelY, pelX);
         }
 
-        PointF RotPoint(int devX, int devY)
+        (int X, int Y) RotPoint(int devX, int devY)
         {
             int dx = devX - penXdev, dy = devY - penYdev;
             (int rx, int ry) = rot switch
@@ -504,7 +512,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
                 TextRotation.TwoSeventy => (-dy, dx),
                 _ => (dx, dy),
             };
-            return new PointF(penXdev + rx, penYdev + ry);
+            return (penXdev + rx, penYdev + ry);
         }
 
         void DrawGlyph(MvdiFont.Glyph gl)
@@ -512,9 +520,9 @@ public class DrawableAsciiChar : Drawable, IDrawable
             var segs = gl.Segments;
             for (int i = 0; i + 3 < segs.Length; i += 4)
             {
-                var p1 = RotPoint(DevX(segs[i], gl.LeftBearing), DevY(segs[i + 1]));
-                var p2 = RotPoint(DevX(segs[i + 2], gl.LeftBearing), DevY(segs[i + 3]));
-                DrawableLine.PlotSweptPelLine(image, p1, p2, pelLo, pelHiX, pelLo, pelHiY, fgColor);
+                var a = RotPoint(DevX(segs[i], gl.LeftBearing), DevYrow(segs[i + 1]));
+                var b = RotPoint(DevX(segs[i + 2], gl.LeftBearing), DevYrow(segs[i + 3]));
+                DrawableLine.PlotMvdiStroke(image, a.X, a.Y, b.X, b.Y, pelX, pelY, fgColor);
             }
         }
 

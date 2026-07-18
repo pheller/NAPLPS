@@ -235,6 +235,75 @@ public class DrawableLine : Drawable, IDrawable
     }
 
     /// <summary>
+    /// Draws one glyph stroke as the device character generator does: a run-length Bresenham with a
+    /// uniform pel. The DDA always starts at the lower-Y endpoint; it is X-major iff |dx|&gt;|dy|;
+    /// the Bresenham error is seeded at -floor(major/2) and steps the minor axis only when it
+    /// crosses &gt;0. At every path point a uniform pelX-wide x pelY-tall rectangle is stamped,
+    /// extending DOWN-RIGHT from the point. This replaces the direction-dependent swept-pel
+    /// heuristics for glyph strokes.
+    /// </summary>
+    internal static void PlotMvdiStroke(Image<Rgba32> image, int x0, int y0, int x1, int y1, int pelX, int pelY, ISColor color)
+    {
+        var rgba = color.ToPixel<Rgba32>();
+        int w = image.Width, h = image.Height;
+        if (pelX < 1) pelX = 1;
+        if (pelY < 1) pelY = 1;
+
+        void Stamp(int cx, int cy)
+        {
+            for (int yy = cy; yy < cy + pelY; yy++)
+            {
+                if ((uint)yy >= (uint)h) continue;
+                for (int xx = cx; xx < cx + pelX; xx++)
+                {
+                    if ((uint)xx >= (uint)w) continue;
+                    image[xx, yy] = rgba;
+                }
+            }
+        }
+
+        // Orient so the DDA runs in +Y from the lower endpoint.
+        if (y0 > y1)
+        {
+            (x0, y0, x1, y1) = (x1, y1, x0, y0);
+        }
+        int dx = x1 - x0, dy = y1 - y0;   // dy >= 0
+        int sx = dx >= 0 ? 1 : -1;
+        int adx = Math.Abs(dx), ady = dy;
+
+        Stamp(x0, y0);
+        if (adx == 0 && ady == 0)
+        {
+            return;
+        }
+
+        if (adx > ady)   // X-major
+        {
+            int err = -(adx / 2);
+            int x = x0, y = y0;
+            for (int i = 0; i < adx; i++)
+            {
+                x += sx;
+                err += ady;
+                if (err > 0) { y += 1; err -= adx; }
+                Stamp(x, y);
+            }
+        }
+        else             // Y-major (includes exact 45)
+        {
+            int err = -(ady / 2);
+            int x = x0, y = y0;
+            for (int i = 0; i < ady; i++)
+            {
+                y += 1;
+                err += adx;
+                if (err > 0) { x += sx; err -= ady; }
+                Stamp(x, y);
+            }
+        }
+    }
+
+    /// <summary>
     /// Computes the convex hull of the logical pel rectangle positioned at two points.
     /// Default: pel extends RIGHT by pelW and UP by pelH (positive NAPLPS dimensions).
     /// </summary>
