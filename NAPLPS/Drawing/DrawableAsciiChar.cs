@@ -464,6 +464,16 @@ public class DrawableAsciiChar : Drawable, IDrawable
         int kx = (int)Math.Round(csx * 256.0);
         int ky = (int)Math.Round(csy * 256.0);
 
+        // The glyph metrics (HorizStep, HorizRowTopOffset, VertStrokePel, HorizStrokePel) are
+        // absolute device-pixel tables calibrated at 640x480. NAPLPS coordinates - including CharSize
+        // - are normalized (a fraction of the screen), so a glyph must occupy the same screen FRACTION
+        // at any resolution: scale the metrics by size/reference. At 640x480 the factor is exactly 1
+        // (the calibrated, pixel-perfect result is untouched); higher
+        // resolutions render the same CharSize proportionally larger (same apparent size, more pels).
+        // Smaller/denser text comes from a smaller CharSize, which a higher-res raster renders crisply.
+        double sx = size.Width / 640.0;
+        double sy = size.Height / 480.0;
+
         // Horizontal grid->device (calibrated pixel-exactly, see MvdiFont.HStep):
         //   deviceX(gx) = round_half_up(640*penX + u(kx)*gx)
         // The pen MUST stay fractional inside the round - its sub-pel value sets the DDA phase.
@@ -471,7 +481,7 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // and dropping the fractional pen shifted small glyphs). Under proportional spacing MVDI
         // left-justifies each glyph by its bearing (gx-lb); fixed spacing keeps the bearing.
         double penXf = (double)state.Pen.X * size.Width;
-        double u = MvdiFont.HorizStep(kx);
+        double u = MvdiFont.HorizStep(kx) * sx;
 
         bool fixedSpacing = state.TextSpacing != TextSpacing.Proportional;
         int DevX(int gridX, int lb) => (int)Math.Round(penXf + u * (fixedSpacing ? gridX : gridX - lb), MidpointRounding.AwayFromZero);
@@ -483,15 +493,15 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // (a/e/s/o/n...). The generator builds one per-row device table and indexes it for both
         // endpoints of every stroke, so horizontal and vertical strokes sharing a grid row hit the
         // identical row.
-        int DevYrow(int gridY) => penYdev - MvdiFont.HorizRowTopOffset(gridY, ky);
+        int DevYrow(int gridY) => penYdev - (int)Math.Round(MvdiFont.HorizRowTopOffset(gridY, ky) * sy, MidpointRounding.AwayFromZero);
 
         // The generator stamps a UNIFORM rectangular pel (pelX wide x pelY tall) at every point
         // along each stroke, extending down-right from the path point.
         // pelX = vertical-stroke width (VertStrokePel, kx-keyed); pelY = horizontal-stroke height
         // (HorizStrokePel, ky-keyed). There is NO direction-dependent thickness - one pel serves
         // horizontals, verticals and diagonals alike (the old per-direction heuristics were the bug).
-        int pelX = MvdiFont.VertStrokePel(kx);
-        int pelY = MvdiFont.HorizStrokePel(ky);
+        int pelX = Math.Max(1, (int)Math.Round(MvdiFont.VertStrokePel(kx) * sx, MidpointRounding.AwayFromZero));
+        int pelY = Math.Max(1, (int)Math.Round(MvdiFont.HorizStrokePel(ky) * sy, MidpointRounding.AwayFromZero));
 
         // Glyph rotation: MVDI rotates the whole character cell about the pen origin by TextRotation.
         // Rotate each stroke endpoint's offset from the pen (screen Y is down, so Ninety reads as
