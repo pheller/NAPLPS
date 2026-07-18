@@ -166,6 +166,8 @@ public class SpecComplianceTests
     {
         // Create a non-spacing accent character command
         var state = new NaplpsState();
+        state.DoSingleShiftTwo();
+        state.ResolveByte(0x42);
         var accentCmd = new AsciiCharCommand('\u00B4', state, 0x42, new NaplpsOperands([]));
 
         Assert.IsTrue(accentCmd.IsNonSpacing);

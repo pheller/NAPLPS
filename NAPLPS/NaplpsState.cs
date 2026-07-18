@@ -92,6 +92,27 @@ public class NaplpsState
     public char? PendingAccentChar { get; set; }
 
     /// <summary>
+    /// G2 code (0x20..0x7F) of a pending non-spacing accent, alongside <see cref="PendingAccentChar"/>.
+    /// Selects the MVDI supplementary glyph to overlay (see <see cref="Drawing.MvdiFont.ForSupplementary"/>) —
+    /// the Unicode char alone is ambiguous for the ASCII-range accents (grave, tilde, slash, underscore).
+    /// </summary>
+    [JsonIgnore]
+    public int? PendingAccentCode { get; set; }
+
+    /// <summary>
+    /// Set by <see cref="ResolveByte"/> when the byte just resolved came from the G2
+    /// SupplementaryCharacterSet (via SS2 single-shift or an LS2/LS2R locking shift), with the
+    /// G2 code (0x20..0x7F) in <see cref="ResolvedSupplementaryCode"/>. Consumed immediately by
+    /// the AsciiCharCommand constructed for that byte to pick the supplementary glyph.
+    /// </summary>
+    [JsonIgnore]
+    public bool ResolvedFromSupplementary { get; private set; }
+
+    /// <summary>G2 code (0x20..0x7F) accompanying <see cref="ResolvedFromSupplementary"/>.</summary>
+    [JsonIgnore]
+    public int ResolvedSupplementaryCode { get; private set; }
+
+    /// <summary>
     /// The NAPLPS system this state belongs to. Set at parse time; drives Prodigy-specific text
     /// metrics (MVDI vector-font advance widths) and defaults. Preserved across per-command clones.
     /// </summary>
@@ -263,27 +284,38 @@ public class NaplpsState
     /// </summary>
     public NaplpsCommandReference? ResolveByte(byte opcode)
     {
-        if (PendingSingleShift.HasValue)
+        ResolvedFromSupplementary = false;
+        ResolvedSupplementaryCode = 0;
+
+        NaplpsCommandReference? chosen;
+
+        // SS2/SS3 only affect the GL or GR areas, not C0/C1.
+        if (PendingSingleShift.HasValue && (opcode is >= 0x20 and <= 0x7F || opcode >= 0xA0))
         {
             var alt = GetGsetTable(PendingSingleShift.Value);
+            PendingSingleShift = null;
+            int idx = opcode <= 0x7F ? opcode - 0x20 : opcode - 0xA0;
+            chosen = idx >= 0 && idx < alt.Length ? alt[idx] : null;
+        }
+        else
+        {
+            chosen = InUseTable[opcode];
+        }
 
-            // SS2/SS3 only affect the GL or GR areas, not C0/C1.
-            if (opcode >= 0x20 && opcode <= 0x7F)
+        // Tag when the resolved character came from the G2 supplementary set (single-shifted or
+        // locking-shifted into GL/GR). Keyed on set identity so a re-designated G2 doesn't match.
+        if (chosen != null && (opcode is >= 0x20 and <= 0x7F || opcode >= 0xA0))
+        {
+            int g2idx = opcode <= 0x7F ? opcode - 0x20 : opcode - 0xA0;
+            if (g2idx >= 0 && g2idx < SupplementaryCharacterSet.Length
+                && ReferenceEquals(chosen, SupplementaryCharacterSet[g2idx]))
             {
-                PendingSingleShift = null;
-                int idx = opcode - 0x20;
-                return idx >= 0 && idx < alt.Length ? alt[idx] : null;
-            }
-
-            if (opcode >= 0xA0)
-            {
-                PendingSingleShift = null;
-                int idx = opcode - 0xA0;
-                return idx >= 0 && idx < alt.Length ? alt[idx] : null;
+                ResolvedFromSupplementary = true;
+                ResolvedSupplementaryCode = 0x20 + g2idx;
             }
         }
 
-        return InUseTable[opcode];
+        return chosen;
     }
 
     /// <summary>Peek-style byte resolution that does NOT consume PendingSingleShift.</summary>

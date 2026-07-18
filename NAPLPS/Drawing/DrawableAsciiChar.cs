@@ -391,17 +391,18 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
-        // NOTE: ANSI X3.110 §5.3.2.1 specifies that non-spacing accents compose onto the
-        // FOLLOWING spacing char (overlay at same pen). The infrastructure for that is in
-        // place via AsciiCharCommand.OverlayAccent + NaplpsState.PendingAccentChar — to
-        // wire it up, early-return here when IsNonSpacing and add an extra Draw call when
-        // OverlayAccent.HasValue. Currently disabled to preserve PP3-matching visual
-        // baselines (existing render output of ec1060.nap and similar files relies on
-        // accents drawing as standalone glyphs, not composites).
         // Vector-stroke glyphs, drawn with the integer pel plotter to match the device character
         // generator. This is the Prodigy default (see DrawMvdiFont).
         if (Options.UseMvdiFont)
         {
+            // ANSI X3.110 5.3.2.1: a non-spacing accent leaves no advance and is composed onto the
+            // FOLLOWING spacing char; it draws nothing on its own (the base glyph overlays it via
+            // OverlayAccentCode). See DrawMvdiFont.
+            if (_command.IsNonSpacing)
+            {
+                return;
+            }
+
             DrawMvdiFont(image, state, size, _command.AsciiCharacter);
             return;
         }
@@ -453,7 +454,9 @@ public class DrawableAsciiChar : Drawable, IDrawable
         // under PROPORTIONAL spacing it left-justifies (subtract the bearing). The vertical scale is
         // 7/3 device px per grid unit at CharSize.Y=10/256, baseline (gridY=2) at +6px, cap (gridY=8)
         // at +20px above the pen.
-        var glyph = MvdiFont.ForChar(glyphChar);
+        var glyph = _command.IsSupplementary
+            ? MvdiFont.ForSupplementary(_command.SupplementaryCode)
+            : MvdiFont.ForChar(glyphChar);
         double csx = Math.Abs(state.CharSize.X);
         double csy = Math.Abs(state.CharSize.Y);
         int kx = (int)Math.Round(csx * 256.0);
@@ -468,10 +471,9 @@ public class DrawableAsciiChar : Drawable, IDrawable
         double penXf = (double)state.Pen.X * size.Width;
         double u = MvdiFont.HorizStep(kx);
         double yScale = csy * size.Width / 75.0;
-        int lb = glyph.LeftBearing;
 
         bool fixedSpacing = state.TextSpacing != TextSpacing.Proportional;
-        int DevX(int gridX) => (int)Math.Round(penXf + u * (fixedSpacing ? gridX : gridX - lb), MidpointRounding.AwayFromZero);
+        int DevX(int gridX, int lb) => (int)Math.Round(penXf + u * (fixedSpacing ? gridX : gridX - lb), MidpointRounding.AwayFromZero);
         int DevY(int gridY) => penYdev - (int)Math.Round(yScale * (7 * gridY + 4));
 
         // MVDI stamps a NON-SQUARE device pel (path point at top-left, extends right and down).
@@ -505,12 +507,26 @@ public class DrawableAsciiChar : Drawable, IDrawable
             return new PointF(penXdev + rx, penYdev + ry);
         }
 
-        var segs = glyph.Segments;
-        for (int i = 0; i + 3 < segs.Length; i += 4)
+        void DrawGlyph(MvdiFont.Glyph gl)
         {
-            var p1 = RotPoint(DevX(segs[i]), DevY(segs[i + 1]));
-            var p2 = RotPoint(DevX(segs[i + 2]), DevY(segs[i + 3]));
-            DrawableLine.PlotSweptPelLine(image, p1, p2, pelLo, pelHiX, pelLo, pelHiY, fgColor);
+            var segs = gl.Segments;
+            for (int i = 0; i + 3 < segs.Length; i += 4)
+            {
+                var p1 = RotPoint(DevX(segs[i], gl.LeftBearing), DevY(segs[i + 1]));
+                var p2 = RotPoint(DevX(segs[i + 2], gl.LeftBearing), DevY(segs[i + 3]));
+                DrawableLine.PlotSweptPelLine(image, p1, p2, pelLo, pelHiX, pelLo, pelHiY, fgColor);
+            }
+        }
+
+        DrawGlyph(glyph);
+
+        // ANSI X3.110 5.3.2.1: a pending non-spacing accent composes onto this base glyph at the
+        // same pen. The MVDI supplementary mark is pre-positioned in the cell grid (above-letter
+        // marks at y=8..9, below-letter at y=0..2), so it overlays with the identical grid->device
+        // mapping. The accent left-justifies by its own bearing under proportional spacing.
+        if (_command.OverlayAccentCode is int accentCode)
+        {
+            DrawGlyph(MvdiFont.ForSupplementary(accentCode));
         }
 
         if (state.IsUnderline)

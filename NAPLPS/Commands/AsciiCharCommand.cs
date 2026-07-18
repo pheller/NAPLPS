@@ -8,31 +8,6 @@ namespace NAPLPS.Commands;
 public class AsciiCharCommand : NaplpsCommand
 {
     /// <summary>
-    /// NAPLPS supplementary set non-spacing accent characters (positions 0x40-0x4F).
-    /// These are drawn without advancing the cursor, allowing composite characters
-    /// (accent + base letter at the same position).
-    /// </summary>
-    private static readonly HashSet<char> NonSpacingAccents = new()
-    {
-        '\u2192', // vector overbar (mapped to → in supplementary set)
-        '\u0060', // grave accent `
-        '\u00B4', // acute accent ´
-        '\u02C6', // circumflex ˆ
-        '\u007E', // tilde ~ (non-spacing when from supplementary set)
-        '\u00AF', // macron ¯
-        '\u02D8', // breve ˘
-        '\u02D9', // dot above ˙
-        '\u00A8', // diaeresis ¨
-        // '\u002F' — slash / is also in this range but conflicts with ASCII
-        '\u02DA', // ring above ˚
-        '\u00B8', // cedilla ¸
-        // '\u005F' — underscore _ conflicts with ASCII
-        '\u02DD', // double acute ˝
-        '\u02DB', // ogonek ˛
-        '\u02C7', // caron ˇ
-    };
-
-    /// <summary>
     /// ANSI X3.110: Special characters that allow mid-word breaking when embedded
     /// within a word (not at beginning or end) during word wrap.
     /// </summary>
@@ -43,6 +18,16 @@ public class AsciiCharCommand : NaplpsCommand
     };
 
     public char AsciiCharacter { get; }
+
+    /// <summary>
+    /// True if this character was resolved from the G2 Supplementary set (via SS2 or a locking
+    /// shift). Selects the MVDI supplementary glyph table for rendering. See
+    /// <see cref="SupplementaryCode"/>.
+    /// </summary>
+    public bool IsSupplementary { get; }
+
+    /// <summary>G2 code (0x20..0x7F) when <see cref="IsSupplementary"/>; 0 otherwise.</summary>
+    public int SupplementaryCode { get; }
 
     /// <summary>
     /// True if this character is a non-spacing accent from the supplementary set.
@@ -63,14 +48,25 @@ public class AsciiCharCommand : NaplpsCommand
     /// </summary>
     public char? OverlayAccent { get; }
 
+    /// <summary>
+    /// G2 code (0x20..0x7F) of the accent to overlay, alongside <see cref="OverlayAccent"/>.
+    /// Selects the MVDI supplementary glyph the renderer composes onto this base glyph.
+    /// </summary>
+    public int? OverlayAccentCode { get; }
+
     public AsciiCharCommand(char asciiCharacter, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         AsciiCharacter = asciiCharacter;
 
-        // Non-spacing accents from the supplementary set don't advance the cursor.
-        // Only treat as non-spacing if the character is NOT in the basic ASCII range
-        // (avoids false positives for ~ and _ which exist in both sets).
-        IsNonSpacing = asciiCharacter > 0x7E && NonSpacingAccents.Contains(asciiCharacter);
+        // Supplementary-set origin is tagged by NaplpsState.ResolveByte for the byte just
+        // resolved into this command (SS2 single-shift or LS2/LS2R locking shift).
+        IsSupplementary = state.ResolvedFromSupplementary;
+        SupplementaryCode = state.ResolvedSupplementaryCode;
+
+        // Non-spacing accents are the supplementary column 0x40-0x4F (diacritical marks). They
+        // leave no advance and compose onto the following spacing char. Keying on the G2 code
+        // (not the Unicode char) correctly catches the ASCII-range marks grave/tilde/slash/_.
+        IsNonSpacing = IsSupplementary && SupplementaryCode is >= 0x40 and <= 0x4F;
 
         state.AutoWrapJustOccurred = false;
 
@@ -79,6 +75,7 @@ public class AsciiCharCommand : NaplpsCommand
             // §5.3.2.1: accent waits for the next spacing char to compose onto.
             // Pen is intentionally NOT advanced.
             state.PendingAccentChar = asciiCharacter;
+            state.PendingAccentCode = SupplementaryCode;
         }
 
         if (!IsNonSpacing)
@@ -88,7 +85,9 @@ public class AsciiCharCommand : NaplpsCommand
             if (state.PendingAccentChar.HasValue)
             {
                 OverlayAccent = state.PendingAccentChar;
+                OverlayAccentCode = state.PendingAccentCode;
                 state.PendingAccentChar = null;
+                state.PendingAccentCode = null;
             }
 
             MovePen(state);
