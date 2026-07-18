@@ -37,10 +37,14 @@ public class DrawablePoint : Drawable, IDrawable
         }
 
 
-        var logicalPel = _command.LogicalPel;
-        var scaledLogicalPel = GetScaledLogicalPel(size);
-        var width = scaledLogicalPel.X;
-        var height = scaledLogicalPel.Y;
+        // MVDI stamps a POINT as its logical pel RECTANGLE, anchored at the path point and
+        // extending per the pel sign (right/left, up/down) - identical to the swept pel a LINE
+        // lays down at each endpoint. The old centered EllipsePolygon collapsed anisotropic pels
+        // (e.g. a 20x2 horizontal-bar pel or a 5x19 vertical-bar pel, as used by the calligraphic
+        // title artwork in bantam-doubleday-dell) into a thin lens, thinning/breaking the strokes.
+        var (dxMin, dxMax, dyMin, dyMax) = GetPelOffsets(size);
+        float pelW = MathF.Max(1f, dxMax - dxMin);
+        float pelH = MathF.Max(1f, dyMax - dyMin);
 
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
 
@@ -48,8 +52,8 @@ public class DrawablePoint : Drawable, IDrawable
         {
             foreach (var center in points)
             {
-                var ellipse = new EllipsePolygon(center.X, center.Y, width > 0 ? width : 1f, height > 0 ? height : 1f);
-                x.Fill(brush, ellipse);
+                var rect = new RectangleF(center.X + dxMin, center.Y + dyMin, pelW, pelH);
+                x.Fill(brush, rect);
             }
         });
     }

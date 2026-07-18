@@ -35,13 +35,25 @@ public class DrawableRectangleFilled : Drawable, IDrawable
         );
 
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
-        var rect = new RectangularPolygon(new PointF(x1, y1), new PointF(x2, y2));
+        var fillOptions = FillOptions();
+
+        // Authentic mode: the device's filled region includes the boundary pel swept outward
+        // (right + up for a positive pel), which an exact-bounds fill omits and leaves ~1 pel
+        // short on the top and right edges. Extend the fill by the round-half-up pel on the
+        // pel-anchored edges; the outline still tracks the true bounds.
+        int fx1 = x1, fy1 = y1, fx2 = x2, fy2 = y2;
+        if (Options.AuthenticGeometry)
+        {
+            var (ox0, ox1, oy0, oy1, _) = GetDashPel(size);
+            fx1 += ox0; fy1 += oy0; fx2 += ox1; fy2 += oy1;
+        }
+        var rect = new RectangularPolygon(new PointF(fx1, fy1), new PointF(fx2, fy2));
 
         image.Mutate(x =>
         {
             if (_command.ShouldFill)
             {
-                x.Fill(brush, rect);
+                x.Fill(fillOptions, brush, rect);
             }
 
             if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
@@ -54,7 +66,7 @@ public class DrawableRectangleFilled : Drawable, IDrawable
                 var outlinePen = _command.Texture.ShouldHighlight
                     ? Pens.Solid(GetOutlineColor(), outlineWidth)
                     : GetTexturedPen(GetOutlineColor(), outlineWidth);
-                x.Draw(outlinePen, insetRect);
+                x.Draw(fillOptions, outlinePen, insetRect);
             }
         });
     }

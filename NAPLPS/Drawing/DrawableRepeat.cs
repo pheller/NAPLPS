@@ -41,15 +41,15 @@ public class DrawableRepeat : Drawable, IDrawable
         {
             var countByte = _command.Operands[0];
 
-            // Values below 0x40 are invalid — discard
-            if (countByte < 0x40)
+            // NAPLPS: the repeat count is bits 6 through 1 of the byte following REPEAT; the byte
+            // is discarded unless bits 7..1 fall in 0x40..0x7F (7-bit) or 0xC0..0xFF (8-bit high
+            // bit set). So gate on the low 7 bits and take the low 6 bits as the count.
+            if ((countByte & 0x7F) < 0x40)
             {
                 return 0;
             }
 
-            // 8-bit mode: count bytes 0xC0-0xFF have 0x40 subtracted to get the repeat count
-            // 7-bit mode: count bytes 0x40-0x7F are used directly as the repeat count
-            return countByte >= 0xC0 ? countByte - 0x40 : countByte;
+            return countByte & 0x3F;
         }
 
         return 0;

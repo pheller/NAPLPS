@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
+// Copyright (c) 2026 FoxCouncil & Contributors - https://github.com/FoxCouncil/NAPLPS
 
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
@@ -8,6 +8,16 @@ namespace NAPLPS.Drawing;
 
 public class DrawablePolygon : Drawable, IDrawable
 {
+    // Authentic-mode geometry: the MVDI device samples the pel by its corner, not its centre, and
+    // its vertical pel spans a full row while the horizontal spans a half (from the display-ratio Y
+    // compression). ImageSharp's non-AA fill/stroke is centre-sampled, so polygons land ~1 pel thin
+    // on their top/left edges. Shifting the vertices by this pel-corner offset recovers those edge
+    // pels for both the fill and the outline stroke. Calibrated against the reference render: reduces the
+    // Ads/main corpus mean 0.74 -> 0.67% and the Screens mean 2.74 -> 2.53% (both improve; applying
+    // it to fill only was worse, since much of the corpus is outlined polygon line-art).
+    private const float PelCornerOffsetX = 0.5f;
+    private const float PelCornerOffsetY = -1.0f;
+
     private readonly PolygonCommand _command;
 
     public DrawablePolygon(PolygonCommand command) : base(command)
@@ -23,13 +33,17 @@ public class DrawablePolygon : Drawable, IDrawable
             return;
         }
 
-        var polygonPoints = new List<PointF>();
+        float ox = Options.AuthenticGeometry ? PelCornerOffsetX : 0f;
+        float oy = Options.AuthenticGeometry ? PelCornerOffsetY : 0f;
+
+        var polygonPoints = new List<PointF>();   // pel-corner-shifted: fill + non-authentic outline
+        var rawPoints = new List<PointF>();         // unshifted device points: authentic swept-pel outline
 
         foreach (var drawPoint in _command.Points)
         {
             var polyPoint = NaplpsUtils.ConvertNormalizedToPoint(size, drawPoint.X, drawPoint.Y);
-
-            polygonPoints.Add(new PointF(polyPoint.X, polyPoint.Y));
+            polygonPoints.Add(new PointF(polyPoint.X + ox, polyPoint.Y + oy));
+            rawPoints.Add(new PointF(polyPoint.X, polyPoint.Y));
         }
 
         if (polygonPoints.Count <= 1)
@@ -40,21 +54,51 @@ public class DrawablePolygon : Drawable, IDrawable
         var polygon = new Polygon(polygonPoints.ToArray());
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
 
+        var fillOptions = FillOptions();
+
+        bool wantOutline = !_command.ShouldFill || _command.Texture.ShouldHighlight;
+
+        // A highlighted outline is always solid; a plain outline follows the current line texture.
+        bool solidOutline = _command.Texture.ShouldHighlight || _command.Texture.LineTexture == NaplpsTexture.LineTextures.Solid;
+
+        // Authentic mode: plot the perimeter with the integer pel swept from the boundary corner
+        // outward (right + up for a positive pel) - the SAME shared pel plotter MVDI uses for straight
+        // lines and outlined rects, not an anti-aliased centre-sampled pen. A centred pen sits half
+        // its width down-left of the true boundary, shifting outlined glyphs (e.g. the Sheraton
+        // wordmark "o", an octagonal outlined polygon) down-left of the reference render.
+        bool authenticOutline = wantOutline && solidOutline && Options.AuthenticGeometry;
+
         image.Mutate(x =>
         {
             if (_command.ShouldFill)
             {
-                x.Fill(brush, polygon);
+                x.Fill(fillOptions, brush, polygon);
             }
 
-            if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+            if (wantOutline && !authenticOutline)
             {
                 float outlineWidth = GetPenWidth(size);
                 var outlinePen = _command.Texture.ShouldHighlight
                     ? Pens.Solid(GetOutlineColor(), outlineWidth)
                     : GetTexturedPen(GetOutlineColor(), outlineWidth);
-                x.Draw(outlinePen, polygon);
+                x.Draw(fillOptions, outlinePen, polygon);
             }
         });
+
+        if (authenticOutline)
+        {
+            var color = GetOutlineColor();
+            var (dxMin, dxMax, dyMin, dyMax) = GetPelOffsets(size);
+            for (int i = 0; i < rawPoints.Count - 1; i++)
+            {
+                DrawableLine.PlotSweptPelLine(image, rawPoints[i], rawPoints[i + 1], dxMin, dxMax, dyMin, dyMax, color);
+            }
+
+            // Close the ring if the vertex list is not already closed (last == first).
+            if (rawPoints[^1] != rawPoints[0])
+            {
+                DrawableLine.PlotSweptPelLine(image, rawPoints[^1], rawPoints[0], dxMin, dxMax, dyMin, dyMax, color);
+            }
+        }
     }
 }
