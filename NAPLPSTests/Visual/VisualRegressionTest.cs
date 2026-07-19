@@ -47,7 +47,7 @@ public class VisualRegressionTest
 
         try
         {
-            apng = VisualTestContext.RenderApng(fullPath);
+            apng = VisualTestContext.RenderApng(fullPath, VisualTestContext.GetForcedSystemType(relativePath));
         }
         catch (Exception ex)
         {

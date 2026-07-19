@@ -117,9 +117,33 @@ public static class VisualTestContext
         EnsureDirectories();
     }
 
-    public static Image<Rgba32> RenderApng(string exampleFilePath)
+    /// <summary>
+    /// Corpus directories (top-level under Examples/) whose files are known-Prodigy regardless of
+    /// header detection. About a third of the preview-disk corpus lacks the A1 C8 domain marker
+    /// (two Ads files even start with 0x0E and would misdetect as Telidon); forcing the system
+    /// type at parse routes them through the authentic Prodigy pipeline so its rendering is
+    /// baseline-protected too. Forcing is a no-op for files that already carry the marker.
+    /// </summary>
+    private static readonly HashSet<string> ForcedProdigyDirs = new(StringComparer.OrdinalIgnoreCase)
     {
-        var naplps = NaplpsFormat.FromFile(exampleFilePath);
+        "Ads From Preview Disks",
+        "Screens From Preview Disks",
+        "Anthony Wetzel",
+        "Cyd Gorman 1",
+        "Cyd Gorman 2",
+    };
+
+    /// <summary>Forced system type for a corpus file, keyed on its top-level directory; null = autodetect.</summary>
+    public static NaplpsSystemType? GetForcedSystemType(string relativePath)
+    {
+        var topDir = relativePath.Replace('\\', '/').Split('/')[0];
+
+        return ForcedProdigyDirs.Contains(topDir) ? NaplpsSystemType.Prodigy : null;
+    }
+
+    public static Image<Rgba32> RenderApng(string exampleFilePath, NaplpsSystemType? forcedSystemType = null)
+    {
+        var naplps = NaplpsFormat.FromFile(exampleFilePath, forcedSystemType);
 
         using var drawContext = new DrawContext(naplps, new SixLabors.ImageSharp.Size(CanvasWidth, CanvasHeight));
 
