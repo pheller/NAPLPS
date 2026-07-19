@@ -313,12 +313,18 @@ public class AsciiCharCommand : NaplpsCommand
             advance = state.CharSize.X * spacingMultiplier;
         }
 
+        // Vertical paths: proportional spacing advances by the same normalized per-glyph metric as
+        // horizontal text, applied along Y (confirmed against the reference render - rotated
+        // proportional runs pitch at the glyph's proportional advance, not the char-cell height).
+        // Fixed spacing keeps the char-cell height.
+        float verticalAdvance = state.TextSpacing == TextSpacing.Proportional ? advance : state.CharSize.Y;
+
         switch (state.TextPath)
         {
             case TextPath.Right: pen.X += advance; break;
             case TextPath.Left: pen.X -= advance; break;
-            case TextPath.Up: pen.Y += state.CharSize.Y; break;
-            case TextPath.Down: pen.Y -= state.CharSize.Y; break;
+            case TextPath.Up: pen.Y += verticalAdvance; break;
+            case TextPath.Down: pen.Y -= verticalAdvance; break;
         }
 
         state.Pen = pen;
