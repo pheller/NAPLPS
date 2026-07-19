@@ -377,8 +377,9 @@ public partial class MainWindow : Window
             var controlSize = canvas.Bounds.Size;
             var additive = (e.KeyModifiers & (KeyModifiers.Shift | KeyModifiers.Control)) != 0;
             var ctrlHeld = (e.KeyModifiers & KeyModifiers.Control) != 0;
+            var shiftHeld = (e.KeyModifiers & KeyModifiers.Shift) != 0;
             vm.SetClickCount(e.ClickCount);
-            vm.OnEditorPointerPressed(pos, controlSize, e.GetCurrentPoint(canvas).Properties.IsRightButtonPressed, additive, ctrlHeld);
+            vm.OnEditorPointerPressed(pos, controlSize, e.GetCurrentPoint(canvas).Properties.IsRightButtonPressed, additive, ctrlHeld, shiftHeld);
             UpdatePreviewOverlay(vm, canvas);
         }
     }
@@ -400,7 +401,8 @@ public partial class MainWindow : Window
         {
             var pos = e.GetPosition(canvas);
             var controlSize = canvas.Bounds.Size;
-            vm.OnEditorPointerReleased(pos, controlSize);
+            var shiftHeld = (e.KeyModifiers & KeyModifiers.Shift) != 0;
+            vm.OnEditorPointerReleased(pos, controlSize, shiftHeld);
 
             // SelectTool keeps a preview (selection outline) after release, and multi-click
             // tools like Polygon keep one during the click sequence. Only clear when the VM
@@ -438,6 +440,33 @@ public partial class MainWindow : Window
         var controlSize = canvas.Bounds.Size;
         var canvasSize = vm.GetSizeObj();
         var stretch = vm.ImageStretch;
+
+        // Faint full-circle ghost (the circle the arc lies on) — added first so the dashed arc
+        // and cyan handles paint on top. The mapper is non-square (Y is 0..0.75), so probe the
+        // X and Y radii separately rather than assuming a circle stays circular on screen.
+        if (preview.GhostCenter is { } ghostC && preview.GhostRadius > 0)
+        {
+            var gcp = CoordinateMapper.NaplpsToScreen(ghostC.X, ghostC.Y, controlSize, canvasSize, stretch);
+            var gex = CoordinateMapper.NaplpsToScreen(ghostC.X + preview.GhostRadius, ghostC.Y, controlSize, canvasSize, stretch);
+            var gey = CoordinateMapper.NaplpsToScreen(ghostC.X, ghostC.Y + preview.GhostRadius, controlSize, canvasSize, stretch);
+            double grx = Math.Abs(gex.X - gcp.X), gry = Math.Abs(gey.Y - gcp.Y);
+            if (grx > 0 && gry > 0)
+            {
+                var ghost = new Avalonia.Controls.Shapes.Ellipse
+                {
+                    Width = grx * 2,
+                    Height = gry * 2,
+                    Stroke = new SolidColorBrush(Avalonia.Media.Colors.White),
+                    StrokeThickness = 1,
+                    StrokeDashArray = new Avalonia.Collections.AvaloniaList<double> { 2, 4 },
+                    Opacity = 0.25,
+                    IsHitTestVisible = false,
+                };
+                Canvas.SetLeft(ghost, gcp.X - grx);
+                Canvas.SetTop(ghost, gcp.Y - gry);
+                overlay.Children.Add(ghost);
+            }
+        }
 
         var dashStyle = new Avalonia.Media.DashStyle([4, 4], 0);
         var strokeBrush = preview.IsSelection

@@ -13,6 +13,10 @@ public class IncrementalPolygonTool : EditorToolBase
 
     private readonly List<(float X, float Y)> _samples = [];
 
+    public override string? ToolHint => IsDragging
+        ? $"Scribble Filled: drag a path; filled on release. {_samples.Count} sample(s)."
+        : "Scribble Filled: press and drag to trace a filled blob (IncrementalPolygonFilled).";
+
     public override void OnPointerPressed(float normX, float normY, bool isRightButton)
     {
         _samples.Clear();

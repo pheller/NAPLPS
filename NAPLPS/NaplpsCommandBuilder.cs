@@ -115,6 +115,20 @@ public static class NaplpsCommandBuilder
         return (OpArcFilled, operands);
     }
 
+    /// <summary>Draw an outlined CIRCLE: a SINGLE relative vertex (the diameter / through point).
+    /// A 1-vertex non-set arc has end coincident with start, which the parser/renderer treat as a
+    /// circle (diameter = start→vertex). Emitting two vertices would instead be a segment arc.</summary>
+    public static (byte opcode, NaplpsOperands operands) BuildArcOutlinedCircle(float midRelX, float midRelY, int multiByteValue = 3)
+    {
+        return (OpArcOutlined, NaplpsEncoder.EncodeVertex2D(midRelX, midRelY, multiByteValue));
+    }
+
+    /// <summary>Draw a filled CIRCLE: a SINGLE relative vertex (the diameter / through point).</summary>
+    public static (byte opcode, NaplpsOperands operands) BuildArcFilledCircle(float midRelX, float midRelY, int multiByteValue = 3)
+    {
+        return (OpArcFilled, NaplpsEncoder.EncodeVertex2D(midRelX, midRelY, multiByteValue));
+    }
+
     /// <summary>Set foreground color by palette index (color mode 1).</summary>
     public static (byte opcode, NaplpsOperands operands) BuildSelectColor(byte fgIndex)
     {

@@ -58,16 +58,21 @@ public class IncrementalLineTool : EditorToolBase
         return result;
     }
 
+    public override string? ToolHint => IsDragging
+        ? $"Scribble: drag a free-form path → committed as a uniform-step polyline. {_samples.Count} sample(s)."
+        : "Scribble: press and drag to trace a polyline (IncrementalLine motion codes).";
+
     public override ToolPreview? GetPreview()
     {
         if (!IsDragging || _samples.Count < 2) { return null; }
 
-        // Preview as a polyline through the accumulated samples.
+        // Preview the QUANTIZED staircase the commit will actually emit — NOT the raw samples.
+        // The mismatch between a smooth drag and the uniform-step result is exactly what made
+        // the tool feel "ambiguous"; replaying the same motion codes makes preview == result.
+        var codes = BuildMotionCodesFromSamples(_samples, out float stepDx, out float stepDy);
+        var pts = IntegrateMotionCodes(_samples[0], stepDx, stepDy, codes);
         var preview = new ToolPreview { Shape = PreviewShape.Polygon };
-        foreach (var s in _samples)
-        {
-            preview.Points.Add((s.X, s.Y));
-        }
+        foreach (var p in pts) { preview.Points.Add(p); }
         return preview;
     }
 
@@ -122,5 +127,34 @@ public class IncrementalLineTool : EditorToolBase
         }
 
         return codes.ToArray();
+    }
+
+    /// <summary>Replay the (step, codes) staircase produced by
+    /// <see cref="BuildMotionCodesFromSamples"/> back into a polyline, so a preview can show the
+    /// exact quantized path the command encodes. Mirrors the encoder's own conventions:
+    /// 0x01 = step+draw with the current sign; meta 0x00,0x01 negates signX; 0x00,0x02 negates signY.</summary>
+    internal static List<(float X, float Y)> IntegrateMotionCodes((float X, float Y) start, float stepDx, float stepDy, byte[] codes)
+    {
+        var pts = new List<(float X, float Y)> { start };
+        float x = start.X, y = start.Y;
+        int signX = 1, signY = 1;
+
+        for (int i = 0; i < codes.Length; i++)
+        {
+            if (codes[i] == 0x00)
+            {
+                i++;
+                if (i >= codes.Length) { break; }
+                if (codes[i] == 0x01) { signX = -signX; }
+                else if (codes[i] == 0x02) { signY = -signY; }
+                continue;
+            }
+
+            x += signX * stepDx;
+            y += signY * stepDy;
+            pts.Add((x, y));
+        }
+
+        return pts;
     }
 }

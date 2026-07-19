@@ -26,6 +26,11 @@ public abstract class EditorToolBase
     /// <summary>Returns a preview shape for rubber-band display, or null if nothing to preview.</summary>
     public virtual ToolPreview? GetPreview() => null;
 
+    /// <summary>Optional one-line status-bar hint telling the user what the next click/drag does
+    /// (buffered tools can include a live count). Null = no hint. Surfaced via
+    /// <see cref="ViewModels.MainWindowViewModel.ToolHint"/>.</summary>
+    public virtual string? ToolHint => null;
+
     /// <summary>
     /// Cancel any in-progress operation (e.g. mid-polygon click sequence) and reset state.
     /// Default implementation just clears the drag flag; tools with per-stroke buffers
