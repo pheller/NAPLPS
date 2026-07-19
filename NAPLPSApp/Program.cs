@@ -3,6 +3,7 @@
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Models;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -377,7 +378,9 @@ sealed class Program
             }
             else if (args[i].StartsWith("--display-ratio="))
             {
-                if (!float.TryParse(args[i]["--display-ratio=".Length..], out var dr) || dr is <= 0 or > 1)
+                // Invariant culture: "0.78" must parse the same way on comma-decimal locales.
+                if (!float.TryParse(args[i]["--display-ratio=".Length..], NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out var dr) || dr is <= 0 or > 1)
                 {
                     error = "Error: Invalid display-ratio value. Expected a value in (0, 1].";
                     break;
