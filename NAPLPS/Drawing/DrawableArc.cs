@@ -92,9 +92,24 @@ public class DrawableArc : Drawable, IDrawable
                     circlePts[i] = new PointF(centerX + circleRadius * MathF.Cos(a), centerY + circleRadius * MathF.Sin(a));
                 }
 
-                for (int j = 0; j < circlePts.Length - 1; j++)
+                // Highlight outlines are solid per spec; otherwise honor the current line texture
+                // with the same dashed-pel plot the arc path uses. The whole ring goes through one
+                // PlotDashedPolyline call so the dash phase stays continuous around the circle.
+                bool solidCircleOutline = _command.Texture.ShouldHighlight ||
+                    _command.Texture.LineTexture == NaplpsTexture.LineTextures.Solid;
+                var circlePelPattern = solidCircleOutline ? null : DrawableLine.PelDashPattern(_command.Texture.LineTexture);
+
+                if (circlePelPattern != null)
                 {
-                    DrawableLine.PlotSweptPelLine(image, circlePts[j], circlePts[j + 1], dxMin, dxMax, dyMin, dyMax, circleColor);
+                    var (ox0, ox1, oy0, oy1, pelMajor) = GetDashPel(size);
+                    DrawableLine.PlotDashedPolyline(image, circlePts, asSet: false, ox0, ox1, oy0, oy1, pelMajor, circlePelPattern, circleColor);
+                }
+                else
+                {
+                    for (int j = 0; j < circlePts.Length - 1; j++)
+                    {
+                        DrawableLine.PlotSweptPelLine(image, circlePts[j], circlePts[j + 1], dxMin, dxMax, dyMin, dyMax, circleColor);
+                    }
                 }
             }
         }
