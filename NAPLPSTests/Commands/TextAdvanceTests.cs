@@ -15,7 +15,7 @@ public class TextAdvanceTests
     [TestMethod]
     public void VerticalProportionalText_AdvancesByProportionalMetric()
     {
-        var bytes = System.IO.File.ReadAllBytes("examples/Anthony Wetzel/TAX2");
+        var bytes = System.IO.File.ReadAllBytes("examples/Anthony Wetzel/TAX2.nap");
         var fmt = NaplpsFormat.FromBytes(bytes, NaplpsSystemType.Prodigy);
         using var ctx = new DrawContext(fmt, new SixLabors.ImageSharp.Size(640, 480));
         ctx.Render();

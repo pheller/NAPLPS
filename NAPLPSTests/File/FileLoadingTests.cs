@@ -89,7 +89,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadAudi1()
     {
-        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/AUDI1");
+        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/AUDI1.nap");
 
         Assert.IsNotNull(file);
 
@@ -105,7 +105,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadCoke1()
     {
-        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/COKE1");
+        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/COKE1.nap");
 
         Assert.IsNotNull(file);
 
