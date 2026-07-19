@@ -34,4 +34,10 @@ public class ToolPreview
     /// <summary>Vertex handles painted as small squares on top of the selection outline.
     /// Used by SelectTool to show draggable anchors on the selected command's vertices.</summary>
     public List<(float X, float Y)> Handles { get; set; } = [];
+
+    /// <summary>Optional faint full-circle ghost the arc lies on (normalized centre + normalized
+    /// radius). Null centre = no ghost. Drawn under the dashed preview + handles so the user can
+    /// see which circle a click-on-start / Shift-snap will produce.</summary>
+    public (float X, float Y)? GhostCenter { get; set; }
+    public float GhostRadius { get; set; }
 }

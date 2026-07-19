@@ -16,6 +16,10 @@ public class IncrementalPointTool : EditorToolBase
 
     private readonly HashSet<(int col, int row)> _paintedCells = [];
 
+    public override string? ToolHint => IsDragging
+        ? $"Raster Paint: drag to paint 1-bit pels on a {PixelSize:0.###}-unit grid. {_paintedCells.Count} cell(s)."
+        : "Raster Paint: press and drag to paint a pixel grid (IncrementalPoint raster brush).";
+
     public override void OnPointerPressed(float normX, float normY, bool isRightButton)
     {
         _paintedCells.Clear();

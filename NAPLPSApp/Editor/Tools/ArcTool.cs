@@ -16,6 +16,15 @@ public class ArcTool : EditorToolBase
 
     private readonly List<(float X, float Y)> _clickPoints = [];
 
+    /// <summary>Shift on the final click projects the end onto the circle defined by start +
+    /// through-point, for a clean circular arc instead of a free circumcircle through 3 points.
+    /// Set by the ViewModel from the keyboard modifier state.</summary>
+    public bool ConstrainToCircle { get; set; }
+
+    /// <summary>A final click within this normalized distance (per axis) of the start point emits
+    /// a full circle. Matches PolygonTool's close-snap so the felt tolerance is familiar.</summary>
+    private const float SnapRadius = 0.02f;
+
     public override void OnPointerPressed(float normX, float normY, bool isRightButton)
     {
         if (isRightButton)
@@ -44,7 +53,7 @@ public class ArcTool : EditorToolBase
             return [];
         }
 
-        // We have 3 clicks: start, mid, end
+        // We have 3 clicks: start, mid (through), end
         var start = _clickPoints[0];
         var mid = _clickPoints[1];
         var end = _clickPoints[2];
@@ -54,19 +63,34 @@ public class ArcTool : EditorToolBase
         // Move pen to start
         commands.Add(NaplpsCommandBuilder.BuildPointSetAbsolute(start.X, start.Y));
 
-        // Arc operands are relative: mid-start, end-start
+        // Arc operands are relative: mid-start (and, for a segment, end-start).
         float midRelX = mid.X - start.X;
         float midRelY = mid.Y - start.Y;
-        float endRelX = end.X - start.X;
-        float endRelY = end.Y - start.Y;
 
-        if (IsFilled)
+        // Final click landing on the start point => CIRCLE form (single vertex = the diameter /
+        // through point). A 1-vertex arc is otherwise impossible to hit by pixel-perfect clicking.
+        bool closeToStart = MathF.Abs(end.X - start.X) <= SnapRadius && MathF.Abs(end.Y - start.Y) <= SnapRadius;
+
+        if (closeToStart)
         {
-            commands.Add(NaplpsCommandBuilder.BuildArcFilled(midRelX, midRelY, endRelX, endRelY));
+            commands.Add(IsFilled
+                ? NaplpsCommandBuilder.BuildArcFilledCircle(midRelX, midRelY)
+                : NaplpsCommandBuilder.BuildArcOutlinedCircle(midRelX, midRelY));
         }
         else
         {
-            commands.Add(NaplpsCommandBuilder.BuildArcOutlined(midRelX, midRelY, endRelX, endRelY));
+            // Shift snaps the end onto the start+through-point circle for a clean circular arc.
+            if (ConstrainToCircle)
+            {
+                var (c, r) = CircleFromDiameter(start, mid);
+                end = ProjectOntoCircle(c, r, end);
+            }
+
+            float endRelX = end.X - start.X;
+            float endRelY = end.Y - start.Y;
+            commands.Add(IsFilled
+                ? NaplpsCommandBuilder.BuildArcFilled(midRelX, midRelY, endRelX, endRelY)
+                : NaplpsCommandBuilder.BuildArcOutlined(midRelX, midRelY, endRelX, endRelY));
         }
 
         _clickPoints.Clear();
@@ -107,12 +131,55 @@ public class ArcTool : EditorToolBase
         var mid   = _clickPoints[1];
         var end   = _clickPoints.Count >= 3 ? _clickPoints[2] : (CurrentX, CurrentY);
 
+        // Faint full-circle ghost (diameter = start→through-point) so the user can see exactly
+        // which circle a click-on-start or a Shift-snap will produce.
+        var (gc, gr) = CircleFromDiameter(start, mid);
+        preview.GhostCenter = gc;
+        preview.GhostRadius = gr;
+
+        // Shift constrains the live end onto that circle for a clean circular arc.
+        if (ConstrainToCircle && _clickPoints.Count < 3)
+        {
+            end = ProjectOntoCircle(gc, gr, end);
+        }
+
         foreach (var p in SampleArcCurve(start, mid, end))
         {
             preview.Points.Add(p);
         }
 
         return preview;
+    }
+
+    public override void Reset()
+    {
+        _clickPoints.Clear();
+        base.Reset();
+    }
+
+    public override string? ToolHint => _clickPoints.Count switch
+    {
+        0 => "Arc: click the START point",
+        1 => "Arc: click a point the arc passes THROUGH (same spot as start makes a circle)",
+        2 => "Arc: click END  —  Shift snaps onto the circle, click on START for a full circle",
+        _ => null
+    };
+
+    /// <summary>Circle whose diameter is the segment start→mid (matches DrawableArc's circle form).</summary>
+    private static ((float X, float Y) center, float r) CircleFromDiameter((float X, float Y) start, (float X, float Y) mid)
+    {
+        var c = ((start.X + mid.X) * 0.5f, (start.Y + mid.Y) * 0.5f);
+        float r = MathF.Sqrt((mid.X - start.X) * (mid.X - start.X) + (mid.Y - start.Y) * (mid.Y - start.Y)) * 0.5f;
+        return (c, r);
+    }
+
+    /// <summary>Project point p radially onto the circle (center c, radius r).</summary>
+    private static (float X, float Y) ProjectOntoCircle((float X, float Y) c, float r, (float X, float Y) p)
+    {
+        float dx = p.X - c.X, dy = p.Y - c.Y;
+        float d = MathF.Sqrt(dx * dx + dy * dy);
+        if (d < 1e-6f) { return (c.X + r, c.Y); }
+        return (c.X + dx / d * r, c.Y + dy / d * r);
     }
 
     /// <summary>Sample N points along the circular arc that passes through a, b, c

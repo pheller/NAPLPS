@@ -506,6 +506,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private string coordReadout = string.Empty;
 
+    /// <summary>Status-bar guidance for the active tool (arc click stages, incremental sample
+    /// counts, etc.). Empty = nothing to show. Driven from the active tool's ToolHint.</summary>
+    [ObservableProperty]
+    private string toolHint = string.Empty;
+
     /// <summary>True while the macro recorder is actively capturing tool commits into the macro buffer.</summary>
     [ObservableProperty]
     private bool isMacroRecording;
@@ -1304,6 +1309,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             st.SelectedIndex = -1;
             SelectedCommandIndex = -1;
         }
+
+        ToolHint = ActiveTool.ToolHint ?? string.Empty;
     }
 
     [RelayCommand]
@@ -1390,6 +1397,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             ActiveTool.Reset();
         }
         EditorPreview = null;
+        ToolHint = ActiveTool?.ToolHint ?? string.Empty;
     }
 
     /// <summary>
@@ -1813,7 +1821,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     // Called from MainWindow code-behind
-    public void OnEditorPointerPressed(Avalonia.Point pos, Avalonia.Size controlSize, bool isRightButton, bool additive = false, bool ctrlHeld = false)
+    public void OnEditorPointerPressed(Avalonia.Point pos, Avalonia.Size controlSize, bool isRightButton, bool additive = false, bool ctrlHeld = false, bool shiftHeld = false)
     {
         if (!IsEditorMode || loadedFile == null)
         {
@@ -1841,6 +1849,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         // Ctrl-click while drawing a polygon forces a real vertex on top of the origin
         // instead of closing the shape via the auto-snap.
         polygonTool.ForceAddVertex = ctrlHeld;
+        // Shift constrains the arc's final end onto the implied start+through-point circle.
+        arcTool.ConstrainToCircle = shiftHeld;
 
         ActiveTool.OnPointerPressed(normX, normY, isRightButton);
 
@@ -1850,6 +1860,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             SelectedCommandIndex = st.SelectedIndex;
             EditorPreview = st.GetPreview();
         }
+
+        ToolHint = ActiveTool.ToolHint ?? string.Empty;
     }
 
     public void OnEditorPointerMoved(Avalonia.Point pos, Avalonia.Size controlSize)
@@ -1870,9 +1882,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         // Update rubber-band preview
         EditorPreview = ActiveTool.GetPreview();
+        ToolHint = ActiveTool.ToolHint ?? string.Empty;
     }
 
-    public async void OnEditorPointerReleased(Avalonia.Point pos, Avalonia.Size controlSize)
+    public async void OnEditorPointerReleased(Avalonia.Point pos, Avalonia.Size controlSize, bool shiftHeld = false)
     {
         if (!IsEditorMode || loadedFile == null)
         {
@@ -1884,7 +1897,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         normX = GridSettings.SnapX(normX);
         normY = GridSettings.SnapY(normY);
 
+        arcTool.ConstrainToCircle = shiftHeld;
         var commands = ActiveTool.OnPointerReleased(normX, normY);
+        ToolHint = ActiveTool.ToolHint ?? string.Empty;
 
         // Keep the selection outline up after release: SelectTool's GetPreview() returns
         // the bbox + vertex handles of the primary selection even when idle. Every other
