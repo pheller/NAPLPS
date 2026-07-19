@@ -14,6 +14,12 @@ public class SetColorCommand : NaplpsCommand
 
     public SetColorCommand(NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
+        if (State.SystemType == NaplpsSystemType.Prodigy)
+        {
+            ApplyProdigy(operands);
+            return;
+        }
+
         if (State.ColorMode == 0 && Operands.Count == 0)
         {
             State.IsTransparent = true;
@@ -92,6 +98,62 @@ public class SetColorCommand : NaplpsCommand
             // Unknown color mode combination - treat as transparent
             State.IsTransparent = true;
         }
+    }
+
+    /// <summary>
+    /// Prodigy MVDI has a fixed 16-color hardware palette (see
+    /// <see cref="NaplpsState.ColorMapProdigyDefaults"/>) and ignores SET COLOR palette
+    /// redefinition (color modes 1 and 2) - the device never reprograms the CLUT. Drawing
+    /// colors come from SELECT COLOR indexing the fixed palette. Confirmed against the reference
+    /// render.
+    /// </summary>
+    private void ApplyProdigy(NaplpsOperands operands)
+    {
+        if (Operands.Count == 0)
+        {
+            // No operands: transparent, as in the generic path. Never a palette write.
+            State.IsTransparent = true;
+            return;
+        }
+
+        // Always decode for round-trip fidelity / inspection, but do NOT write the CLUT.
+        Color = ParseColorComponents(operands);
+
+        if (State.ColorMode == 0)
+        {
+            // Mode 0 sets the drawing color directly. The hardware palette is fixed, so the
+            // color resolves to the nearest of the 16 fixed entries rather than an off-grid
+            // RGB. (The Prodigy ad/screen corpus is entirely mode 1; mode 0 is rare and the
+            // exact device mapping is not yet pinned - nearest-entry is the safe default.)
+            var entry = NearestProdigyEntry(Color);
+            State.ColorMapForeground = entry;
+            State.Foreground = State.ColorMap.TryGetValue(entry, out var fixedColor) ? fixedColor : Color;
+            State.IsTransparent = false;
+        }
+        // Mode 1 / mode 2: palette redefinition - ignored by the fixed-palette hardware. No-op.
+    }
+
+    /// <summary>Index of the fixed Prodigy palette entry closest to <paramref name="c"/> (Euclidean RGB).</summary>
+    private byte NearestProdigyEntry(NaplpsColor c)
+    {
+        byte best = State.ColorMapForeground;
+        long bestDist = long.MaxValue;
+
+        foreach (var kvp in State.ColorMap)
+        {
+            long dr = kvp.Value.Red - c.Red;
+            long dg = kvp.Value.Green - c.Green;
+            long db = kvp.Value.Blue - c.Blue;
+            long dist = dr * dr + dg * dg + db * db;
+
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                best = kvp.Key;
+            }
+        }
+
+        return best;
     }
 
     private static NaplpsColor ParseColorComponents(NaplpsOperands operands)

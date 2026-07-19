@@ -8,31 +8,6 @@ namespace NAPLPS.Commands;
 public class AsciiCharCommand : NaplpsCommand
 {
     /// <summary>
-    /// NAPLPS supplementary set non-spacing accent characters (positions 0x40-0x4F).
-    /// These are drawn without advancing the cursor, allowing composite characters
-    /// (accent + base letter at the same position).
-    /// </summary>
-    private static readonly HashSet<char> NonSpacingAccents = new()
-    {
-        '\u2192', // vector overbar (mapped to → in supplementary set)
-        '\u0060', // grave accent `
-        '\u00B4', // acute accent ´
-        '\u02C6', // circumflex ˆ
-        '\u007E', // tilde ~ (non-spacing when from supplementary set)
-        '\u00AF', // macron ¯
-        '\u02D8', // breve ˘
-        '\u02D9', // dot above ˙
-        '\u00A8', // diaeresis ¨
-        // '\u002F' — slash / is also in this range but conflicts with ASCII
-        '\u02DA', // ring above ˚
-        '\u00B8', // cedilla ¸
-        // '\u005F' — underscore _ conflicts with ASCII
-        '\u02DD', // double acute ˝
-        '\u02DB', // ogonek ˛
-        '\u02C7', // caron ˇ
-    };
-
-    /// <summary>
     /// ANSI X3.110: Special characters that allow mid-word breaking when embedded
     /// within a word (not at beginning or end) during word wrap.
     /// </summary>
@@ -43,6 +18,16 @@ public class AsciiCharCommand : NaplpsCommand
     };
 
     public char AsciiCharacter { get; }
+
+    /// <summary>
+    /// True if this character was resolved from the G2 Supplementary set (via SS2 or a locking
+    /// shift). Selects the MVDI supplementary glyph table for rendering. See
+    /// <see cref="SupplementaryCode"/>.
+    /// </summary>
+    public bool IsSupplementary { get; }
+
+    /// <summary>G2 code (0x20..0x7F) when <see cref="IsSupplementary"/>; 0 otherwise.</summary>
+    public int SupplementaryCode { get; }
 
     /// <summary>
     /// True if this character is a non-spacing accent from the supplementary set.
@@ -63,14 +48,25 @@ public class AsciiCharCommand : NaplpsCommand
     /// </summary>
     public char? OverlayAccent { get; }
 
+    /// <summary>
+    /// G2 code (0x20..0x7F) of the accent to overlay, alongside <see cref="OverlayAccent"/>.
+    /// Selects the MVDI supplementary glyph the renderer composes onto this base glyph.
+    /// </summary>
+    public int? OverlayAccentCode { get; }
+
     public AsciiCharCommand(char asciiCharacter, NaplpsState state, byte opcode, NaplpsOperands operands) : base(state, opcode, operands)
     {
         AsciiCharacter = asciiCharacter;
 
-        // Non-spacing accents from the supplementary set don't advance the cursor.
-        // Only treat as non-spacing if the character is NOT in the basic ASCII range
-        // (avoids false positives for ~ and _ which exist in both sets).
-        IsNonSpacing = asciiCharacter > 0x7E && NonSpacingAccents.Contains(asciiCharacter);
+        // Supplementary-set origin is tagged by NaplpsState.ResolveByte for the byte just
+        // resolved into this command (SS2 single-shift or LS2/LS2R locking shift).
+        IsSupplementary = state.ResolvedFromSupplementary;
+        SupplementaryCode = state.ResolvedSupplementaryCode;
+
+        // Non-spacing accents are the supplementary column 0x40-0x4F (diacritical marks). They
+        // leave no advance and compose onto the following spacing char. Keying on the G2 code
+        // (not the Unicode char) correctly catches the ASCII-range marks grave/tilde/slash/_.
+        IsNonSpacing = IsSupplementary && SupplementaryCode is >= 0x40 and <= 0x4F;
 
         state.AutoWrapJustOccurred = false;
 
@@ -79,6 +75,7 @@ public class AsciiCharCommand : NaplpsCommand
             // §5.3.2.1: accent waits for the next spacing char to compose onto.
             // Pen is intentionally NOT advanced.
             state.PendingAccentChar = asciiCharacter;
+            state.PendingAccentCode = SupplementaryCode;
         }
 
         if (!IsNonSpacing)
@@ -88,7 +85,9 @@ public class AsciiCharCommand : NaplpsCommand
             if (state.PendingAccentChar.HasValue)
             {
                 OverlayAccent = state.PendingAccentChar;
+                OverlayAccentCode = state.PendingAccentCode;
                 state.PendingAccentChar = null;
+                state.PendingAccentCode = null;
             }
 
             MovePen(state);
@@ -149,6 +148,31 @@ public class AsciiCharCommand : NaplpsCommand
         // This handles cases where field dimensions are negative (extending off-screen).
         float fieldWidth = fieldRight - fieldLeft;
         float fieldHeight = fieldTop - fieldBottom;
+
+        // The field's line-wrap only governs text that is actually flowing within the field's
+        // rows/columns. When the pen has been explicitly moved outside the field's perpendicular
+        // extent (e.g. a fixed label drawn below the active field), the field boundary does not
+        // trigger an auto CR-LF. Gate on the perpendicular axis with one cell of tolerance.
+        bool inPerpBand;
+        switch (state.TextPath)
+        {
+            case TextPath.Right:
+            case TextPath.Left:
+                inPerpBand = pen.Y >= fieldBottom - state.CharSize.Y && pen.Y <= fieldTop + state.CharSize.Y;
+                break;
+            case TextPath.Up:
+            case TextPath.Down:
+                inPerpBand = pen.X >= fieldLeft - state.CharSize.X && pen.X <= fieldRight + state.CharSize.X;
+                break;
+            default:
+                inPerpBand = true;
+                break;
+        }
+
+        if (!inPerpBand)
+        {
+            return false;
+        }
 
         switch (state.TextPath)
         {
@@ -230,59 +254,77 @@ public class AsciiCharCommand : NaplpsCommand
         state.Pen = pen;
     }
 
-    private void MovePen(NaplpsState state)
+    private void MovePen(NaplpsState state) => AdvancePen(state, AsciiCharacter);
+
+    /// <summary>
+    /// Advances the state's pen by one character cell for <paramref name="character"/>, per the
+    /// active spacing mode and text path. Shared by normal character advance, the REPEAT parser
+    /// handler, and render-time repeat expansion so all three stay consistent.
+    /// </summary>
+    public static void AdvancePen(NaplpsState state, char character)
     {
         var pen = state.Pen;
 
-        {
-            // PP3 confirmed: Spacing=One advances by full charW (pixel-counted at 640px).
-            // Spacing=Proportional uses charW * row8[class]/8 ratio.
-            float advance;
+        // PP3 confirmed: Spacing=One advances by full charW (pixel-counted at 640px).
+        // Spacing=Proportional uses charW * row8[class]/8 ratio.
+        float advance;
 
+        if (state.SystemType == NaplpsSystemType.Prodigy)
+        {
+            // MVDI supports proportional + 3 fixed horizontal spacing modes (confirmed via the
+            // Prodigy authoring tool). Fixed spacing advances by the full character cell (device
+            // pitch = round(CharSize.X*640): 15px@0.0234, 16px@0.0250) times the fixed
+            // multiplier; proportional advances per glyph. Verified against the reference render golden
+            // run pitch.
             if (state.TextSpacing == TextSpacing.Proportional)
             {
-                // GCU confirmed: advance = charW * displacement[row][class] / n
-                // where n = floor(charW * 256), row = clamp(n, 6, 11) - 6
-                advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, AsciiCharacter);
+                // Exact Prodigy proportional advance (per-glyph integer metric keyed on AdvanceWidth
+                // + char-size register). Replaces the _displacementTable approximation that clamped
+                // size to k=6..11 and drifted.
+                advance = (float)MvdiFont.ProdigyProportionalAdvanceNorm(character, state.CharSize.X);
             }
             else
             {
-                float spacingMultiplier = state.TextSpacing switch
+                float mult = state.TextSpacing switch
                 {
                     TextSpacing.FiveQuarters => 1.25f,
                     TextSpacing.ThreeHalves => 1.5f,
                     _ => 1.0f
                 };
 
-                advance = state.CharSize.X * spacingMultiplier;
+                advance = state.CharSize.X * mult;
             }
-
-            switch (state.TextPath)
+        }
+        else if (state.TextSpacing == TextSpacing.Proportional)
+        {
+            // advance = charW * displacement[row][class] / n
+            // where n = floor(charW * 256), row = clamp(n, 6, 11) - 6
+            advance = DrawableAsciiChar.GetProportionalDisplacement(state.CharSize.X, character);
+        }
+        else
+        {
+            float spacingMultiplier = state.TextSpacing switch
             {
-                case TextPath.Right:
-                {
-                    pen.X += advance;
-                }
-                break;
+                TextSpacing.FiveQuarters => 1.25f,
+                TextSpacing.ThreeHalves => 1.5f,
+                _ => 1.0f
+            };
 
-                case TextPath.Left:
-                {
-                    pen.X -= advance;
-                }
-                break;
+            advance = state.CharSize.X * spacingMultiplier;
+        }
 
-                case TextPath.Up:
-                {
-                    pen.Y += state.CharSize.Y;
-                }
-                break;
+        // Vertical paths: proportional spacing advances by the same normalized per-glyph metric as
+        // horizontal text, applied along Y (confirmed against the reference render - rotated
+        // proportional runs pitch at the glyph's proportional advance, not the char-cell height).
+        // Fixed spacing keeps the char-cell height.
+        float verticalAdvance = state.TextSpacing == TextSpacing.Proportional ? advance : state.CharSize.Y;
 
-                case TextPath.Down:
-                {
-                    pen.Y -= state.CharSize.Y;
-                }
-                break;
-            }
+        switch (state.TextPath)
+        {
+            case TextPath.Right: pen.X += advance; break;
+            case TextPath.Left: pen.X -= advance; break;
+            case TextPath.Up: pen.Y += verticalAdvance; break;
+            case TextPath.Down: pen.Y -= verticalAdvance; break;
         }
 
         state.Pen = pen;

@@ -166,6 +166,8 @@ public class SpecComplianceTests
     {
         // Create a non-spacing accent character command
         var state = new NaplpsState();
+        state.DoSingleShiftTwo();
+        state.ResolveByte(0x42);
         var accentCmd = new AsciiCharCommand('\u00B4', state, 0x42, new NaplpsOperands([]));
 
         Assert.IsTrue(accentCmd.IsNonSpacing);
@@ -186,45 +188,106 @@ public class SpecComplianceTests
     [TestMethod]
     public void Repeat_CountByte_8BitMode_Works()
     {
-        // 8-bit mode: 0xE5 → subtract 0x40 = 165
+        // Spec (NAPLPS.ASC): count = bits 6..1 = byte & 0x3F. 0xE5 & 0x3F = 0x25 = 37.
         var state = new NaplpsState();
         var command = new ControlCommand(NaplpsControlCommands.Repeat, state, 0x86, new NaplpsOperands([0xE5]));
         var repeat = new DrawableRepeat(command);
 
-        Assert.AreEqual(165, repeat.GetRepeatCount(state));
+        Assert.AreEqual(0x25, repeat.GetRepeatCount(state));
     }
 
     [TestMethod]
     public void Repeat_CountByte_ValidRange_ReturnsCount()
     {
-        // 0x45 in 7-bit mode → count = 0x45 = 69
+        // Spec: count = byte & 0x3F. 0x45 & 0x3F = 5.
         var state = new NaplpsState();
         var command = new ControlCommand(NaplpsControlCommands.Repeat, state, 0x86, new NaplpsOperands([0x45]));
         var repeat = new DrawableRepeat(command);
 
-        Assert.AreEqual(0x45, repeat.GetRepeatCount(state));
+        Assert.AreEqual(0x05, repeat.GetRepeatCount(state));
     }
 
     [TestMethod]
-    public void Repeat_CountByte_0x40_ReturnsValue()
+    public void Repeat_CountByte_0x40_ReturnsZero()
     {
-        // 0x40 in 7-bit mode → count = 64
+        // Spec: 0x40 is in the valid gate (bits 7..1 in 0x40..0x7F) but bits 6..1 = 0.
         var state = new NaplpsState();
         var command = new ControlCommand(NaplpsControlCommands.Repeat, state, 0x86, new NaplpsOperands([0x40]));
         var repeat = new DrawableRepeat(command);
 
-        Assert.AreEqual(0x40, repeat.GetRepeatCount(state));
+        Assert.AreEqual(0, repeat.GetRepeatCount(state));
     }
 
     [TestMethod]
-    public void Repeat_CountByte_0x7F_Returns127()
+    public void Repeat_CountByte_0x7F_Returns63()
     {
-        // 0x7F in 7-bit mode → count = 127
+        // Spec: count = byte & 0x3F. 0x7F & 0x3F = 0x3F = 63.
         var state = new NaplpsState();
         var command = new ControlCommand(NaplpsControlCommands.Repeat, state, 0x86, new NaplpsOperands([0x7F]));
         var repeat = new DrawableRepeat(command);
 
-        Assert.AreEqual(0x7F, repeat.GetRepeatCount(state));
+        Assert.AreEqual(0x3F, repeat.GetRepeatCount(state));
+    }
+
+    // Render-position pins for the two REPEAT variants. The parser advances the pen across a
+    // Repeat (0x86) run at parse time (the command's snapshot pen is PAST the run, so the renderer
+    // must rewind before drawing), but a RepeatToEOL (0x87) count is computed at render time with
+    // no parse-time advance (its snapshot pen is AT the run start and must not be rewound).
+
+    private static bool ColumnsContainInk(NAPLPS.Drawing.DrawContext ctx, int startX, int endXExclusive)
+    {
+        for (var y = 0; y < ctx.Image.Height; y++)
+        {
+            for (var x = startX; x < endXExclusive; x++)
+            {
+                var p = ctx.Image[x, y];
+                if (p.R > 32 || p.G > 32 || p.B > 32)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    [TestMethod]
+    public void RepeatToEOL_DrawsFromPen_ToEndOfLine()
+    {
+        // FIELD (GR 0xB8) spanning x 0..0.9375, then 'A' and RepeatToEOL: the run must fill
+        // rightward from the pen (x=0.025 after the 'A') to the field end, not draw a full
+        // run-length before the pen.
+        var bytes = new List<byte> { 0xB8 };
+        bytes.AddRange(NaplpsEncoder.EncodeVertex2D(0f, 0f));          // field origin
+        bytes.AddRange(NaplpsEncoder.EncodeVertex2D(0.9375f, 0.5f));   // field dimensions
+        bytes.Add(0x0F); // SI: ends the numeric operand run before the text byte
+        bytes.Add(0x41); // 'A'
+        bytes.Add(0x87); // RepeatToEOL
+
+        var fmt = NaplpsFormat.FromBytes(bytes.ToArray());
+        using var ctx = new NAPLPS.Drawing.DrawContext(fmt, new SixLabors.ImageSharp.Size(640, 480));
+        ctx.Render();
+
+        // Cell width 1/40 (16px at 640): 36 repeated cells span columns 16..592. A run wrongly
+        // rewound by its own length would start at x=-0.875 and never reach the right half.
+        Assert.IsTrue(ColumnsContainInk(ctx, 320, 592),
+            "RepeatToEOL run should fill from the pen to the field end");
+        Assert.IsFalse(ColumnsContainInk(ctx, 600, 640),
+            "RepeatToEOL run should stop at the field end");
+    }
+
+    [TestMethod]
+    public void Repeat_DrawsRunBehindParserAdvancedPen()
+    {
+        // 'A' then Repeat with count 4 (0x44 & 0x3F): the parser advanced the snapshot pen past
+        // the run, so the renderer must rewind and draw cells 1-4 (columns 16..80), leaving
+        // everything to the right of the run untouched.
+        var fmt = NaplpsFormat.FromBytes([0x41, 0x86, 0x44]);
+        using var ctx = new NAPLPS.Drawing.DrawContext(fmt, new SixLabors.ImageSharp.Size(640, 480));
+        ctx.Render();
+
+        Assert.IsTrue(ColumnsContainInk(ctx, 16, 80), "repeated glyphs should occupy cells 1-4");
+        Assert.IsFalse(ColumnsContainInk(ctx, 96, 640), "nothing should draw past the repeated run");
     }
 
     // ========================================================================

@@ -82,7 +82,9 @@ public class ProportionalSpacingTests
         var state = new NaplpsState();
         var penBefore = state.Pen;
 
-        // Acute accent (U+00B4) — non-spacing from supplementary set
+        // Acute accent (G2 0x42), non-spacing; invoked via SS2 as the parser resolves it
+        state.DoSingleShiftTwo();
+        state.ResolveByte(0x42);
         var command = new AsciiCharCommand('\u00B4', state, 0x42, new NaplpsOperands([]));
 
         Assert.IsTrue(command.IsNonSpacing);

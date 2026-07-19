@@ -105,10 +105,12 @@ public class DrawableIncrementalPolygonFilled : Drawable, IDrawable
         // Create and fill the polygon
         var polygon = new Polygon(points.ToArray());
 
+        var fillOptions = FillOptions();
+
         image.Mutate(ctx =>
         {
-            ctx.Fill(brush, polygon);
-            ctx.Draw(pen, polygon);
+            ctx.Fill(fillOptions, brush, polygon);
+            ctx.Draw(fillOptions, pen, polygon);
         });
 
         // Update pen position

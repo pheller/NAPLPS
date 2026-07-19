@@ -45,14 +45,20 @@ public partial class NaplpsFormat
     /// </summary>
     public NaplpsState State { get; }
 
-    private NaplpsFormat(BinaryReader reader) : this(reader, new()) { }
+    /// <summary>Last spacing character parsed, so a following REPEAT can advance the pen.</summary>
+    private char? _lastCharForRepeat;
 
-    private NaplpsFormat(BinaryReader reader, NaplpsState state)
+    private NaplpsFormat(BinaryReader reader, NaplpsSystemType? forcedSystemType = null) : this(reader, new(), forcedSystemType) { }
+
+    private NaplpsFormat(BinaryReader reader, NaplpsState state, NaplpsSystemType? forcedSystemType = null)
     {
         State = state;
 
-        // Detect system type from header before parsing
-        SystemType = DetectSystemType(reader);
+        // Detect system type from header before parsing, unless the caller forces one. Forcing
+        // must happen BEFORE ApplySystemDefaults so the per-command state snapshots built during
+        // ReadStream carry the correct color map and text metrics (e.g. a known-Prodigy corpus
+        // whose files lack the A1 C8 domain marker and would otherwise parse as generic NAPLPS).
+        SystemType = forcedSystemType ?? DetectSystemType(reader);
         ApplySystemDefaults();
 
         Commands = ReadStream(reader);
@@ -118,6 +124,8 @@ public partial class NaplpsFormat
     /// </summary>
     private void ApplySystemDefaults()
     {
+        State.SystemType = SystemType;
+
         switch (SystemType)
         {
             case NaplpsSystemType.Prodigy:
@@ -137,11 +145,11 @@ public partial class NaplpsFormat
         }
     }
 
-    public static NaplpsFormat FromFile(string fullpath)
+    public static NaplpsFormat FromFile(string fullpath, NaplpsSystemType? forcedSystemType = null)
     {
         var data = File.ReadAllBytes(fullpath);
 
-        return FromBytes(data);
+        return FromBytes(data, forcedSystemType);
     }
 
     public static NaplpsFormat New(NaplpsSystemType systemType = NaplpsSystemType.NAPLPS, int colorCapacity = 16)
@@ -257,12 +265,12 @@ public partial class NaplpsFormat
     /// Creates a NaplpsFormat from raw bytes by parsing them through the standard pipeline.
     /// Useful for re-parsing after edits (undo/redo) to rebuild the state chain.
     /// </summary>
-    public static NaplpsFormat FromBytes(byte[] data)
+    public static NaplpsFormat FromBytes(byte[] data, NaplpsSystemType? forcedSystemType = null)
     {
         using var stream = new MemoryStream(data);
         using var reader = new BinaryReader(stream);
 
-        return new NaplpsFormat(reader);
+        return new NaplpsFormat(reader, forcedSystemType);
     }
 
     /// <summary>
@@ -339,6 +347,16 @@ public partial class NaplpsFormat
                     continue;
                 }
 
+                // Macro invocation: a byte resolved through a G-set designated as the macro set
+                // (via SS3/LS3 into a macro-designated slot) expands that macro at parse time,
+                // injecting its body commands here, instead of drawing a character.
+                if (State.IsMacroByte(opcode))
+                {
+                    State.PendingSingleShift = null; // the single-shift, if any, is consumed here
+                    ExecuteMacro(new NaplpsOperands(new byte[] { opcode }), commands);
+                    continue;
+                }
+
                 // Use ResolveByte so a pending SS2/SS3 single-shift gets consumed by this byte.
                 var commandReference = State.ResolveByte(opcode);
 
@@ -383,6 +401,13 @@ public partial class NaplpsFormat
                 if (command != null)
                 {
                     commands.Add(new NaplpsSequence(currentState, command));
+
+                    // Track the last spacing character so a following REPEAT can advance the pen
+                    // across the repeated cells (see HandleControlCommand's Repeat branch).
+                    if (command is AsciiCharCommand ac && !ac.IsNonSpacing && !ac.IsDiscarded)
+                    {
+                        _lastCharForRepeat = ac.AsciiCharacter;
+                    }
                 }
 
                 // One-shot: clear scroll flag set by non-ControlCommand constructors
@@ -409,7 +434,15 @@ public partial class NaplpsFormat
         // decompiler can see them and the round-trip preserves every byte.
         if (State.MacroBeingDefined != null)
         {
-            if (IsEndCommand(opcode))
+            // A definition may be terminated by a single-byte END or the 7-bit ESC-encoded
+            // END (ESC 4/5). Consume the trailing final byte so it is not buffered as body.
+            bool escEnd = opcode == 0x1B && !reader.IsEOF() && reader.PeekByte() == 0x45;
+            if (escEnd)
+            {
+                reader.ReadByte();
+            }
+
+            if (escEnd || IsEndCommand(opcode))
             {
                 var macroName = State.MacroBeingDefined.Value;
                 var macroType = State.MacroDefType;
@@ -544,14 +577,26 @@ public partial class NaplpsFormat
                 {
                     var c1Command = (NaplpsControlCommands)c1Ref.Parameters[0];
 
-                    // Skip buffer-mode commands that would be destructive via ESC.
+                    // 7-bit DEF MACRO (ESC 4/0..4/2): read the single-byte macro name that
+                    // follows and enter buffered definition mode. The body is captured until the
+                    // ESC-encoded END (handled in HandleBufferedByte). MSZB0000-style messaging
+                    // templates define one block macro and invoke it N times to tile the screen.
+                    if (c1Command == DefMacro || c1Command == DefPMacro || c1Command == DefTMacro)
+                    {
+                        byte macroType = c1Command == DefMacro ? (byte)0 : c1Command == DefPMacro ? (byte)1 : (byte)2;
+                        if (!reader.IsEOF())
+                        {
+                            byte nameByte = reader.ReadByte();
+                            additionalParameters.Add(nameByte); // keep for byte-exact round-trip
+                            StartMacroDefinition(new NaplpsOperands(new byte[] { nameByte }), macroType);
+                        }
+                    }
+                    // DefDRCS/DefTexture/End via ESC keep their prior handling (DRCS/Texture are
+                    // not yet buffered via ESC; End is consumed inside the macro buffer).
                     // Pass the OUTER additionalParameters into the recursive call so that
                     // operand-consuming C1 commands (e.g. Repeat reads a count byte) append
-                    // their bytes to the outer ESC command's operands, preserving byte
-                    // fidelity through ToBytes. Historically these bytes were lost into a
-                    // throwaway NaplpsOperands() instance.
-                    if (c1Command != DefMacro && c1Command != DefPMacro && c1Command != DefTMacro &&
-                        c1Command != DefDRCS && c1Command != DefTexture && c1Command != End)
+                    // their bytes to the outer ESC command's operands, preserving byte fidelity.
+                    else if (c1Command != DefDRCS && c1Command != DefTexture && c1Command != End)
                     {
                         HandleControlCommand(c1Command, reader, additionalParameters, commands);
                     }
@@ -661,11 +706,23 @@ public partial class NaplpsFormat
         else if (controlCommand == DefTexture) { if (additionalParameters.Count > 0) { State.TextureBeingDefined = additionalParameters[0]; State.TextureBuffer.Clear(); } }
         else if (controlCommand == Repeat)
         {
-            // Repeat command: read the count byte and store it in operands
-            // Actual repetition happens at render time
+            // Repeat command: read the count byte and store it in operands (the actual glyph
+            // repetition happens at render time). Advance the parse-time pen across the repeated
+            // cells so the FOLLOWING text's state snapshot starts after the repeated run — e.g. a
+            // highlighted-space bar (title) must push the text after it, not overprint it.
             if (!reader.IsEOF())
             {
-                additionalParameters.Add(reader.ReadByte());
+                var countByte = reader.ReadByte();
+                additionalParameters.Add(countByte);
+
+                if (_lastCharForRepeat is char c && (countByte & 0x7F) >= 0x40)
+                {
+                    int repeatCount = countByte & 0x3F;
+                    for (int i = 0; i < repeatCount; i++)
+                    {
+                        AsciiCharCommand.AdvancePen(State, c);
+                    }
+                }
             }
         }
         // RepeatToEOL doesn't need special handling here - count is calculated at render time
@@ -715,6 +772,15 @@ public partial class NaplpsFormat
         {
             pen.Y = newY;
             State.ScrollEventOccurred = false;
+        }
+
+        // Prodigy's MVDI treats APD as a newline (down + carriage return to the field left), unlike the
+        // strict ANSI X3.110 APD which is down-only. Verified against the reference render (e.g. jcpenny-vcr's
+        // "4-Head VCR;<APD>cable-capable" renders cable-capable at the field's left margin, not trailing
+        // the previous line and mid-word field-wrapping).
+        if (State.SystemType == NaplpsSystemType.Prodigy)
+        {
+            pen.X = State.Field.Origin.X;
         }
 
         State.Pen = pen;

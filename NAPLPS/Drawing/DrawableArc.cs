@@ -59,6 +59,12 @@ public class DrawableArc : Drawable, IDrawable
 
             var circle = new EllipsePolygon(new PointF(centerX, centerY), circleRadius);
 
+            var circleCmd = (FillableGeometricDrawingCommandBase)_command;
+            var (circFg, circBg) = circleCmd.GetColors(_command.State ?? new NaplpsState());
+            var circleColor = (circleCmd.ShouldFill ? circBg : circFg).ToISColor();
+            bool wantCircleOutline = !_command.ShouldFill || _command.Texture.ShouldHighlight;
+            bool authenticCircle = Options.AuthenticGeometry && wantCircleOutline;
+
             image.Mutate(x =>
             {
                 if (_command.ShouldFill)
@@ -66,16 +72,46 @@ public class DrawableArc : Drawable, IDrawable
                     x.Fill(brush, circle);
                 }
 
-                if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+                if (wantCircleOutline && !authenticCircle)
                 {
                     // Use centered round pen for circle outlines (symmetric)
-                    var fillableCmd = (FillableGeometricDrawingCommandBase)_command;
-                    var (cmdFg, cmdBg) = fillableCmd.GetColors(_command.State ?? new NaplpsState());
-                    var circleColor = (fillableCmd.ShouldFill ? cmdBg : cmdFg).ToISColor();
                     float outlineWidth = GetPenWidth(size);
                     x.Draw(Pens.Solid(circleColor, outlineWidth), circle);
                 }
             });
+
+            if (authenticCircle)
+            {
+                // Plot the circle with the hard integer pel, matching the device's stair-stepped ring.
+                var (dxMin, dxMax, dyMin, dyMax) = GetPelOffsets(size);
+                int csteps = Math.Max(48, (int)(2f * MathF.PI * circleRadius));
+                var circlePts = new PointF[csteps + 1];
+                for (int i = 0; i <= csteps; i++)
+                {
+                    float a = 2f * MathF.PI * i / csteps;
+                    circlePts[i] = new PointF(centerX + circleRadius * MathF.Cos(a), centerY + circleRadius * MathF.Sin(a));
+                }
+
+                // Highlight outlines are solid per spec; otherwise honor the current line texture
+                // with the same dashed-pel plot the arc path uses. The whole ring goes through one
+                // PlotDashedPolyline call so the dash phase stays continuous around the circle.
+                bool solidCircleOutline = _command.Texture.ShouldHighlight ||
+                    _command.Texture.LineTexture == NaplpsTexture.LineTextures.Solid;
+                var circlePelPattern = solidCircleOutline ? null : DrawableLine.PelDashPattern(_command.Texture.LineTexture);
+
+                if (circlePelPattern != null)
+                {
+                    var (ox0, ox1, oy0, oy1, pelMajor) = GetDashPel(size);
+                    DrawableLine.PlotDashedPolyline(image, circlePts, asSet: false, ox0, ox1, oy0, oy1, pelMajor, circlePelPattern, circleColor);
+                }
+                else
+                {
+                    for (int j = 0; j < circlePts.Length - 1; j++)
+                    {
+                        DrawableLine.PlotSweptPelLine(image, circlePts[j], circlePts[j + 1], dxMin, dxMax, dyMin, dyMax, circleColor);
+                    }
+                }
+            }
         }
         else
         {
@@ -139,6 +175,12 @@ public class DrawableArc : Drawable, IDrawable
                     outlineColor = (fillableCmd.ShouldFill ? cmdBg : cmdFg).ToISColor();
                 }
 
+                bool wantOutline = !_command.ShouldFill || _command.Texture.ShouldHighlight;
+                bool solidOutline = _command.Texture.ShouldHighlight || _command.Texture.LineTexture == NaplpsTexture.LineTextures.Solid;
+                // Authentic mode plots the arc with the hard integer pel (like straight lines),
+                // reproducing the device rasterizer's stair-stepped curve instead of an AA pen.
+                bool authenticOutline = Options.AuthenticGeometry && wantOutline;
+
                 image.Mutate(x =>
                 {
                     if (_command.ShouldFill)
@@ -167,7 +209,7 @@ public class DrawableArc : Drawable, IDrawable
                     // Use centered round pen for outlines (symmetric, matches PP3 behavior)
                     // rather than asymmetric pel sweep which can leave visible edges
                     // that subsequent fills don't fully cover.
-                    if (!_command.ShouldFill || _command.Texture.ShouldHighlight)
+                    if (wantOutline && !authenticOutline)
                     {
                         float outlineWidth = GetPenWidthF(size);
                         // Highlight uses solid per spec; outlined arcs use current line texture
@@ -177,6 +219,23 @@ public class DrawableArc : Drawable, IDrawable
                         x.DrawLine(outlinePen, arcPoints);
                     }
                 });
+
+                if (authenticOutline)
+                {
+                    var pelPattern = solidOutline ? null : DrawableLine.PelDashPattern(_command.Texture.LineTexture);
+                    if (pelPattern != null)
+                    {
+                        var (ox0, ox1, oy0, oy1, pelMajor) = GetDashPel(size);
+                        DrawableLine.PlotDashedPolyline(image, arcPoints, asSet: false, ox0, ox1, oy0, oy1, pelMajor, pelPattern, outlineColor);
+                    }
+                    else
+                    {
+                        for (int j = 0; j < arcPoints.Length - 1; j++)
+                        {
+                            DrawableLine.PlotSweptPelLine(image, arcPoints[j], arcPoints[j + 1], dxMin, dxMax, dyMin, dyMax, outlineColor);
+                        }
+                    }
+                }
             }
         }
     }

@@ -205,9 +205,9 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
     /// <summary>
     /// Proportional spacing: advance = charW * displacement[row][class] / n.
-    /// GCU confirmed via Ghidra: pre-selects a displacement row based on text size,
-    /// then adds displacement directly to pen position. The ratio disp/n is constant
-    /// per class regardless of text size.
+    /// Pre-selects a displacement row based on text size, then adds displacement
+    /// directly to the pen position. The ratio disp/n is constant per class
+    /// regardless of text size.
     /// </summary>
     public static float GetProportionalDisplacement(float charFieldWidth, char c)
     {
@@ -391,13 +391,22 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
     public void Draw(Image<Rgba32> image, NaplpsState state, Size size)
     {
-        // NOTE: ANSI X3.110 §5.3.2.1 specifies that non-spacing accents compose onto the
-        // FOLLOWING spacing char (overlay at same pen). The infrastructure for that is in
-        // place via AsciiCharCommand.OverlayAccent + NaplpsState.PendingAccentChar — to
-        // wire it up, early-return here when IsNonSpacing and add an extra Draw call when
-        // OverlayAccent.HasValue. Currently disabled to preserve PP3-matching visual
-        // baselines (existing render output of ec1060.nap and similar files relies on
-        // accents drawing as standalone glyphs, not composites).
+        // Vector-stroke glyphs, drawn with the integer pel plotter to match the device character
+        // generator. This is the Prodigy default (see DrawMvdiFont).
+        if (Options.UseMvdiFont)
+        {
+            // ANSI X3.110 5.3.2.1: a non-spacing accent leaves no advance and is composed onto the
+            // FOLLOWING spacing char; it draws nothing on its own (the base glyph overlays it via
+            // OverlayAccentCode). See DrawMvdiFont.
+            if (_command.IsNonSpacing)
+            {
+                return;
+            }
+
+            DrawMvdiFont(image, state, size, _command.AsciiCharacter);
+            return;
+        }
+
         if (Options.UseBitmapFont)
         {
             DrawBitmapFont(image, state, size, _command.AsciiCharacter);
@@ -405,6 +414,150 @@ public class DrawableAsciiChar : Drawable, IDrawable
         }
 
         DrawTrueTypeFont(image, state, size, _command.AsciiCharacter);
+    }
+
+
+    /// <summary>
+    /// Renders a character as MVDI's authentic vector strokes (see <see cref="MvdiFont"/>),
+    /// drawn with the integer pel plotter to match the reference render's hard-edged character generator.
+    /// </summary>
+    private void DrawMvdiFont(Image<Rgba32> image, NaplpsState state, Size size, char glyphChar)
+    {
+        // MVDI's device pen: round-half-up (not floor) of the normalized pen. Verified from
+        // reference captures — golden stroke offsets are pen-independent only under rounding.
+        double dr = NaplpsUtils.DisplayRatio;
+        int penXdev = (int)Math.Round((double)state.Pen.X * size.Width, MidpointRounding.AwayFromZero);
+        int penYdev = size.Height - (int)Math.Round((double)state.Pen.Y / dr * size.Height, MidpointRounding.AwayFromZero);
+
+        var (charSizeX, charSizeY) = ConvertNormalizedToScreenScale(size, state.CharSize.X, state.CharSize.Y);
+        float cellW = MathF.Max(1f, MathF.Abs(charSizeX));
+        float cellH = MathF.Max(1f, MathF.Abs(charSizeY));
+
+        var (fgColor, bgColor) = GetISColorFromState(state);
+        if (state.IsReverseVideo)
+        {
+            (fgColor, bgColor) = (bgColor, fgColor);
+        }
+
+        // Color mode 2 fills the character field with the background color first.
+        if (state.ColorMode == 2)
+        {
+            var bgRect = new RectangleF(penXdev, penYdev - cellH, cellW + 1, cellH);
+            image.Mutate(ctx => ctx.Fill(new DrawingOptions(), bgColor, bgRect));
+        }
+
+        // Grid -> device mapping (calibrated pixel-for-pixel on the dominant corpus sizes):
+        //   device_x = penXdev + round(unitX * gridX)                       unitX = CharSize.X*W/7.5
+        //   device_y = penYdev - round(CharSize.Y*W*(36*gridY + 18)/(5*75))
+        // Left bearing is spacing-conditional: under FIXED spacing the generator keeps the bearing
+        // (ink at penX + unitX*gridX, so glyphs sit at their natural grid position); under
+        // PROPORTIONAL spacing it left-justifies (subtract the bearing). The vertical row map is
+        // linear in gridY, anchored at the baseline (gridY=2 -> yScale*18, matches the reference at
+        // every size) with slope 7.2 px/unit (cap gridY=8 -> yScale*61.2). The earlier 7*gridY+4 was
+        // calibrated only at ky=10 and let tall glyphs fall ~1px short per ~22 ky (up to +4px at
+        // ky=90, e.g. SNOOP1's ky=66 wordmark); measured by the vscale sweep across ky 8..90.
+        var glyph = _command.IsSupplementary
+            ? MvdiFont.ForSupplementary(_command.SupplementaryCode)
+            : MvdiFont.ForChar(glyphChar);
+        double csx = Math.Abs(state.CharSize.X);
+        double csy = Math.Abs(state.CharSize.Y);
+        int kx = (int)Math.Round(csx * 256.0);
+        int ky = (int)Math.Round(csy * 256.0);
+
+        // The glyph metrics (HorizStep, HorizRowTopOffset, VertStrokePel, HorizStrokePel) are
+        // absolute device-pixel tables calibrated at 640x480. NAPLPS coordinates - including CharSize
+        // - are normalized (a fraction of the screen), so a glyph must occupy the same screen FRACTION
+        // at any resolution: scale the metrics by size/reference. At 640x480 the factor is exactly 1
+        // (the calibrated, pixel-perfect result is untouched); higher
+        // resolutions render the same CharSize proportionally larger (same apparent size, more pels).
+        // Smaller/denser text comes from a smaller CharSize, which a higher-res raster renders crisply.
+        double sx = size.Width / 640.0;
+        double sy = size.Height / 480.0;
+
+        // Horizontal grid->device (calibrated pixel-exactly, see MvdiFont.HStep):
+        //   deviceX(gx) = round_half_up(640*penX + u(kx)*gx)
+        // The pen MUST stay fractional inside the round - its sub-pel value sets the DDA phase.
+        // u(kx) is a nonlinear staircase, NOT a clean em (the old CharSize*W/7.5 was wrong at kx>=6
+        // and dropping the fractional pen shifted small glyphs). Under proportional spacing MVDI
+        // left-justifies each glyph by its bearing (gx-lb); fixed spacing keeps the bearing.
+        double penXf = (double)state.Pen.X * size.Width;
+        double u = MvdiFont.HorizStep(kx) * sx;
+
+        bool fixedSpacing = state.TextSpacing != TextSpacing.Proportional;
+        int DevX(int gridX, int lb) => (int)Math.Round(penXf + u * (fixedSpacing ? gridX : gridX - lb), MidpointRounding.AwayFromZero);
+
+        // UNIFIED grid->device Y: every stroke endpoint (horizontal, vertical, diagonal) uses the
+        // SAME per-row device offset (MvdiFont.HorizRowTopOffset, the Off2/Off8 staircase). The
+        // previous code split this - horizontals used the staircase but vertical/diagonal used a
+        // linear DevY a pixel off - which mis-registered every stroke junction on curved glyphs
+        // (a/e/s/o/n...). The generator builds one per-row device table and indexes it for both
+        // endpoints of every stroke, so horizontal and vertical strokes sharing a grid row hit the
+        // identical row.
+        int DevYrow(int gridY) => penYdev - (int)Math.Round(MvdiFont.HorizRowTopOffset(gridY, ky) * sy, MidpointRounding.AwayFromZero);
+
+        // The generator stamps a UNIFORM rectangular pel (pelX wide x pelY tall) at every point
+        // along each stroke, extending down-right from the path point.
+        // pelX = vertical-stroke width (VertStrokePel, kx-keyed); pelY = horizontal-stroke height
+        // (HorizStrokePel, ky-keyed). There is NO direction-dependent thickness - one pel serves
+        // horizontals, verticals and diagonals alike (the old per-direction heuristics were the bug).
+        int pelX = Math.Max(1, (int)Math.Round(MvdiFont.VertStrokePel(kx) * sx, MidpointRounding.AwayFromZero));
+        int pelY = Math.Max(1, (int)Math.Round(MvdiFont.HorizStrokePel(ky) * sy, MidpointRounding.AwayFromZero));
+
+        // Glyph rotation: MVDI rotates the whole character cell about the pen origin by TextRotation.
+        // Rotate each stroke endpoint's offset from the pen (screen Y is down, so Ninety reads as
+        // 90 deg CCW). For quarter turns the non-square pel turns with the strokes, so swap X/Y.
+        var rot = state.TextRotation;
+        if (rot == TextRotation.Ninety || rot == TextRotation.TwoSeventy)
+        {
+            (pelX, pelY) = (pelY, pelX);
+        }
+
+        (int X, int Y) RotPoint(int devX, int devY)
+        {
+            int dx = devX - penXdev, dy = devY - penYdev;
+            (int rx, int ry) = rot switch
+            {
+                TextRotation.Ninety => (dy, -dx),
+                TextRotation.OneEighty => (-dx, -dy),
+                TextRotation.TwoSeventy => (-dy, dx),
+                _ => (dx, dy),
+            };
+            return (penXdev + rx, penYdev + ry);
+        }
+
+        void DrawGlyph(MvdiFont.Glyph gl)
+        {
+            var segs = gl.Segments;
+            for (int i = 0; i + 3 < segs.Length; i += 4)
+            {
+                var a = RotPoint(DevX(segs[i], gl.LeftBearing), DevYrow(segs[i + 1]));
+                var b = RotPoint(DevX(segs[i + 2], gl.LeftBearing), DevYrow(segs[i + 3]));
+                DrawableLine.PlotMvdiStroke(image, a.X, a.Y, b.X, b.Y, pelX, pelY, fgColor);
+            }
+        }
+
+        DrawGlyph(glyph);
+
+        // ANSI X3.110 5.3.2.1: a pending non-spacing accent composes onto this base glyph at the
+        // same pen. The MVDI supplementary mark is pre-positioned in the cell grid (above-letter
+        // marks at y=8..9, below-letter at y=0..2), so it overlays with the identical grid->device
+        // mapping. The accent left-justifies by its own bearing under proportional spacing.
+        if (_command.OverlayAccentCode is int accentCode)
+        {
+            DrawGlyph(MvdiFont.ForSupplementary(accentCode));
+        }
+
+        if (state.IsUnderline)
+        {
+            image.Mutate(ctx =>
+            {
+                float fullFieldW = MathF.Max(1f, MathF.Abs(charSizeX));
+                var (_, pelY) = ConvertNormalizedToScreenScale(size, state.LogicalPel.X, state.LogicalPel.Y);
+                float underlineThickness = MathF.Max(1f, MathF.Abs(pelY));
+                var underlinePen = Pens.Solid(fgColor, underlineThickness);
+                ctx.DrawLine(underlinePen, new PointF(penXdev, penYdev), new PointF(penXdev + fullFieldW, penYdev));
+            });
+        }
     }
 
     /// <summary>
@@ -638,7 +791,8 @@ public class DrawableAsciiChar : Drawable, IDrawable
 
         var drawingOptions = new DrawingOptions
         {
-            Transform = transform
+            Transform = transform,
+            GraphicsOptions = new GraphicsOptions { Antialias = !Options.HardText }
         };
 
         var charText = glyphChar.ToString();

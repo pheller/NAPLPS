@@ -24,6 +24,31 @@ public class DrawableRectangleSetOutlined : Drawable, IDrawable
 
         var (brush, pen) = GetBrushAndPenFromFillableCommand(size, state);
         var vertices = _command.Vertices;
+        var outlineColor = GetOutlineColor();
+
+        // Authentic mode: plot the four edges with the integer pel swept from the boundary (like
+        // the device rasterizer / straight lines), instead of an anti-aliased half-pen inset stroke.
+        if (Options.AuthenticGeometry && _command.Texture.LineTexture == NaplpsTexture.LineTextures.Solid)
+        {
+            // Round-half-up pel (e.g. 1/256 -> 3px, matching the reference render's frame strokes), not the
+            // truncated GetPelOffsets which yields 2px.
+            var (dxMin, dxMax, dyMin, dyMax, _) = GetDashPel(size);
+
+            for (int i = 0; i < vertices.Count - 1; i += 2)
+            {
+                var (x1, y1, x2, y2) = NaplpsUtils.ConvertRectToScreen(size, vertices[i].X, vertices[i].Y, vertices[i + 1].X, vertices[i + 1].Y);
+                var tl = new PointF(x1, y1);
+                var tr = new PointF(x2, y1);
+                var br = new PointF(x2, y2);
+                var bl = new PointF(x1, y2);
+                DrawableLine.PlotSweptPelLine(image, tl, tr, dxMin, dxMax, dyMin, dyMax, outlineColor);
+                DrawableLine.PlotSweptPelLine(image, tr, br, dxMin, dxMax, dyMin, dyMax, outlineColor);
+                DrawableLine.PlotSweptPelLine(image, br, bl, dxMin, dxMax, dyMin, dyMax, outlineColor);
+                DrawableLine.PlotSweptPelLine(image, bl, tl, dxMin, dxMax, dyMin, dyMax, outlineColor);
+            }
+
+            return;
+        }
 
         image.Mutate(x =>
         {
@@ -42,7 +67,7 @@ public class DrawableRectangleSetOutlined : Drawable, IDrawable
                     new PointF(x1 + inset, y1 + inset),
                     new PointF(x2 - inset, y2 - inset));
 
-                x.Draw(GetTexturedPen(GetOutlineColor(), outlineWidth), rect);
+                x.Draw(GetTexturedPen(outlineColor, outlineWidth), rect);
             }
         });
     }

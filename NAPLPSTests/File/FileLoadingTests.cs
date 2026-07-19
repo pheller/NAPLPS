@@ -99,7 +99,7 @@ public class FileLoadingTests
         Assert.IsFalse(file.Is7Bit);
         Assert.AreEqual(NaplpsSystemType.Prodigy, file.SystemType);
 
-        Assert.AreEqual(457, file.Commands.Count);
+        Assert.AreEqual(451, file.Commands.Count);
     }
 
     [TestMethod]

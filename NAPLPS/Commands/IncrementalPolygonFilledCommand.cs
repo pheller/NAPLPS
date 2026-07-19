@@ -53,7 +53,9 @@ public class IncrementalPolygonFilledCommand : GeometricDrawingCommandBase
 
     private int GetOperandByteCount(Vector3 vertex)
     {
-        return State.MultiByteValue * 2; // dx and dy
+        // A multi-value coordinate packs X and Y interleaved into the same
+        // bytes: one (dx, dy) pair occupies MultiByteValue bytes total.
+        return State.MultiByteValue;
     }
 
     private void ParseMotionCodes(NaplpsOperands operands, int startOffset)

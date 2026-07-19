@@ -23,6 +23,46 @@ public class Drawable
         /// with system font fallback for high-resolution output.
         /// </summary>
         public static bool UseBitmapFont { get; set; } = false;
+
+        /// <summary>
+        /// Display-model RGB gun width in bits, mirroring the "RGB color gun width" concept
+        /// from period NAPLPS decoders (MVDI drivers): at display time each gun is reduced
+        /// to its top N bits and expanded back by bit replication. Null renders full-precision
+        /// color. Prodigy's display drivers used width 2 (levels 0/85/170/255), confirmed
+        /// empirically against DAC captures of the original renderer.
+        /// ThreadStatic and re-established per render (DrawContext.BeginRender) so parallel and
+        /// batch renders of files with differing gun widths do not contaminate each other.
+        /// </summary>
+        [ThreadStatic]
+        public static int? ColorGunWidth;
+
+        /// <summary>
+        /// Render text with hard pixel edges (anti-aliasing off), matching a device-resolution
+        /// character generator instead of the smooth TrueType preview. ThreadStatic and
+        /// re-established per render (DrawContext.BeginRender). Note: even with hard edges the
+        /// bundled font is the Prodigy *Windows*-engine TTF, whose glyph shapes differ from the
+        /// DOS MVDI character generator; matching shapes needs the vector-stroke font.
+        /// </summary>
+        [ThreadStatic]
+        public static bool HardText;
+
+        /// <summary>
+        /// Render text with MVDI's vector-stroke glyphs (see <see cref="MvdiFont"/>) drawn on
+        /// the integer pel plotter to match the device character generator, instead of the anti-aliased
+        /// TrueType path. Defaults on for Prodigy. ThreadStatic, re-established per render.
+        /// </summary>
+        [ThreadStatic]
+        public static bool UseMvdiFont;
+
+        /// <summary>
+        /// Authentic geometry mode: draw lines/outlines with an integer pel plotter and no
+        /// anti-aliasing, reproducing the hard staircase of the original device line rasterizer
+        /// instead of the anti-aliased swept-pel polygon fill. ThreadStatic and re-established
+        /// per render (DrawContext.BeginRender). Since MVDI draws glyphs as vector strokes, this
+        /// is also the basis for authentic text.
+        /// </summary>
+        [ThreadStatic]
+        public static bool AuthenticGeometry;
     }
 
     /// <summary>
@@ -56,9 +96,50 @@ public class Drawable
     {
         var drawingCommand = (GeometricDrawingCommandBase)_baseCommand;
         var logicalPel = drawingCommand.LogicalPel;
-        var (pelX, pelY) = ConvertNormalizedToScreenScale(size, logicalPel.X, logicalPel.Y);
 
-        return new System.Drawing.Point(Math.Max(1, Math.Abs(pelX)), Math.Max(1, Math.Abs(pelY)));
+        // The logical pel maps ISOTROPICALLY to device pixels at the X (width) scale on BOTH axes.
+        // Position mapping keeps the Prodigy DisplayRatio (vertical shrink), but the pel SIZE does
+        // NOT: verified pixel-exact against the reference render, a 1/256 pel -> round(2.5)=3 px and a
+        // 3/256 pel -> round(7.5)=8 px in BOTH X and Y. Applying the 0.80 vertical shrink to the pel
+        // height (the old ConvertNormalizedToScreenScale path) lost 1 px whenever logPel.Y*640 landed
+        // on a half-integer (e.g. 3/256 -> 7.03 -> 7 instead of 8), thinning every stroke's top edge.
+        int pelX = (int)Math.Floor(Math.Abs(logicalPel.X) * size.Width + 0.5);
+        int pelY = (int)Math.Floor(Math.Abs(logicalPel.Y) * size.Width + 0.5);
+
+        return new System.Drawing.Point(Math.Max(1, pelX), Math.Max(1, pelY));
+    }
+
+    /// <summary>
+    /// DrawingOptions for authentic (hard-edged) rendering: anti-aliasing off in authentic
+    /// geometry mode so shape fills/outlines get hard pixel edges like the device rasterizer,
+    /// rather than the modern anti-aliased default.
+    /// </summary>
+    internal static DrawingOptions AuthenticDrawingOptions { get; } = new()
+    {
+        GraphicsOptions = new GraphicsOptions { Antialias = false }
+    };
+
+    /// <summary>
+    /// Returns hard-edged drawing options when authentic geometry is active, else the default.
+    /// </summary>
+    internal static DrawingOptions FillOptions()
+        => Options.AuthenticGeometry ? AuthenticDrawingOptions : new DrawingOptions();
+
+    /// <summary>
+    /// Authentic pel for dotted/dashed line texture: a square P x P footprint where
+    /// P = round-half-up(|logPel.X| * width) (the reference render uses the X-scaled pel for both axes, e.g.
+    /// a 1/256 pel -> 3x3), plus the major-axis dash unit P. Offsets follow the sign of the logical
+    /// pel. Returns (ox0, ox1, oy0, oy1, pelMajor).
+    /// </summary>
+    internal (int ox0, int ox1, int oy0, int oy1, int pelMajor) GetDashPel(Size size)
+    {
+        var lp = ((GeometricDrawingCommandBase)_baseCommand).LogicalPel;
+        int p = Math.Max(1, (int)MathF.Round(Math.Abs(lp.X) * size.Width, MidpointRounding.AwayFromZero));
+        int ox0 = lp.X >= 0 ? 0 : -p;
+        int ox1 = lp.X >= 0 ? p : 0;
+        int oy0 = lp.Y >= 0 ? -p : 0;
+        int oy1 = lp.Y >= 0 ? 0 : p;
+        return (ox0, ox1, oy0, oy1, p);
     }
 
     /// <summary>
@@ -127,8 +208,9 @@ public class Drawable
         {
             // ANSI X3.110: Highlighted filled shapes are outlined with SOLID line texture
             // (ignoring current line texture), using nominal black in modes 0/1,
-            // or background color in mode 2.
-            var highlightColor = _state.ColorMode == 2 ? bgColor : Color.Black;
+            // or background color in mode 2. Use the command's OWN color-mode snapshot: _state is
+            // the shared, final (EOF) parse state, so its ColorMode is not this command's.
+            var highlightColor = fillableCommand.ColorMode == 2 ? bgColor : Color.Black;
             pen = Pens.Solid(highlightColor.ToISColor(), penWidth);
         }
         else
@@ -200,6 +282,16 @@ public class Drawable
 
         var scaledLogicalPel = GetScaledLogicalPel(size);
 
+        // In authentic mode the hatch stripe width uses round-half-up of the device pel (e.g. a
+        // 1/256 pel -> 2.5px -> 3px), matching the reference render's stripes, rather than the truncated
+        // GetScaledLogicalPel (which yields 2px). Line thickness keeps the truncated pel.
+        if (Options.AuthenticGeometry)
+        {
+            int rx = Math.Max(1, (int)Math.Round(Math.Abs(logicalPel.X) * size.Width, MidpointRounding.AwayFromZero));
+            int ry = Math.Max(1, (int)Math.Round(Math.Abs(logicalPel.Y) / NaplpsUtils.DisplayRatio * size.Height, MidpointRounding.AwayFromZero));
+            scaledLogicalPel = new System.Drawing.Point(rx, ry);
+        }
+
         switch (texturePattern)
         {
             case TexturePatterns.MaskA:
@@ -209,7 +301,7 @@ public class Drawable
 
                 for (var i = 0; i < pattern.Length; ++i)
                 {
-                    pattern[0, i] = i >= pattern.Length / 2;
+                    pattern[0, i] = Options.AuthenticGeometry ? i < pattern.Length / 2 : i >= pattern.Length / 2;
                 }
 
                 return new PatternBrush(fgColorImageSharp, bgColorImageSharp, pattern);
@@ -323,7 +415,8 @@ public class Drawable
 
         if (fillableCommand.ShouldFill && fillableCommand.Texture.ShouldHighlight)
         {
-            return (_state.ColorMode == 2 ? bgColor : Color.Black).ToISColor();
+            // Use the command's own color-mode snapshot, not the shared final parse state.
+            return (fillableCommand.ColorMode == 2 ? bgColor : Color.Black).ToISColor();
         }
 
         return (fillableCommand.ShouldFill ? bgColor : fgColor).ToISColor();
