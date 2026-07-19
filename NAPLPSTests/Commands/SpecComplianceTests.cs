@@ -229,6 +229,67 @@ public class SpecComplianceTests
         Assert.AreEqual(0x3F, repeat.GetRepeatCount(state));
     }
 
+    // Render-position pins for the two REPEAT variants. The parser advances the pen across a
+    // Repeat (0x86) run at parse time (the command's snapshot pen is PAST the run, so the renderer
+    // must rewind before drawing), but a RepeatToEOL (0x87) count is computed at render time with
+    // no parse-time advance (its snapshot pen is AT the run start and must not be rewound).
+
+    private static bool ColumnsContainInk(NAPLPS.Drawing.DrawContext ctx, int startX, int endXExclusive)
+    {
+        for (var y = 0; y < ctx.Image.Height; y++)
+        {
+            for (var x = startX; x < endXExclusive; x++)
+            {
+                var p = ctx.Image[x, y];
+                if (p.R > 32 || p.G > 32 || p.B > 32)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    [TestMethod]
+    public void RepeatToEOL_DrawsFromPen_ToEndOfLine()
+    {
+        // FIELD (GR 0xB8) spanning x 0..0.9375, then 'A' and RepeatToEOL: the run must fill
+        // rightward from the pen (x=0.025 after the 'A') to the field end, not draw a full
+        // run-length before the pen.
+        var bytes = new List<byte> { 0xB8 };
+        bytes.AddRange(NaplpsEncoder.EncodeVertex2D(0f, 0f));          // field origin
+        bytes.AddRange(NaplpsEncoder.EncodeVertex2D(0.9375f, 0.5f));   // field dimensions
+        bytes.Add(0x0F); // SI: ends the numeric operand run before the text byte
+        bytes.Add(0x41); // 'A'
+        bytes.Add(0x87); // RepeatToEOL
+
+        var fmt = NaplpsFormat.FromBytes(bytes.ToArray());
+        using var ctx = new NAPLPS.Drawing.DrawContext(fmt, new SixLabors.ImageSharp.Size(640, 480));
+        ctx.Render();
+
+        // Cell width 1/40 (16px at 640): 36 repeated cells span columns 16..592. A run wrongly
+        // rewound by its own length would start at x=-0.875 and never reach the right half.
+        Assert.IsTrue(ColumnsContainInk(ctx, 320, 592),
+            "RepeatToEOL run should fill from the pen to the field end");
+        Assert.IsFalse(ColumnsContainInk(ctx, 600, 640),
+            "RepeatToEOL run should stop at the field end");
+    }
+
+    [TestMethod]
+    public void Repeat_DrawsRunBehindParserAdvancedPen()
+    {
+        // 'A' then Repeat with count 4 (0x44 & 0x3F): the parser advanced the snapshot pen past
+        // the run, so the renderer must rewind and draw cells 1-4 (columns 16..80), leaving
+        // everything to the right of the run untouched.
+        var fmt = NaplpsFormat.FromBytes([0x41, 0x86, 0x44]);
+        using var ctx = new NAPLPS.Drawing.DrawContext(fmt, new SixLabors.ImageSharp.Size(640, 480));
+        ctx.Render();
+
+        Assert.IsTrue(ColumnsContainInk(ctx, 16, 80), "repeated glyphs should occupy cells 1-4");
+        Assert.IsFalse(ColumnsContainInk(ctx, 96, 640), "nothing should draw past the repeated run");
+    }
+
     // ========================================================================
     // Item 10: Cancel (0x18)
     // ========================================================================

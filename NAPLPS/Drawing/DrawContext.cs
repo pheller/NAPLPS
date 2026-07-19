@@ -353,14 +353,19 @@ public class DrawContext : IDisposable
         var repeatCount = repeatDrawable.GetRepeatCount(state);
         var charToRepeat = _lastDisplayedChar.AsciiCharacter;
 
-        // The parser advances the pen across the repeat (so following text starts after the run),
-        // and this command's state snapshot already reflects that post-run pen. Rewind by the run's
-        // total advance so the repeated glyphs draw at the run's true positions, then re-advance;
-        // restore the snapshot pen at the end so nothing downstream shifts.
+        // For Repeat (0x86) the parser advances the pen across the run (so following text starts
+        // after it), and this command's state snapshot already reflects that post-run pen: rewind
+        // by the run's total advance so the repeated glyphs draw at the run's true positions, then
+        // re-advance. RepeatToEOL (0x87) computes its count at render time and the parser never
+        // advances, so its snapshot pen already sits at the run start and must not be rewound.
+        // Either way, restore the snapshot pen at the end so nothing downstream shifts.
         var snapshotPen = state.Pen;
-        for (int i = 0; i < repeatCount; i++)
+        if (!repeatDrawable.IsRepeatToEOL)
         {
-            RewindPen(state, charToRepeat);
+            for (int i = 0; i < repeatCount; i++)
+            {
+                RewindPen(state, charToRepeat);
+            }
         }
 
         for (int i = 0; i < repeatCount; i++)
