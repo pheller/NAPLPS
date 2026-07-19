@@ -113,8 +113,7 @@ public class DrawContext : IDisposable
             var state = seq.State;
 
             // Track palette changes for CLUT animation. Prodigy MVDI has a fixed hardware
-            // palette and ignores SET COLOR redefinition, so never rebind the CLUT there
-            // (see docs/prodigy-fixed-palette-fix.md).
+            // palette and ignores SET COLOR redefinition, so never rebind the CLUT there.
             if (command is SetColorCommand setColor &&
                 NAPLPS.SystemType != NaplpsSystemType.Prodigy &&
                 (state.ColorMode == 1 || state.ColorMode == 2) &&

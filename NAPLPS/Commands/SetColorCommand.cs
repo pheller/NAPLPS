@@ -105,7 +105,7 @@ public class SetColorCommand : NaplpsCommand
     /// <see cref="NaplpsState.ColorMapProdigyDefaults"/>) and ignores SET COLOR palette
     /// redefinition (color modes 1 and 2) - the device never reprograms the CLUT. Drawing
     /// colors come from SELECT COLOR indexing the fixed palette. Confirmed against the reference
-    /// render; see docs/prodigy-fixed-palette-fix.md.
+    /// render.
     /// </summary>
     private void ApplyProdigy(NaplpsOperands operands)
     {
