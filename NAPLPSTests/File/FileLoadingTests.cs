@@ -89,7 +89,7 @@ public class FileLoadingTests
     [TestMethod]
     public void LoadAudi1()
     {
-        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/AUDI1");
+        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/AUDI1.nap");
 
         Assert.IsNotNull(file);
 
@@ -99,13 +99,13 @@ public class FileLoadingTests
         Assert.IsFalse(file.Is7Bit);
         Assert.AreEqual(NaplpsSystemType.Prodigy, file.SystemType);
 
-        Assert.AreEqual(451, file.Commands.Count);
+        Assert.AreEqual(457, file.Commands.Count);
     }
 
     [TestMethod]
     public void LoadCoke1()
     {
-        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/COKE1");
+        var file = NaplpsFormat.FromFile("examples/Anthony Wetzel/COKE1.nap");
 
         Assert.IsNotNull(file);
 

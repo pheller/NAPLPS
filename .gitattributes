@@ -1,2 +1,6 @@
 NAPLPSTests/Visual/Baselines/**/*.apng binary
 Examples/** -text
+# NAPLPS byte streams are binary wherever they live: 0x0D/0x0A are drawing
+# commands (APR/APD), so any line-ending conversion corrupts the artwork.
+*.nap binary
+*.NAP binary
