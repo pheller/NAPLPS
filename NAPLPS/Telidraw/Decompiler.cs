@@ -49,6 +49,13 @@ public static class Decompiler
             var seq = format.Commands[i];
             var cmd = seq.Command;
 
+            // Synthetic sequences (macro expansions) are presentation output; the coded
+            // stream carries only the invocation byte, preserved as a raw command.
+            if (seq.IsSynthetic)
+            {
+                continue;
+            }
+
             // Group basic ASCII text characters into a single text "..." statement.
             // ONLY when the opcode byte IS the character code (Primary Character Set in GL).
             // Supplementary chars may have ASCII-range Unicode values (e.g., '/' at opcode 0x49)

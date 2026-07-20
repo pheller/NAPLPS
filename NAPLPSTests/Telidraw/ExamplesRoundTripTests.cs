@@ -6,12 +6,10 @@ namespace NAPLPSTests.Telidraw;
 
 /// <summary>
 /// The headline regression test from the Phase 8 plan:
-///   For every file in Examples/: load .nap → decompile → recompile → byte-equal to original.
-///
-/// Reality check: files using commands the decompiler emits as comments (control codes,
-/// DRCS, mosaic, incremental, etc.) WILL NOT byte-round-trip because the recompile is
-/// missing those commands. This test reports pass/fail per file so we know exactly which
-/// files are fully covered vs. which need decompiler expansion.
+///   For every file in Examples/: load .nap → decompile → recompile → byte-equal to the
+///   RAW file bytes. Comparing against the raw file (not original.ToBytes()) makes this
+///   end-to-end: parser serialization lossiness cannot hide behind an equally lossy
+///   reference.
 /// </summary>
 [TestClass]
 public class ExamplesRoundTripTests
@@ -57,7 +55,7 @@ public class ExamplesRoundTripTests
                     continue;
                 }
 
-                var originalBytes = original.ToBytes();
+                var originalBytes = System.IO.File.ReadAllBytes(file);
 
                 // Decompile to .td source
                 var tdSource = Decompiler.Decompile(original);

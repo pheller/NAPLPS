@@ -180,21 +180,7 @@ public partial class NaplpsFormat
 
     public void Save(string fullpath)
     {
-        using var file = File.Create(fullpath);
-        using var writer = new BinaryWriter(file);
-
-        foreach (var command in Commands)
-        {
-            writer.Write(command.Command.OpCode);
-
-            foreach (var operand in command.Command.Operands)
-            {
-                writer.Write(operand);
-            }
-        }
-
-        writer.Flush();
-        file.Close();
+        File.WriteAllBytes(fullpath, ToBytes());
     }
 
     /// <summary>
@@ -283,6 +269,12 @@ public partial class NaplpsFormat
 
         foreach (var command in Commands)
         {
+            // Parser-materialized (macro expansion) sequences are not part of the coded stream.
+            if (command.IsSynthetic)
+            {
+                continue;
+            }
+
             writer.Write(command.Command.OpCode);
 
             foreach (var operand in command.Command.Operands)
@@ -353,6 +345,11 @@ public partial class NaplpsFormat
                 if (State.IsMacroByte(opcode))
                 {
                     State.PendingSingleShift = null; // the single-shift, if any, is consumed here
+
+                    // X3.110 section 5.5: the coded stream carries only the single invocation
+                    // byte. Preserve it as a raw (non-drawing) command so ToBytes round-trips;
+                    // the expansion added below is presentation output, marked synthetic.
+                    commands.Add(new NaplpsSequence(State.Clone(), new NaplpsCommand(State, opcode, [])));
                     ExecuteMacro(new NaplpsOperands(new byte[] { opcode }), commands);
                     continue;
                 }
@@ -430,13 +427,13 @@ public partial class NaplpsFormat
     private bool HandleBufferedByte(byte opcode, BinaryReader reader, List<NaplpsSequence> commands)
     {
         // If we're in macro definition mode, buffer bytes until END.
-        // Body bytes are ALSO injected as synthetic raw commands so the Telidraw
+        // Body bytes are ALSO injected as raw byte commands so the Telidraw
         // decompiler can see them and the round-trip preserves every byte.
         if (State.MacroBeingDefined != null)
         {
-            // A definition may be terminated by a single-byte END or the 7-bit ESC-encoded
+            // A definition may be terminated by a single-byte END or the 7-bit ESC-coded
             // END (ESC 4/5). Consume the trailing final byte so it is not buffered as body.
-            bool escEnd = opcode == 0x1B && !reader.IsEOF() && reader.PeekByte() == 0x45;
+            bool escEnd = IsEscEnd(opcode, reader);
             if (escEnd)
             {
                 reader.ReadByte();
@@ -457,14 +454,21 @@ public partial class NaplpsFormat
 
                 State.MacroBuffer.Clear();
 
-                // Inject the END command itself.
-                commands.Add(new NaplpsSequence(State.Clone(), new ControlCommand(NaplpsControlCommands.End, State, opcode, [])));
+                // Inject the END command itself, carrying the ESC form's final byte when present.
+                commands.Add(new NaplpsSequence(State.Clone(), MakeEndCommand(opcode, escEnd)));
 
                 if (macroType == 1 && State.Macros.TryGetValue(macroName, out var macroData))
                 {
+                    // DEFP MACRO defines and displays in one step (X3.110 define-and-display
+                    // form): the executed body is presentation output, not coded input, so
+                    // those sequences are synthetic - the definition serializes exactly once.
                     using var macroStream = new MemoryStream(macroData);
                     using var macroReader = new BinaryReader(macroStream);
-                    commands.AddRange(ReadStream(macroReader));
+                    foreach (var seq in ReadStream(macroReader))
+                    {
+                        seq.IsSynthetic = true;
+                        commands.Add(seq);
+                    }
                 }
             }
             else
@@ -525,6 +529,18 @@ public partial class NaplpsFormat
 
         return false;
     }
+
+    /// <summary>
+    /// X3.110 inherits ISO 2022 code extension: in a 7-bit environment a C1 control is coded
+    /// as ESC Fe. END is C1 8/5, i.e. ESC 4/5 (0x1B 0x45). Callers that consume the final
+    /// byte must carry it on the injected END command so serialization reproduces both bytes.
+    /// </summary>
+    private static bool IsEscEnd(byte opcode, BinaryReader reader) =>
+        opcode == 0x1B && !reader.IsEOF() && reader.PeekByte() == 0x45;
+
+    private ControlCommand MakeEndCommand(byte opcode, bool escEnd) =>
+        new(NaplpsControlCommands.End, State, opcode,
+            escEnd ? new NaplpsOperands(new byte[] { 0x45 }) : []);
 
     /// <summary>
     /// Checks if the given opcode maps to the END control command.
@@ -902,8 +918,14 @@ public partial class NaplpsFormat
                 using var macroReader = new BinaryReader(macroStream);
                 // ANSI X3.110 §6.1.6.3: pass isMacroExpansion = true so a CAN inside the
                 // macro body terminates it immediately. The outer ReadStream resumes
-                // at the next byte after the macro invocation.
-                commands.AddRange(ReadStream(macroReader, isMacroExpansion: true));
+                // at the next byte after the macro invocation. Expansion sequences are
+                // synthetic: they render, but only the invocation byte is coded input.
+                foreach (var seq in ReadStream(macroReader, isMacroExpansion: true))
+                {
+                    seq.IsSynthetic = true;
+                    commands.Add(seq);
+                }
+
                 State.IsCancelRequested = false;
             }
         }
