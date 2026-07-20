@@ -430,13 +430,13 @@ public partial class NaplpsFormat
     private bool HandleBufferedByte(byte opcode, BinaryReader reader, List<NaplpsSequence> commands)
     {
         // If we're in macro definition mode, buffer bytes until END.
-        // Body bytes are ALSO injected as synthetic raw commands so the Telidraw
+        // Body bytes are ALSO injected as raw byte commands so the Telidraw
         // decompiler can see them and the round-trip preserves every byte.
         if (State.MacroBeingDefined != null)
         {
-            // A definition may be terminated by a single-byte END or the 7-bit ESC-encoded
+            // A definition may be terminated by a single-byte END or the 7-bit ESC-coded
             // END (ESC 4/5). Consume the trailing final byte so it is not buffered as body.
-            bool escEnd = opcode == 0x1B && !reader.IsEOF() && reader.PeekByte() == 0x45;
+            bool escEnd = IsEscEnd(opcode, reader);
             if (escEnd)
             {
                 reader.ReadByte();
@@ -457,8 +457,8 @@ public partial class NaplpsFormat
 
                 State.MacroBuffer.Clear();
 
-                // Inject the END command itself.
-                commands.Add(new NaplpsSequence(State.Clone(), new ControlCommand(NaplpsControlCommands.End, State, opcode, [])));
+                // Inject the END command itself, carrying the ESC form's final byte when present.
+                commands.Add(new NaplpsSequence(State.Clone(), MakeEndCommand(opcode, escEnd)));
 
                 if (macroType == 1 && State.Macros.TryGetValue(macroName, out var macroData))
                 {
@@ -525,6 +525,18 @@ public partial class NaplpsFormat
 
         return false;
     }
+
+    /// <summary>
+    /// X3.110 inherits ISO 2022 code extension: in a 7-bit environment a C1 control is coded
+    /// as ESC Fe. END is C1 8/5, i.e. ESC 4/5 (0x1B 0x45). Callers that consume the final
+    /// byte must carry it on the injected END command so serialization reproduces both bytes.
+    /// </summary>
+    private static bool IsEscEnd(byte opcode, BinaryReader reader) =>
+        opcode == 0x1B && !reader.IsEOF() && reader.PeekByte() == 0x45;
+
+    private ControlCommand MakeEndCommand(byte opcode, bool escEnd) =>
+        new(NaplpsControlCommands.End, State, opcode,
+            escEnd ? new NaplpsOperands(new byte[] { 0x45 }) : []);
 
     /// <summary>
     /// Checks if the given opcode maps to the END control command.
