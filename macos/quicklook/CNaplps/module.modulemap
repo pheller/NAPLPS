@@ -1,0 +1,4 @@
+module CNaplps {
+    header "naplps.h"
+    export *
+}
