@@ -180,21 +180,7 @@ public partial class NaplpsFormat
 
     public void Save(string fullpath)
     {
-        using var file = File.Create(fullpath);
-        using var writer = new BinaryWriter(file);
-
-        foreach (var command in Commands)
-        {
-            writer.Write(command.Command.OpCode);
-
-            foreach (var operand in command.Command.Operands)
-            {
-                writer.Write(operand);
-            }
-        }
-
-        writer.Flush();
-        file.Close();
+        File.WriteAllBytes(fullpath, ToBytes());
     }
 
     /// <summary>
@@ -283,6 +269,12 @@ public partial class NaplpsFormat
 
         foreach (var command in Commands)
         {
+            // Parser-materialized (macro expansion) sequences are not part of the coded stream.
+            if (command.IsSynthetic)
+            {
+                continue;
+            }
+
             writer.Write(command.Command.OpCode);
 
             foreach (var operand in command.Command.Operands)
@@ -353,6 +345,11 @@ public partial class NaplpsFormat
                 if (State.IsMacroByte(opcode))
                 {
                     State.PendingSingleShift = null; // the single-shift, if any, is consumed here
+
+                    // X3.110 section 5.5: the coded stream carries only the single invocation
+                    // byte. Preserve it as a raw (non-drawing) command so ToBytes round-trips;
+                    // the expansion added below is presentation output, marked synthetic.
+                    commands.Add(new NaplpsSequence(State.Clone(), new NaplpsCommand(State, opcode, [])));
                     ExecuteMacro(new NaplpsOperands(new byte[] { opcode }), commands);
                     continue;
                 }
@@ -462,9 +459,16 @@ public partial class NaplpsFormat
 
                 if (macroType == 1 && State.Macros.TryGetValue(macroName, out var macroData))
                 {
+                    // DEFP MACRO defines and displays in one step (X3.110 define-and-display
+                    // form): the executed body is presentation output, not coded input, so
+                    // those sequences are synthetic - the definition serializes exactly once.
                     using var macroStream = new MemoryStream(macroData);
                     using var macroReader = new BinaryReader(macroStream);
-                    commands.AddRange(ReadStream(macroReader));
+                    foreach (var seq in ReadStream(macroReader))
+                    {
+                        seq.IsSynthetic = true;
+                        commands.Add(seq);
+                    }
                 }
             }
             else
@@ -914,8 +918,14 @@ public partial class NaplpsFormat
                 using var macroReader = new BinaryReader(macroStream);
                 // ANSI X3.110 §6.1.6.3: pass isMacroExpansion = true so a CAN inside the
                 // macro body terminates it immediately. The outer ReadStream resumes
-                // at the next byte after the macro invocation.
-                commands.AddRange(ReadStream(macroReader, isMacroExpansion: true));
+                // at the next byte after the macro invocation. Expansion sequences are
+                // synthetic: they render, but only the invocation byte is coded input.
+                foreach (var seq in ReadStream(macroReader, isMacroExpansion: true))
+                {
+                    seq.IsSynthetic = true;
+                    commands.Add(seq);
+                }
+
                 State.IsCancelRequested = false;
             }
         }
