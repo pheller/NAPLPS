@@ -178,6 +178,20 @@ NAPLPS_IMPORT int32_t   naplps_ctx_draw_text(NaplpsCtx ctx,
                                              double char_w, double char_h,
                                              const uint8_t* ascii, int32_t len);
 
+/* --- Filled rectangle --- */
+/* Append a solid filled rectangle in the given palette color (0-15, clamped):
+ * TEXTURE (solid fill) -> SELECT COLOR -> RECTANGLE SET FILLED. Position (lower-left)
+ * and size are rounded to the coordinate wire grid, so a rect at (x + col/40, y)
+ * sized (0.025, row_h) covers exactly one character cell and tiles flush against a
+ * draw_text run - the block-cursor / cell-repaint primitive. Note: leaves solid fill
+ * as the current texture state. Returns the new total command count; -3 for a
+ * non-positive size or when the stream ends inside an unfinished definition; or a
+ * negative error code. */
+NAPLPS_IMPORT int32_t   naplps_ctx_fill_rect(NaplpsCtx ctx,
+                                             double x, double y,
+                                             double w, double h,
+                                             int32_t color);
+
 /* --- Pixels --- */
 /* Return a pointer to the current RGBA8888 framebuffer (refreshed at call time;
  * opaque black before any append). The pointer stays valid for the lifetime of the

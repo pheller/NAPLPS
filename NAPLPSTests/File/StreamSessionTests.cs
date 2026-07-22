@@ -156,6 +156,37 @@ public class StreamSessionTests
             session.DrawText(0.5, 0.5, 7, -1, -1, -1, "X"u8.ToArray()));
     }
 
+    /// <summary>fill_rect paints a solid grid-aligned block in the requested color -
+    /// the block-cursor primitive - regardless of the stream's prior texture pattern.</summary>
+    [TestMethod]
+    public void FillRect_PaintsSolidGridAlignedBlock()
+    {
+        using var session = new NaplpsStreamSession(W, H, prodigy: true);
+        // Leave a hash fill pattern active first; fill_rect must still paint solid.
+        var (top, tops) = NaplpsCommandBuilder.BuildTexture(0, false, 1);
+        session.Append([0xA1, 0xC8, top, .. tops]);
+
+        var count = session.FillRect(10.0 / 40, 0.4, 1.0 / 40, 0.0390625, color: 6);
+        session.ExecTo(count - 1);
+
+        var cmds = session.Format!.Commands;
+        Assert.IsInstanceOfType<RectangleSetFilledCommand>(cmds[^1].Command);
+
+        var buf = new byte[W * H * 4];
+        session.CopyFramebufferTo(buf);
+        long green = 0;
+        for (var i = 0; i < buf.Length; i += 4)
+        {
+            if (buf[i] < 60 && buf[i + 1] > 120 && buf[i + 2] < 60) { green++; }
+        }
+
+        // One 16x~19px cell at 640x480, filled SOLID (a hash fill would halve this).
+        Assert.IsTrue(green > 250, $"expected a solid cell block, got {green} green pixels");
+
+        var rect = (RectangleSetFilledCommand)cmds[^1].Command;
+        Assert.AreEqual(Math.Round(10.0 / 40 * 256) / 256, rect.StartPoint.X, 0.0001, "x not grid-rounded");
+    }
+
     /// <summary>A failed append must leave the session unchanged (bytes, counts, pixels).</summary>
     [TestMethod]
     public void Append_IsTransactional()

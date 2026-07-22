@@ -201,6 +201,54 @@ public sealed class NaplpsStreamSession : IDisposable
         return Append([.. bytes]);
     }
 
+    /// <summary>
+    /// Append a solid filled rectangle: TEXTURE (solid fill, no highlight), SELECT COLOR
+    /// (foreground form), RECTANGLE SET FILLED. Position and size are rounded to the
+    /// coordinate wire grid (size floored at one grid step), so cell-sized rects tile
+    /// exactly against DrawText runs - the block-cursor / cell-repaint primitive. Note
+    /// the emitted TEXTURE leaves solid fill as the current texture state. Throws
+    /// <see cref="InvalidOperationException"/> inside an unfinished definition.
+    /// </summary>
+    public int FillRect(double x, double y, double w, double h, int color)
+    {
+        if (w <= 0 || h <= 0) { throw new ArgumentOutOfRangeException(nameof(w), "non-positive size"); }
+
+        var state = Format?.State;
+        if (state is not null &&
+            (state.MacroBeingDefined is not null || state.DrcsStartCode is not null || state.TextureBeingDefined is not null))
+        {
+            throw new InvalidOperationException("stream ends inside an unfinished definition");
+        }
+
+        var mbv = (int)(state?.MultiByteValue ?? 3);
+        var grid = 1 << (mbv * 3 - 1);
+        double Quant(double v) => Math.Round(v * grid) / grid;
+        double QuantSize(double v) => Math.Max(1.0 / grid, Quant(v));
+
+        var prior = NaplpsEncoder.Use7BitMode;
+        NaplpsEncoder.Use7BitMode = Format?.Is7Bit ?? false;
+        var bytes = new List<byte>();
+        void Add((byte opcode, NaplpsOperands operands) cmd)
+        {
+            bytes.Add(cmd.opcode);
+            bytes.AddRange(cmd.operands);
+        }
+
+        try
+        {
+            Add(NaplpsCommandBuilder.BuildTexture(0, false, 0, multiByteValue: mbv));
+            Add(NaplpsCommandBuilder.BuildSelectColor((byte)Math.Clamp(color, 0, 15)));
+            Add(NaplpsCommandBuilder.BuildRectangleSetFilled(
+                (float)Quant(x), (float)Quant(y), (float)QuantSize(w), (float)QuantSize(h), mbv));
+        }
+        finally
+        {
+            NaplpsEncoder.Use7BitMode = prior;
+        }
+
+        return Append([.. bytes]);
+    }
+
     /// <summary>Copy the canvas into an RGBA8888 buffer of exactly Width*Height*4 bytes.
     /// Before any append (and after Reset) the buffer is filled opaque black.</summary>
     public void CopyFramebufferTo(byte[] destination)
