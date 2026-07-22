@@ -181,12 +181,23 @@ NAPLPS_IMPORT int32_t   naplps_ctx_draw_text(NaplpsCtx ctx,
 /* --- Filled rectangle --- */
 /* Append a solid filled rectangle in the given palette color (0-15, clamped):
  * TEXTURE (solid fill) -> SELECT COLOR -> RECTANGLE SET FILLED. Position (lower-left)
- * and size are rounded to the coordinate wire grid, so a rect at (x + col/40, y)
- * sized (0.025, row_h) covers exactly one character cell and tiles flush against a
- * draw_text run - the block-cursor / cell-repaint primitive. Note: leaves solid fill
- * as the current texture state. Returns the new total command count; -3 for a
- * non-positive size or when the stream ends inside an unfinished definition; or a
- * negative error code. */
+ * and size are rounded to the coordinate wire grid; size is floored at one grid step.
+ *
+ * Cell alignment: nominal pitches like 1/40 are NOT grid-representable, so do not
+ * address cells as x + col * 0.025 - that drifts ~1 px per column against a text run.
+ * Quantize first: cw_q = round(cw*256)/256 (6/256 for the 40-column cell), then
+ * cell_x(i) = x_q + i * cw_q. Every such position is exactly grid-representable, and a
+ * rect at the same quantized position/size as a draw_text cell covers it exactly - the
+ * block-cursor / cell-repaint primitive.
+ *
+ * Decoder-state footprint of the emitted commands (affects later RAW appends only;
+ * draw_text/fill_rect always re-establish what they need): texture state becomes
+ * solid fill, solid line, highlight off, zero mask size; color mode becomes 1
+ * (foreground) with the given color; the pen ends at (x + w, y) per the X3.110
+ * rectangle pen advance.
+ *
+ * Returns the new total command count; -3 for a non-positive or non-finite argument
+ * or when the stream ends inside an unfinished definition; or a negative error code. */
 NAPLPS_IMPORT int32_t   naplps_ctx_fill_rect(NaplpsCtx ctx,
                                              double x, double y,
                                              double w, double h,

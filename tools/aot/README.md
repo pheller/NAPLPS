@@ -238,7 +238,7 @@ On Windows the .exe needs `NAPLPS.dll` next to it or on PATH. On Linux/macOS the
 ## Expected output ✅
 
 ```
-NAPLPS library version: 0.11.0
+NAPLPS library version: 0.13.0
 Loaded ../../../Examples/telidraw/hello.nap (35 bytes)
 Parsed 22 commands, 0 errors
 Wrote hello.png (6709 bytes, 1024x768)
@@ -288,7 +288,7 @@ Stateful decoder contexts (`naplps_ctx_*`): an opaque handle owning a persistent
 | `naplps_ctx_command_count(ctx)` | Parsed command count |
 | `naplps_ctx_exec_to(ctx, idx)` / `naplps_ctx_exec_next(ctx, dirty)` | Paint commands; step returns -4 at stream end |
 | `naplps_ctx_draw_text(ctx, x, y, fg, bg, cw, ch, text, len)` | Append a field-text run via the library encoder |
-| `naplps_ctx_fill_rect(ctx, x, y, w, h, color)` | Append a solid cell-aligned filled rectangle (block cursor / cell repaint) |
+| `naplps_ctx_fill_rect(ctx, x, y, w, h, color)` | Append a solid grid-quantized filled rectangle (block cursor / cell repaint; see header for cell addressing) |
 | `naplps_ctx_framebuffer(ctx, &w, &h, &stride)` | Pinned RGBA8888 pixels, valid for the context lifetime |
 
 Error codes (negative return values):

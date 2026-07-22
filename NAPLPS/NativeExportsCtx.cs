@@ -247,7 +247,11 @@ public static unsafe class NativeExportsCtx
     {
         var ctx = Get(handle);
         if (ctx is null) { return ErrBadHandle; }
-        if (w <= 0 || h <= 0) { return ErrInvalid; }
+        if (!double.IsFinite(x) || !double.IsFinite(y) || !double.IsFinite(w) || !double.IsFinite(h)
+            || w <= 0 || h <= 0)
+        {
+            return ErrInvalid;
+        }
 
         try
         {

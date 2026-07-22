@@ -202,16 +202,22 @@ public sealed class NaplpsStreamSession : IDisposable
     }
 
     /// <summary>
-    /// Append a solid filled rectangle: TEXTURE (solid fill, no highlight), SELECT COLOR
-    /// (foreground form), RECTANGLE SET FILLED. Position and size are rounded to the
-    /// coordinate wire grid (size floored at one grid step), so cell-sized rects tile
-    /// exactly against DrawText runs - the block-cursor / cell-repaint primitive. Note
-    /// the emitted TEXTURE leaves solid fill as the current texture state. Throws
-    /// <see cref="InvalidOperationException"/> inside an unfinished definition.
+    /// Append a solid filled rectangle: TEXTURE (solid fill), SELECT COLOR (foreground
+    /// form), RECTANGLE SET FILLED. Position and size are rounded to the coordinate wire
+    /// grid (size floored at one grid step). Alignment guarantee: a rect at the SAME
+    /// quantized position/size as a DrawText cell covers that cell exactly - address
+    /// cells as x_q + i * cw_q (quantized values), never i * nominal_pitch, which is not
+    /// grid-representable. Decoder-state footprint of the emitted commands: texture
+    /// becomes solid fill / solid line / no highlight / zero mask size, color mode
+    /// becomes 1 (foreground) with the given color, and the pen ends at (x + w, y) per
+    /// the X3.110 rectangle pen advance. Throws <see cref="InvalidOperationException"/>
+    /// inside an unfinished definition.
     /// </summary>
     public int FillRect(double x, double y, double w, double h, int color)
     {
-        if (w <= 0 || h <= 0) { throw new ArgumentOutOfRangeException(nameof(w), "non-positive size"); }
+        if (!double.IsFinite(x) || !double.IsFinite(y)) { throw new ArgumentOutOfRangeException(nameof(x), "non-finite position"); }
+        if (!double.IsFinite(w) || w <= 0) { throw new ArgumentOutOfRangeException(nameof(w), "non-positive size"); }
+        if (!double.IsFinite(h) || h <= 0) { throw new ArgumentOutOfRangeException(nameof(h), "non-positive size"); }
 
         var state = Format?.State;
         if (state is not null &&

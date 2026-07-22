@@ -156,17 +156,22 @@ public class StreamSessionTests
             session.DrawText(0.5, 0.5, 7, -1, -1, -1, "X"u8.ToArray()));
     }
 
-    /// <summary>fill_rect paints a solid grid-aligned block in the requested color -
-    /// the block-cursor primitive - regardless of the stream's prior texture pattern.</summary>
+    /// <summary>fill_rect paints a solid block in the requested color - the block-cursor
+    /// primitive - even when the stream left a fill PATTERN active. The DOMAIN here sets a
+    /// nonzero logical pel so patterns actually render patterned (with pel (0,0) every
+    /// pattern degenerates to solid and the scenario proves nothing): without the emitted
+    /// solid TEXTURE this hash-textured block drops below the threshold.</summary>
     [TestMethod]
-    public void FillRect_PaintsSolidGridAlignedBlock()
+    public void FillRect_PaintsSolidBlock_DespiteActivePattern()
     {
         using var session = new NaplpsStreamSession(W, H, prodigy: true);
-        // Leave a hash fill pattern active first; fill_rect must still paint solid.
+        // DOMAIN with a 1-grid pel vertex, then a hash fill pattern.
+        var (dop, dops) = NaplpsCommandBuilder.BuildDomain(1, 3, 2, new System.Numerics.Vector3(1f / 256, 1f / 256, 0));
         var (top, tops) = NaplpsCommandBuilder.BuildTexture(0, false, 1);
-        session.Append([0xA1, 0xC8, top, .. tops]);
+        session.Append([dop, .. dops, top, .. tops]);
 
-        var count = session.FillRect(10.0 / 40, 0.4, 1.0 / 40, 0.0390625, color: 6);
+        // Off-grid position: 3/40 is not representable; must round to the wire grid.
+        var count = session.FillRect(3.0 / 40, 0.4, 1.0 / 40, 0.0390625, color: 6);
         session.ExecTo(count - 1);
 
         var cmds = session.Format!.Commands;
@@ -180,11 +185,24 @@ public class StreamSessionTests
             if (buf[i] < 60 && buf[i + 1] > 120 && buf[i + 2] < 60) { green++; }
         }
 
-        // One 16x~19px cell at 640x480, filled SOLID (a hash fill would halve this).
-        Assert.IsTrue(green > 250, $"expected a solid cell block, got {green} green pixels");
+        // One 16x25px cell (h/0.78125*480 = 24 rows + the authentic-pel row), SOLID.
+        // With the hash pattern left active this measures ~243; solid measures ~400.
+        Assert.IsTrue(green > 300, $"expected a solid cell block, got {green} green pixels");
 
         var rect = (RectangleSetFilledCommand)cmds[^1].Command;
-        Assert.AreEqual(Math.Round(10.0 / 40 * 256) / 256, rect.StartPoint.X, 0.0001, "x not grid-rounded");
+        Assert.AreEqual(Math.Round(3.0 / 40 * 256) / 256, rect.StartPoint.X, 0.0001, "x not grid-rounded");
+        Assert.AreNotEqual(3.0 / 40, rect.StartPoint.X, "off-grid x should have been quantized");
+    }
+
+    /// <summary>Non-finite geometry must be rejected, not encoded as a degenerate rect.</summary>
+    [TestMethod]
+    public void FillRect_RejectsNonFiniteArguments()
+    {
+        using var session = new NaplpsStreamSession(W, H, prodigy: true);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            session.FillRect(0.1, 0.1, double.NaN, 0.05, 6));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            session.FillRect(double.PositiveInfinity, 0.1, 0.05, 0.05, 6));
     }
 
     /// <summary>A failed append must leave the session unchanged (bytes, counts, pixels).</summary>
