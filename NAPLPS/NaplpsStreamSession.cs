@@ -28,13 +28,14 @@ public sealed class NaplpsStreamSession : IDisposable
     private readonly List<byte> _bytes = [];
     private DrawContext? _draw;
 
-    public NaplpsStreamSession(int width, int height, bool prodigy)
+    public NaplpsStreamSession(int width, int height, bool prodigy, bool transparentBackground = false)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(width, 0);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(height, 0);
         Width = width;
         Height = height;
         Prodigy = prodigy;
+        TransparentBackground = transparentBackground;
     }
 
     public int Width { get; }
@@ -44,6 +45,13 @@ public sealed class NaplpsStreamSession : IDisposable
     /// <summary>Force the Prodigy pipeline (canonical CLUT, MVDI text, authentic
     /// geometry, Prodigy display ratio) regardless of stream auto-detection.</summary>
     public bool Prodigy { get; }
+
+    /// <summary>When true the canvas clears to fully transparent (0,0,0,0) instead of
+    /// opaque black, and only painted pixels carry alpha 255 - the window-overlay model:
+    /// composite by alpha and the page below shows through everything the window stream
+    /// did not paint. Replay-safe by construction (replays repaint over the same
+    /// transparent base). A stream that wants an opaque backdrop draws one.</summary>
+    public bool TransparentBackground { get; }
 
     public NaplpsFormat? Format { get; private set; }
 
@@ -80,7 +88,9 @@ public sealed class NaplpsStreamSession : IDisposable
                 draw.AuthenticGeometry = true;
             }
 
-            draw.ClearCanvas();
+            draw.ClearCanvas(TransparentBackground
+                ? SixLabors.ImageSharp.Color.Transparent
+                : SixLabors.ImageSharp.Color.Black);
             var replayTo = Math.Min(Cursor, format.Commands.Count);
             for (var i = 0; i < replayTo; i++)
             {
@@ -264,12 +274,13 @@ public sealed class NaplpsStreamSession : IDisposable
 
         if (_draw is null)
         {
+            var alpha = TransparentBackground ? (byte)0 : (byte)255;
             for (var i = 0; i < Width * Height * 4; i += 4)
             {
                 destination[i] = 0;
                 destination[i + 1] = 0;
                 destination[i + 2] = 0;
-                destination[i + 3] = 255;
+                destination[i + 3] = alpha;
             }
 
             return;

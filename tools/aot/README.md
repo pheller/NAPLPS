@@ -238,7 +238,7 @@ On Windows the .exe needs `NAPLPS.dll` next to it or on PATH. On Linux/macOS the
 ## Expected output ✅
 
 ```
-NAPLPS library version: 0.13.0
+NAPLPS library version: 0.14.0
 Loaded ../../../Examples/telidraw/hello.nap (35 bytes)
 Parsed 22 commands, 0 errors
 Wrote hello.png (6709 bytes, 1024x768)
@@ -282,7 +282,7 @@ Stateful decoder contexts (`naplps_ctx_*`): an opaque handle owning a persistent
 
 | Symbol | Purpose |
 |---|---|
-| `naplps_ctx_create(w, h, flags)` / `naplps_ctx_destroy(ctx)` | Lifecycle; flags bit 0 = Prodigy pipeline |
+| `naplps_ctx_create(w, h, flags)` / `naplps_ctx_destroy(ctx)` | Lifecycle; flags: bit 0 = Prodigy pipeline, bit 1 = transparent background (window overlays) |
 | `naplps_ctx_reset(ctx)` | Fresh page: clears bytes, decoder state, framebuffer |
 | `naplps_ctx_append(ctx, bytes, len)` | Append stream bytes (transactional); returns command count |
 | `naplps_ctx_command_count(ctx)` | Parsed command count |
